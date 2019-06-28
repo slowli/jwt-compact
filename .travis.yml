@@ -1,0 +1,44 @@
+dist: xenial
+addons:
+  apt:
+    sources:
+      - sourceline: 'ppa:fsgmhoward/shadowsocks-libev'
+    packages:
+      - libsodium-dev
+
+language: rust
+
+branches:
+  only:
+    - master
+    # GitHub release tags (for example "v0.9" or "v0.9.1").
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+    # Branch names endings with "-release" (for example "0.9.0-release").
+    - /-release$/
+
+rust:
+  - 1.35.0
+
+env:
+  global:
+    - RUSTFLAGS="-D warnings"
+    - DEADLINKS_VERS=0.3.0
+
+cache:
+  - cargo
+
+install:
+  - cargo deadlinks -V | grep $DEADLINKS_VERS || cargo install cargo-deadlinks --vers $DEADLINKS_VERS --force
+  - rustup component add rustfmt
+  - rustfmt -V
+  - rustup component add clippy
+  - cargo clippy -V
+
+script:
+  - cargo fmt -- --check
+  - cargo clippy --features secp256k1 --lib --tests -- -D warnings
+  - cargo clippy --no-default-features --features ed25519-dalek --lib --tests -- -D warnings
+  - cargo test --features secp256k1 --lib --tests
+  - cargo test --no-default-features --features ed25519-dalek --lib --tests
+  - cargo test --doc
+  - cargo clean --doc && cargo doc --features secp256k1 --no-deps && cargo deadlinks --dir target/doc

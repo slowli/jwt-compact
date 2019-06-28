@@ -23,7 +23,7 @@
 //!
 //! | Algorithm(s) | Feature | Description |
 //! |--------------|---------|-------------|
-//! | `HS256`, `HS384`, `HS512` | - | Uses use pure Rust [`sha2`] crate |
+//! | `HS256`, `HS384`, `HS512` | - | Uses pure Rust [`sha2`] crate |
 //! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding. Enabled by default |
 //! | `EdDSA` (Ed25519) | [`ed25519-dalek`] | Pure Rust implementation |
 //! | `ES256K` | [`secp256k1`] | Binding for [`libsecp256k1`] |
@@ -62,7 +62,7 @@
 //! ```
 //! # use failure::Error;
 //! use chrono::{Duration, Utc};
-//! use jwt_custom::{prelude::*, alg::{Hs256, Hs256Key}};
+//! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! use serde_derive::*;
 //! use std::convert::TryFrom;
 //!
@@ -114,7 +114,7 @@
 //! # use chrono::Duration;
 //! # use failure::Error;
 //! # use hex_buffer_serde::{Hex as _, HexForm};
-//! # use jwt_custom::{prelude::*, alg::{Hs256, Hs256Key}};
+//! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! # use serde_derive::*;
 //! # use std::convert::TryFrom;
 //! /// Custom claims encoded in the token.
@@ -656,8 +656,17 @@ mod tests {
         signing_key: &A::SigningKey,
         verifying_key: &A::VerifyingKey,
     ) {
-        // Successful case.
         let claims = create_claims();
+
+        // Successful case with a compact token.
+        let token_string = algorithm
+            .compact_token(Header::default(), &claims, signing_key)
+            .unwrap();
+        let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
+        let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
+        assert_eq!(*token.claims(), claims);
+
+        // Successful case.
         let token_string = algorithm
             .token(Header::default(), &claims, signing_key)
             .unwrap();
@@ -761,9 +770,8 @@ mod tests {
         let mut rng = thread_rng();
         let signing_key = loop {
             let bytes: [u8; 32] = rng.gen();
-            match SecretKey::from_slice(&bytes) {
-                Ok(key) => break key,
-                Err(_) => { /* try once again */ }
+            if let Ok(key) = SecretKey::from_slice(&bytes) {
+                break key;
             }
         };
         let context = Secp256k1::new();

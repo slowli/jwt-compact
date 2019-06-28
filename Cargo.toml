@@ -3,6 +3,12 @@ name = "jwt-compact"
 version = "0.1.0"
 authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
 edition = "2018"
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["JWT", "token", "authorization"]
+categories = ["web-programming", "cryptography"]
+description = "Minimalistic JWT implementation with focus on type safety and secure cryptographic primitives"
+repository = "https://github.com/slowli/jwt-compact"
 
 [dependencies]
 base64 = "0.10.1"

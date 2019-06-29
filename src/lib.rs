@@ -474,20 +474,18 @@ impl<'a> UntrustedToken<'a> {
     pub fn header(&self) -> &Header {
         &self.header
     }
+
+    /// Gets the integrity algorithm used to secure the token.
+    pub fn algorithm(&self) -> &str {
+        &self.algorithm
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::alg::*;
-
     use assert_matches::assert_matches;
-    use chrono::{Duration, Utc};
-    use hex_buffer_serde::{Hex as _, HexForm};
-    use rand::thread_rng;
-    use serde_json::json;
-
-    use std::collections::HashMap;
 
     type Obj = serde_json::Map<String, serde_json::Value>;
 
@@ -497,27 +495,6 @@ mod tests {
                                dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
     const HS256_KEY: &str = "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75\
                              aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
-
-    #[test]
-    fn hs256_reference() {
-        //! Example from https://tools.ietf.org/html/rfc7515#appendix-A.1
-
-        let token = UntrustedToken::try_from(HS256_TOKEN).unwrap();
-        assert_eq!(token.algorithm, "HS256");
-
-        let key = base64::decode_config(HS256_KEY, base64::URL_SAFE_NO_PAD).unwrap();
-        let key = Hs256Key::from(&*key);
-        let token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
-        assert_eq!(
-            token.claims().expiration_date.unwrap().timestamp(),
-            1_300_819_380
-        );
-        assert_eq!(token.claims().custom["iss"], json!("joe"));
-        assert_eq!(
-            token.claims().custom["http://example.com/is_root"],
-            json!(true)
-        );
-    }
 
     #[test]
     fn invalid_token_structure() {
@@ -628,155 +605,5 @@ mod tests {
                 claims
             );
         }
-    }
-
-    #[derive(Debug, PartialEq, Serialize, Deserialize)]
-    struct CustomClaims {
-        /// We use a public claim (https://tools.ietf.org/html/rfc7519#section-4.1.2)
-        /// with a custom (de)serializer. This allows to store the `subject` efficiently
-        /// in the CBOR encoding.
-        #[serde(rename = "sub", with = "HexForm")]
-        subject: [u8; 32],
-    }
-
-    fn create_claims() -> Claims<CustomClaims> {
-        let now = Utc::now();
-        let now = now - Duration::nanoseconds(i64::from(now.timestamp_subsec_nanos()));
-
-        Claims {
-            issued_at: Some(now),
-            expiration_date: Some(now + Duration::days(7)),
-            not_before: None,
-            custom: CustomClaims { subject: [1; 32] },
-        }
-    }
-
-    fn test_algorithm<A: Algorithm>(
-        algorithm: &A,
-        signing_key: &A::SigningKey,
-        verifying_key: &A::VerifyingKey,
-    ) {
-        let claims = create_claims();
-
-        // Successful case with a compact token.
-        let token_string = algorithm
-            .compact_token(Header::default(), &claims, signing_key)
-            .unwrap();
-        let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
-        let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
-        assert_eq!(*token.claims(), claims);
-
-        // Successful case.
-        let token_string = algorithm
-            .token(Header::default(), &claims, signing_key)
-            .unwrap();
-        let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
-        let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
-        assert_eq!(*token.claims(), claims);
-
-        // Mutate each bit of the signature.
-        let signature = token_string.rsplit('.').next().unwrap();
-        let signature_start = token_string.rfind('.').unwrap() + 1;
-        let signature = base64::decode_config(signature, base64::URL_SAFE_NO_PAD).unwrap();
-        for i in 0..(signature.len() * 8) {
-            let mut mangled_signature = signature.clone();
-            mangled_signature[i / 8] ^= 1 << (i % 8) as u8;
-            let mangled_signature =
-                base64::encode_config(&mangled_signature, base64::URL_SAFE_NO_PAD);
-
-            let mut mangled_str = token_string.clone();
-            mangled_str.replace_range(signature_start.., &mangled_signature);
-            let token = UntrustedToken::try_from(mangled_str.as_str()).unwrap();
-            match algorithm
-                .validate_integrity::<Obj>(&token, verifying_key)
-                .unwrap_err()
-            {
-                ValidationError::InvalidSignature | ValidationError::MalformedSignature(_) => {}
-                e => panic!("{:?}", e),
-            }
-        }
-
-        // Mutate header.
-        // Mutate claims.
-    }
-
-    #[test]
-    fn hs256_algorithm() {
-        let key = Hs256Key::generate(&mut thread_rng());
-        test_algorithm(&Hs256, &key, &key);
-    }
-
-    #[test]
-    fn hs384_algorithm() {
-        let key = Hs384Key::generate(&mut thread_rng());
-        test_algorithm(&Hs384, &key, &key);
-    }
-
-    #[test]
-    fn hs512_algorithm() {
-        let key = Hs512Key::generate(&mut thread_rng());
-        test_algorithm(&Hs512, &key, &key);
-    }
-
-    #[test]
-    fn compact_token_hs256() {
-        let claims = create_claims();
-        let key = Hs256Key::generate(&mut thread_rng());
-        let long_token_str = Hs256.token(Header::default(), &claims, &key).unwrap();
-        let token_str = Hs256
-            .compact_token(Header::default(), &claims, &key)
-            .unwrap();
-        assert!(
-            token_str.len() < long_token_str.len() - 40,
-            "Full token length = {}, compact token length = {}",
-            long_token_str.len(),
-            token_str.len(),
-        );
-        let untrusted_token = UntrustedToken::try_from(&*token_str).unwrap();
-        let token = Hs256.validate_integrity(&untrusted_token, &key).unwrap();
-        assert_eq!(*token.claims(), claims);
-
-        // Check that we can collect unknown / hard to parse claims into `Claims.custom`.
-        let generic_token: Token<HashMap<String, serde_cbor::Value>> =
-            Hs256.validate_integrity(&untrusted_token, &key).unwrap();
-        assert_matches!(
-            generic_token.claims().custom["sub"],
-            serde_cbor::Value::Bytes(_)
-        );
-    }
-
-    #[cfg(feature = "exonum-crypto")]
-    #[test]
-    fn ed25519_algorithm() {
-        use exonum_crypto::gen_keypair;
-        let (verifying_key, signing_key) = gen_keypair();
-        test_algorithm(&Ed25519, &signing_key, &verifying_key);
-    }
-
-    #[cfg(feature = "ed25519-dalek")]
-    #[test]
-    fn ed25519_algorithm() {
-        use ed25519_dalek::Keypair;
-        let keypair = Keypair::generate(&mut thread_rng());
-        test_algorithm(&Ed25519, &keypair, &keypair.public);
-    }
-
-    #[cfg(feature = "secp256k1")]
-    #[test]
-    fn es256k_algorithm() {
-        use rand::Rng;
-        use secp256k1::{PublicKey, Secp256k1, SecretKey};
-
-        let mut rng = thread_rng();
-        let signing_key = loop {
-            let bytes: [u8; 32] = rng.gen();
-            if let Ok(key) = SecretKey::from_slice(&bytes) {
-                break key;
-            }
-        };
-        let context = Secp256k1::new();
-        let verifying_key = PublicKey::from_secret_key(&context, &signing_key);
-        let es256k: Es256k<sha2::Sha256> = Es256k::new(context);
-        test_algorithm(&es256k, &signing_key, &verifying_key);
     }
 }

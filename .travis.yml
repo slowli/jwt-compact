@@ -7,6 +7,8 @@ addons:
       - libsodium-dev
 
 language: rust
+rust:
+  - 1.35.0
 
 branches:
   only:
@@ -16,13 +18,10 @@ branches:
     # Branch names endings with "-release" (for example "0.9.0-release").
     - /-release$/
 
-rust:
-  - 1.35.0
-
 env:
   global:
     - RUSTFLAGS="-D warnings"
-    - DEADLINKS_VERS=0.3.0
+    - DEADLINKS_VERS=0.4.1
 
 cache:
   - cargo
@@ -42,3 +41,11 @@ script:
   - cargo test --no-default-features --features ed25519-dalek --lib --tests
   - cargo test --doc
   - cargo clean --doc && cargo doc --features secp256k1 --no-deps && cargo deadlinks --dir target/doc
+
+deploy:
+  provider: pages
+  local-dir: target/doc
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  on:
+    branch: master

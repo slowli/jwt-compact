@@ -109,7 +109,8 @@ fn hs512_reference() {
 #[cfg(feature = "secp256k1")]
 #[test]
 fn es256k_reference() {
-    //! Generated using https://github.com/uport-project/did-jwt
+    //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
+    //! in the repository.
 
     use secp256k1::PublicKey;
 
@@ -133,6 +134,38 @@ fn es256k_reference() {
     assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_561_814_788);
     let expected_claims = json!({
         "bla": "bla",
+        "iss": "did:uport:2nQtiQG6Cgm1GYTBaaKAgr76uY7iSexUkqX",
+    });
+    assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
+}
+
+#[cfg(any(feature = "exonum-crypto", feature = "ed25519-dalek"))]
+#[test]
+fn ed25519_reference() {
+    //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
+    //! in the repository.
+
+    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.\
+                         eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzcyI6ImRpZDp1cG9yd\
+                         DoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.\
+                         Du1gZvmrmykgWnqtBFvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgru\
+                         J3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
+    const KEY: &str = "06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
+
+    #[cfg(feature = "exonum-crypto")]
+    let bytes_to_pk = exonum_crypto::PublicKey::from_slice;
+    #[cfg(feature = "ed25519-dalek")]
+    let bytes_to_pk = ed25519_dalek::PublicKey::from_bytes;
+    let public_key = bytes_to_pk(&hex::decode(KEY).unwrap()).unwrap();
+    let token = UntrustedToken::try_from(TOKEN).unwrap();
+    assert_eq!(token.algorithm(), "Ed25519");
+
+    let token = Ed25519::with_specific_name()
+        .validate_integrity::<Obj>(&token, &public_key)
+        .unwrap();
+    assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_561_815_526);
+    let expected_claims = json!({
+        "foo": "bar",
         "iss": "did:uport:2nQtiQG6Cgm1GYTBaaKAgr76uY7iSexUkqX",
     });
     assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
@@ -183,7 +216,7 @@ fn test_algorithm<A: Algorithm>(
     }
 
     // Mutate header.
-    let mangled_header = format!(r#"{{"alg":"{}","typ":"JWT"}}"#, A::NAME);
+    let mangled_header = format!(r#"{{"alg":"{}","typ":"JWT"}}"#, algorithm.name());
     let mangled_header = base64::encode_config(&mangled_header, base64::URL_SAFE_NO_PAD);
     let header_end = token_string.find('.').unwrap();
     assert_ne!(mangled_header, &token_string[..header_end]);

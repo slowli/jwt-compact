@@ -65,7 +65,9 @@ where
     type VerifyingKey = PublicKey;
     type Signature = Signature;
 
-    const NAME: &'static str = "ES256K";
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("ES256K")
+    }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let mut digest = D::default();

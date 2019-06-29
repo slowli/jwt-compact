@@ -196,8 +196,8 @@ pub trait Algorithm {
     /// Signature produced by the algorithm.
     type Signature: AlgorithmSignature;
 
-    /// Name of the algorithm mentioned in the `alg` field of the JWT header.
-    const NAME: &'static str;
+    /// Returns the name of this algorithm, as mentioned in the `alg` field of the JWT header.
+    fn name(&self) -> Cow<'static, str>;
 
     /// Signs a `message` with the `signing_key`.
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature;
@@ -209,6 +209,47 @@ pub trait Algorithm {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool;
+}
+
+/// Renaming of the algorithm.
+#[derive(Debug, Clone, Copy)]
+pub struct Renamed<A> {
+    inner: A,
+    name: &'static str,
+}
+
+impl<A: Algorithm> Renamed<A> {
+    /// Creates a renamed algorithm.
+    pub fn new(algorithm: A, new_name: &'static str) -> Self {
+        Self {
+            inner: algorithm,
+            name: new_name,
+        }
+    }
+}
+
+impl<A: Algorithm> Algorithm for Renamed<A> {
+    type SigningKey = A::SigningKey;
+    type VerifyingKey = A::VerifyingKey;
+    type Signature = A::Signature;
+
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed(self.name)
+    }
+
+    fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
+        self.inner.sign(signing_key, message)
+    }
+
+    fn verify_signature(
+        &self,
+        signature: &Self::Signature,
+        verifying_key: &Self::VerifyingKey,
+        message: &[u8],
+    ) -> bool {
+        self.inner
+            .verify_signature(signature, verifying_key, message)
+    }
 }
 
 /// Automatically implemented extensions of the `Algorithm` trait.
@@ -254,7 +295,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         T: Serialize,
     {
         let complete_header = CompleteHeader {
-            algorithm: Self::NAME.to_owned(),
+            algorithm: self.name(),
             content_type: None,
             inner: header,
         };
@@ -286,7 +327,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         T: Serialize,
     {
         let complete_header = CompleteHeader {
-            algorithm: Self::NAME.to_owned(),
+            algorithm: self.name(),
             content_type: Some("CBOR".to_owned()),
             inner: header,
         };
@@ -316,7 +357,7 @@ impl<A: Algorithm> AlgorithmExt for A {
     where
         T: DeserializeOwned,
     {
-        if Self::NAME != token.algorithm {
+        if self.name() != token.algorithm {
             return Err(ValidationError::AlgorithmMismatch);
         }
 
@@ -376,9 +417,9 @@ pub struct Header {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct CompleteHeader {
+struct CompleteHeader<'a> {
     #[serde(rename = "alg")]
-    algorithm: String,
+    algorithm: Cow<'a, str>,
 
     #[serde(rename = "cty", default, skip_serializing_if = "Option::is_none")]
     content_type: Option<String>,
@@ -458,7 +499,7 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                 Ok(Self {
                     signed_data: s.rsplitn(2, '.').nth(1).unwrap().as_bytes(),
                     header: header.inner,
-                    algorithm: header.algorithm,
+                    algorithm: header.algorithm.into_owned(),
                     content_type,
                     serialized_claims,
                     signature: decoded_signature,

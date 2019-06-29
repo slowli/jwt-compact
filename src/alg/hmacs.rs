@@ -84,7 +84,9 @@ impl Algorithm for Hs256 {
     type VerifyingKey = Hs256Key;
     type Signature = MacResult<U32>;
 
-    const NAME: &'static str = "HS256";
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("HS256")
+    }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let mut hmac =
@@ -132,7 +134,9 @@ impl Algorithm for Hs384 {
     type VerifyingKey = Hs384Key;
     type Signature = MacResult<U48>;
 
-    const NAME: &'static str = "HS384";
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("HS384")
+    }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let mut hmac =
@@ -180,7 +184,9 @@ impl Algorithm for Hs512 {
     type VerifyingKey = Hs512Key;
     type Signature = MacResult<U64>;
 
-    const NAME: &'static str = "HS512";
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("HS512")
+    }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let mut hmac =

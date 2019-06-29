@@ -14,10 +14,10 @@ impl AlgorithmSignature for Signature {
     }
 }
 
-/// Integrity algorithm using Edwards digital signatures on the Ed25519 elliptic curve.
+/// Integrity algorithm using digital signatures on the Ed25519 elliptic curve.
 ///
-/// The name of the algorithm is specified as `EdDSA` as per [IANA registry].
-/// `with_specific_name()` to switch to non-standard `Ed25519`.
+/// The name of the algorithm is specified as `EdDSA` as per the [IANA registry].
+/// Use `with_specific_name()` to switch to non-standard `Ed25519`.
 ///
 /// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

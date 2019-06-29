@@ -18,7 +18,7 @@ impl AlgorithmSignature for Signature {
     }
 }
 
-/// `ES256K` algorithm implementing ECDSA on the secp256k1 curve.
+/// Algorithm implementing elliptic curve digital signatures (ECDSA) on the secp256k1 curve.
 ///
 /// The algorithm does not fix the choice of the message digest algorithm; instead,
 /// it is provided as a type parameter. SHA-256 is the default parameter value,

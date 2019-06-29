@@ -108,7 +108,7 @@
 //! # } // end main()
 //! ```
 //!
-//! Compact JWT:
+//! ## Compact JWT
 //!
 //! ```
 //! # use chrono::Duration;
@@ -161,7 +161,7 @@ mod claims;
 mod error;
 
 pub use crate::{
-    claims::{Claims, TimeOptions},
+    claims::{Claims, Empty, TimeOptions},
     error::{CreationError, ParseError, ValidationError},
 };
 
@@ -211,7 +211,27 @@ pub trait Algorithm {
     ) -> bool;
 }
 
-/// Renaming of the algorithm.
+/// Algorithm that uses a custom name when creating and validating tokens.
+///
+/// # Examples
+///
+/// ```
+/// use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*, Empty, Renamed};
+/// # use std::convert::TryFrom;
+///
+/// let alg = Renamed::new(Hs256, "HS2");
+/// let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+/// let token_string = alg.token(Header::default(), &Claims::empty(), &key).unwrap();
+///
+/// let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
+/// assert_eq!(token.algorithm(), "HS2");
+/// // Note that the created token cannot be verified against the original algorithm
+/// // since the algorithm name recorded in the token header doesn't match.
+/// assert!(Hs256.validate_integrity::<Empty>(&token, &key).is_err());
+///
+/// // ...but the modified alg is working as expected.
+/// assert!(alg.validate_integrity::<Empty>(&token, &key).is_ok());
+/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Renamed<A> {
     inner: A,

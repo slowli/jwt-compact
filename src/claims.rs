@@ -21,6 +21,7 @@ impl Default for TimeOptions {
     }
 }
 
+/// A structure with no fields that can be used as a type parameter to `Claims`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Empty {}
 
@@ -29,6 +30,8 @@ pub struct Empty {}
 /// Claims are comprised of a "standard" part (`exp`, `nbf` and `iat` claims as per [JWT spec]),
 /// and custom fields. `iss`, `sub` and `aud` claims are not in the standard part
 /// due to a variety of data types they can be reasonably represented by.
+///
+/// [JWT spec]: https://tools.ietf.org/html/rfc7519#section-4.1
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Claims<T> {
     /// Expiration date of the token.
@@ -86,7 +89,16 @@ impl<T> Claims<T> {
         }
     }
 
-    /// Sets `exp` and `iat` claims.
+    /// Sets `expiration_date` claim so that the token has the specified `duration`.
+    pub fn set_duration(self, duration: Duration) -> Self {
+        Self {
+            expiration_date: Some(Utc::now() + duration),
+            ..self
+        }
+    }
+
+    /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time,
+    /// and the second to match the specified `duration` of the token.
     pub fn set_duration_and_issuance(self, duration: Duration) -> Self {
         let issued_at = Utc::now();
         Self {

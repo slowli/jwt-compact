@@ -1,12 +1,12 @@
 use clear_on_drop::clear::Clear;
 use failure::bail;
 use hmac::crypto_mac::generic_array::{
-    typenum::{U32, U48, U64},
+    typenum::{Unsigned, U32, U48, U64},
     GenericArray,
 };
 use hmac::{crypto_mac::MacResult, Hmac, Mac as _};
 use rand_core::{CryptoRng, RngCore};
-use sha2::{Sha256, Sha384, Sha512};
+use sha2::{digest::BlockInput, Sha256, Sha384, Sha512};
 use smallvec::{smallvec, SmallVec};
 
 use std::{borrow::Cow, fmt};
@@ -14,8 +14,11 @@ use std::{borrow::Cow, fmt};
 use crate::{Algorithm, AlgorithmSignature};
 
 macro_rules! define_hmac_key {
-    ($alg_description:expr => $name:ident, $buffer_size:expr, $default_size:expr) => {
-        #[doc = $alg_description]
+    (
+        $(#[$($attr:meta)+])*
+        struct $name:ident<$digest:ident, $out_size:ident>([u8; $buffer_size:expr]);
+    ) => {
+        $(#[$($attr)+])*
         #[derive(Clone)]
         pub struct $name(pub(crate) SmallVec<[u8; $buffer_size]>);
 
@@ -34,9 +37,17 @@ macro_rules! define_hmac_key {
         impl $name {
             /// Generates a random key using a cryptographically secure RNG.
             pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> Self {
-                let mut key = $name(smallvec![0; $default_size]);
+                let mut key = $name(smallvec![0; <$digest as BlockInput>::BlockSize::to_usize()]);
                 rng.fill_bytes(&mut key.0);
                 key
+            }
+
+            /// Computes HMAC with this key and the specified `message`.
+            pub fn hmac(&self, message: impl AsRef<[u8]>) -> MacResult<$out_size> {
+                let mut hmac = Hmac::<$digest>::new_varkey(&self.0)
+                    .expect("HMACs work with any key size");
+                hmac.input(message.as_ref());
+                hmac.result()
             }
         }
 
@@ -51,12 +62,27 @@ macro_rules! define_hmac_key {
                 &self.0
             }
         }
+
+        impl AsMut<[u8]> for $name {
+            fn as_mut(&mut self) -> &mut [u8] {
+                &mut self.0
+            }
+        }
     };
 }
 
-define_hmac_key!("Signing / verifying key for `HS256` algorithm." => Hs256Key, 64, 64);
-define_hmac_key!("Signing / verifying key for `HS384` algorithm." => Hs384Key, 128, 96);
-define_hmac_key!("Signing / verifying key for `HS512` algorithm" => Hs512Key, 128, 128);
+define_hmac_key! {
+    /// Signing / verifying key for `HS256` algorithm. Zeroed on drop.
+    struct Hs256Key<Sha256, U32>([u8; 64]);
+}
+define_hmac_key! {
+    /// Signing / verifying key for `HS384` algorithm. Zeroed on drop.
+    struct Hs384Key<Sha384, U48>([u8; 128]);
+}
+define_hmac_key! {
+    /// Signing / verifying key for `HS512` algorithm. Zeroed on drop.
+    struct Hs512Key<Sha512, U64>([u8; 128]);
+}
 
 /// `HS256` signing algorithm.
 ///
@@ -89,10 +115,7 @@ impl Algorithm for Hs256 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut hmac =
-            Hmac::<Sha256>::new_varkey(&signing_key.0).expect("HMACs work with any key size");
-        hmac.input(message);
-        hmac.result()
+        signing_key.hmac(message)
     }
 
     fn verify_signature(
@@ -101,10 +124,7 @@ impl Algorithm for Hs256 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut hmac =
-            Hmac::<Sha256>::new_varkey(&verifying_key.0).expect("HMACs work with any key size");
-        hmac.input(message);
-        hmac.result() == *signature
+        verifying_key.hmac(message) == *signature
     }
 }
 
@@ -139,10 +159,7 @@ impl Algorithm for Hs384 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut hmac =
-            Hmac::<Sha384>::new_varkey(&signing_key.0).expect("HMACs work with any key size");
-        hmac.input(message);
-        hmac.result()
+        signing_key.hmac(message)
     }
 
     fn verify_signature(
@@ -151,10 +168,7 @@ impl Algorithm for Hs384 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut hmac =
-            Hmac::<Sha384>::new_varkey(&verifying_key.0).expect("HMACs work with any key size");
-        hmac.input(message);
-        hmac.result() == *signature
+        verifying_key.hmac(message) == *signature
     }
 }
 
@@ -189,10 +203,7 @@ impl Algorithm for Hs512 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut hmac =
-            Hmac::<Sha512>::new_varkey(&signing_key.0).expect("HMACs work with any key size");
-        hmac.input(message);
-        hmac.result()
+        signing_key.hmac(message)
     }
 
     fn verify_signature(
@@ -201,9 +212,6 @@ impl Algorithm for Hs512 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut hmac =
-            Hmac::<Sha512>::new_varkey(&verifying_key.0).expect("HMACs work with any key size");
-        hmac.input(message);
-        hmac.result() == *signature
+        verifying_key.hmac(message) == *signature
     }
 }

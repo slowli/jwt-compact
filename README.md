@@ -15,8 +15,8 @@ See the crate docs for the examples of usage.
 
 ## Features
 
-- Algorithm-specific signing and verifying keys (i.e., data safety).
-- Easily to extend to new algorithms.
+- Algorithm-specific signing and verifying keys (i.e., type safety).
+- Easy to extend to support new signing algorithms.
 - The crate supports more compact [CBOR] encoding of the claims.
 - `HS256`, `HS384` and `HS512` algorithms are implemented via pure Rust [`sha2`] crate.
 - The crate supports `EdDSA` algorithm with the Ed25519 elliptic curve, and `ES256K` algorithm
@@ -28,7 +28,7 @@ See the crate docs for the examples of usage.
 
 - Support of RSA (`RS*` and `PS*`) and standard elliptic curve (`ES*`) algorithms.
 - Built-in checks of some claims (e.g., `iss` – the token issuer).
-  This is semi-intentional: depending on the use case, such claims can have different semantics
+  This is intentional: depending on the use case, such claims can have different semantics
   and thus be represented by different datatypes (e.g., `iss` may be a human-readable short ID,
   a hex-encoded key digest, etc.)
 

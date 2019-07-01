@@ -59,6 +59,7 @@ jobs:
             --extern-html-root-url failure=https://docs.rs/failure/0.1.5 \
             --extern-html-root-url digest=https://docs.rs/digest/0.8.0 \
             --extern-html-root-url hmac=https://docs.rs/hmac/0.7.0 \
+            --extern-html-root-url crypto-mac=https://docs.rs/crypto-mac/0.7.0 \
             --extern-html-root-url secp256k1=https://docs.rs/secp256k1/0.12.0 \
             --extern-html-root-url serde_json=https://docs.rs/serde_json/1.0.39 \
             --extern-html-root-url serde_cbor=https://docs.rs/serde_cbor/0.9.0

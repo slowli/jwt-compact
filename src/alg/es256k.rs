@@ -24,6 +24,8 @@ impl AlgorithmSignature for Signature {
 /// it is provided as a type parameter. SHA-256 is the default parameter value,
 /// but it can be set to any cryptographically secure hash function with 32-byte output
 /// (e.g., SHA3-256).
+///
+/// *This type is available if the crate is built with the `secp256k1` feature.*
 #[derive(Debug)]
 pub struct Es256k<D = Sha256> {
     context: Secp256k1<All>,

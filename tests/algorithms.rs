@@ -330,7 +330,7 @@ fn ed25519_algorithm() {
 #[test]
 fn ed25519_algorithm() {
     use ed25519_dalek::Keypair;
-    let keypair = Keypair::generate(&mut thread_rng());
+    let keypair = Keypair::generate(&mut rand6::thread_rng());
     test_algorithm(&Ed25519, &keypair, &keypair.public);
 }
 

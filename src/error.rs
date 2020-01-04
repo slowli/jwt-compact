@@ -1,4 +1,4 @@
-use failure_derive::*;
+use failure::*;
 
 /// Errors that may occur during token parsing.
 #[derive(Debug, Fail)]

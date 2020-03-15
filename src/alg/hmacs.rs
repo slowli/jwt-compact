@@ -1,4 +1,3 @@
-use clear_on_drop::clear::Clear;
 use failure::bail;
 use hmac::crypto_mac::generic_array::{
     typenum::{Unsigned, U32, U48, U64},
@@ -8,6 +7,7 @@ use hmac::{crypto_mac::MacResult, Hmac, Mac as _};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::BlockInput, Sha256, Sha384, Sha512};
 use smallvec::{smallvec, SmallVec};
+use zeroize::Zeroize;
 
 use std::{borrow::Cow, fmt};
 
@@ -19,18 +19,13 @@ macro_rules! define_hmac_key {
         struct $name:ident<$digest:ident, $out_size:ident>([u8; $buffer_size:expr]);
     ) => {
         $(#[$($attr)+])*
-        #[derive(Clone)]
+        #[derive(Clone, Zeroize)]
+        #[zeroize(drop)]
         pub struct $name(pub(crate) SmallVec<[u8; $buffer_size]>);
 
         impl fmt::Debug for $name {
             fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.debug_tuple(stringify!($name)).field(&"_").finish()
-            }
-        }
-
-        impl Drop for $name {
-            fn drop(&mut self) {
-                Clear::clear(&mut self.0);
             }
         }
 

@@ -63,7 +63,7 @@
 //! # use failure::Error;
 //! use chrono::{Duration, Utc};
 //! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
-//! use serde_derive::*;
+//! use serde::{Serialize, Deserialize};
 //! use std::convert::TryFrom;
 //!
 //! /// Custom claims encoded in the token.
@@ -115,7 +115,7 @@
 //! # use failure::Error;
 //! # use hex_buffer_serde::{Hex as _, HexForm};
 //! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
-//! # use serde_derive::*;
+//! # use serde::{Serialize, Deserialize};
 //! # use std::convert::TryFrom;
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -150,8 +150,7 @@
 
 #![deny(missing_debug_implementations, missing_docs, bare_trait_objects)]
 
-use serde::{de::DeserializeOwned, Serialize};
-use serde_derive::*;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
 use std::{borrow::Cow, convert::TryFrom};

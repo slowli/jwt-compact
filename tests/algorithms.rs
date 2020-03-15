@@ -3,7 +3,7 @@ use chrono::{Duration, Utc};
 use hex_buffer_serde::{Hex as _, HexForm};
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 use rand::thread_rng;
-use serde_derive::*;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use std::{collections::HashMap, convert::TryFrom};
@@ -231,7 +231,7 @@ fn test_algorithm<A: Algorithm>(
     // Mutate claims.
     let claims_string = base64::encode_config(
         &serde_json::to_vec(&{
-            let mut mangled_claims = claims.clone();
+            let mut mangled_claims = claims;
             let issued_at = mangled_claims.issued_at.as_mut().unwrap();
             *issued_at = *issued_at + Duration::seconds(1);
             mangled_claims
@@ -330,7 +330,10 @@ fn ed25519_algorithm() {
 #[test]
 fn ed25519_algorithm() {
     use ed25519_dalek::Keypair;
-    let keypair = Keypair::generate(&mut rand6::thread_rng());
+    use rand::rngs::OsRng;
+
+    let mut csprng = OsRng {};
+    let keypair = Keypair::generate(&mut csprng);
     test_algorithm(&Ed25519, &keypair, &keypair.public);
 }
 

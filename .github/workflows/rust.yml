@@ -69,4 +69,4 @@ jobs:
           args: --no-default-features --features ed25519-dalek --lib --tests
 
       - name: Check docs
-        run: cargo clean --doc && cargo doc --all-features --no-deps && cargo deadlinks --dir target/doc
+        run: cargo clean --doc && cargo doc --features secp256k1 --no-deps && cargo deadlinks --dir target/doc

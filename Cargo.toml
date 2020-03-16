@@ -18,22 +18,26 @@ repository = "https://github.com/slowli/jwt-compact"
 features = ["secp256k1"]
 
 [dependencies]
+# Public dependencies (present in the public API).
+anyhow = "1.0.27"
 base64 = "0.12.0"
 chrono = "0.4.11"
-failure = "0.1.7"
 rand_core = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.11.1"
 serde_json = "1.0"
-smallvec = "1.2"
-zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
-# Crypto backends
+# Crypto backends (all public dependencies).
 hmac = "0.7.1"
 sha2 = "0.8.1"
-exonum-crypto = { version = "0.12.0", optional = true }
+exonum-crypto = { version = "1.0.0-rc.2", optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", optional = true }
 secp256k1 = { version = "0.17.2", optional = true }
+
+# Private dependencies (not exposed in the public API).
+smallvec = "1.2"
+thiserror = "1.0.11"
+zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 [dev-dependencies]
 assert_matches = "1.3"

@@ -9,7 +9,7 @@ use std::{borrow::Cow, marker::PhantomData};
 use crate::{Algorithm, AlgorithmSignature};
 
 impl AlgorithmSignature for Signature {
-    fn try_from_slice(slice: &[u8]) -> Result<Self, failure::Error> {
+    fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         Signature::from_compact(slice).map_err(Into::into)
     }
 

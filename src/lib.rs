@@ -60,7 +60,6 @@
 //! Basic JWT lifecycle:
 //!
 //! ```
-//! # use failure::Error;
 //! use chrono::{Duration, Utc};
 //! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! use serde::{Serialize, Deserialize};
@@ -75,7 +74,7 @@
 //!     subject: String,
 //! }
 //!
-//! # fn main() -> Result<(), Error> {
+//! # fn main() -> anyhow::Result<()> {
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
 //! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
 //! // Create a token.
@@ -112,7 +111,6 @@
 //!
 //! ```
 //! # use chrono::Duration;
-//! # use failure::Error;
 //! # use hex_buffer_serde::{Hex as _, HexForm};
 //! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! # use serde::{Serialize, Deserialize};
@@ -128,7 +126,7 @@
 //!     subject: [u8; 32],
 //! }
 //!
-//! # fn main() -> Result<(), Error> {
+//! # fn main() -> anyhow::Result<()> {
 //! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(Duration::days(7));
@@ -179,7 +177,7 @@ const SIGNATURE_SIZE: usize = 128;
 pub trait AlgorithmSignature: Sized {
     /// Attempts to restore a signature from a byte slice. This method may fail
     /// if the slice is malformed (e.g., has a wrong length).
-    fn try_from_slice(slice: &[u8]) -> Result<Self, failure::Error>;
+    fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self>;
 
     /// Represents this signature as bytes.
     fn as_bytes(&self) -> Cow<[u8]>;

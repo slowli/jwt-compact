@@ -56,7 +56,7 @@ jobs:
           cargo rustdoc --features secp256k1 -- -Z unstable-options \
             --extern-html-root-url base64=https://docs.rs/base64/~0.12 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/~0.12 \
-            --extern-html-root-url failure=https://docs.rs/failure/~0.1 \
+            --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \
             --extern-html-root-url digest=https://docs.rs/digest/~0.8 \
             --extern-html-root-url hmac=https://docs.rs/hmac/~0.7 \
             --extern-html-root-url crypto-mac=https://docs.rs/crypto-mac/~0.7 \

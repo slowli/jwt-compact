@@ -60,16 +60,13 @@ jobs:
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
-          command: test --features secp256k1
+          command: test
+          args: --features secp256k1
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
-          command: test --no-default-features --features ed25519-dalek --lib --tests
-      - name: Run example
-        uses: actions-rs/cargo@v1
-        with:
-          command: run
-          args: --example ed25519_dalek --no-default-features
+          command: test
+          args: --no-default-features --features ed25519-dalek --lib --tests
 
       - name: Check docs
         run: cargo clean --doc && cargo doc --all-features --no-deps && cargo deadlinks --dir target/doc

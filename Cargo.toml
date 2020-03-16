@@ -1,7 +1,10 @@
 [package]
 name = "jwt-compact"
 version = "0.1.0"
-authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
+authors = [
+  "Alex Ostrovski <ostrovski.alex@gmail.com>",
+  "Akhil Velagapudi <akhilvelagapudi@gmail.com>",
+]
 edition = "2018"
 readme = "README.md"
 license = "Apache-2.0"

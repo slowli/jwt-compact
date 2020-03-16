@@ -13,6 +13,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install packages
+        run: |
+          sudo -E apt-add-repository -y 'ppa:fsgmhoward/shadowsocks-libev'
+          sudo apt-get update
+          sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
+
       - name: Cache cargo build
         uses: actions/cache@v1
         with:

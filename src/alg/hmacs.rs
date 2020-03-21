@@ -1,4 +1,4 @@
-use failure::bail;
+use anyhow::bail;
 use hmac::crypto_mac::generic_array::{
     typenum::{Unsigned, U32, U48, U64},
     GenericArray,
@@ -88,7 +88,7 @@ define_hmac_key! {
 pub struct Hs256;
 
 impl AlgorithmSignature for MacResult<U32> {
-    fn try_from_slice(bytes: &[u8]) -> Result<Self, failure::Error> {
+    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() != 32 {
             bail!("Invalid signature length");
         }
@@ -132,7 +132,7 @@ impl Algorithm for Hs256 {
 pub struct Hs384;
 
 impl AlgorithmSignature for MacResult<U48> {
-    fn try_from_slice(bytes: &[u8]) -> Result<Self, failure::Error> {
+    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() != 48 {
             bail!("Invalid signature length");
         }
@@ -176,7 +176,7 @@ impl Algorithm for Hs384 {
 pub struct Hs512;
 
 impl AlgorithmSignature for MacResult<U64> {
-    fn try_from_slice(bytes: &[u8]) -> Result<Self, failure::Error> {
+    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() != 64 {
             bail!("Invalid signature length");
         }

@@ -1,12 +1,12 @@
+use anyhow::format_err;
 use exonum_crypto::{sign, verify, PublicKey, SecretKey, Signature};
-use failure::format_err;
 
 use std::borrow::Cow;
 
 use crate::{Algorithm, AlgorithmSignature, Renamed};
 
 impl AlgorithmSignature for Signature {
-    fn try_from_slice(bytes: &[u8]) -> Result<Self, failure::Error> {
+    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         Self::from_slice(bytes).ok_or_else(|| format_err!("Invalid signature length"))
     }
 

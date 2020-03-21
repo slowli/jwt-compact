@@ -1,0 +1,54 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Install packages
+        run: |
+          sudo -E apt-add-repository -y 'ppa:fsgmhoward/shadowsocks-libev'
+          sudo apt-get update
+          sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
+
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2020-03-10
+          profile: minimal
+          override: true
+
+      - name: Build docs
+        run: |
+          cargo clean --doc && \
+          cargo rustdoc --features secp256k1 -- -Z unstable-options \
+            --extern-html-root-url base64=https://docs.rs/base64/~0.12 \
+            --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0-rc.2 \
+            --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \
+            --extern-html-root-url digest=https://docs.rs/digest/~0.8 \
+            --extern-html-root-url hmac=https://docs.rs/hmac/~0.7 \
+            --extern-html-root-url crypto-mac=https://docs.rs/crypto-mac/~0.7 \
+            --extern-html-root-url secp256k1=https://docs.rs/secp256k1/~0.17 \
+            --extern-html-root-url serde_json=https://docs.rs/serde_json/~1 \
+            --extern-html-root-url serde_cbor=https://docs.rs/serde_cbor/~0.11
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: target/doc

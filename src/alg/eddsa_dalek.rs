@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use crate::{Algorithm, AlgorithmSignature, Renamed};
 
 impl AlgorithmSignature for Signature {
-    fn try_from_slice(bytes: &[u8]) -> Result<Self, failure::Error> {
+    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         Self::from_bytes(bytes).map_err(Into::into)
     }
 

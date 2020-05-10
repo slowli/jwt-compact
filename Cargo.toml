@@ -19,8 +19,8 @@ features = ["secp256k1"]
 
 [dependencies]
 # Public dependencies (present in the public API).
-anyhow = "1.0.27"
-base64 = "0.12.0"
+anyhow = "1.0.28"
+base64 = "0.12.1"
 chrono = "0.4.11"
 rand_core = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -34,13 +34,13 @@ ed25519-dalek = { version = "1.0.0-pre.3", optional = true }
 secp256k1 = { version = "0.17.2", optional = true }
 
 # Private dependencies (not exposed in the public API).
-smallvec = "1.2"
-thiserror = "1.0.11"
+smallvec = "1.4.0"
+thiserror = "1.0.16"
 zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 # `exonum-crypto` backend (public dependency).
 [dependencies.exonum-crypto]
-version = "1.0.0-rc.2"
+version = "1.0.0"
 default-features = false
 features = ["sodiumoxide-crypto"]
 optional = true

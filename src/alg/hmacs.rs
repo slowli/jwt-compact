@@ -1,9 +1,6 @@
 use anyhow::bail;
-use hmac::crypto_mac::generic_array::{
-    typenum::{Unsigned, U32, U48, U64},
-    GenericArray,
-};
-use hmac::{crypto_mac::MacResult, Hmac, Mac as _};
+use hmac::crypto_mac::generic_array::{typenum::Unsigned, GenericArray};
+use hmac::{crypto_mac, Hmac, Mac as _, NewMac};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{digest::BlockInput, Sha256, Sha384, Sha512};
 use smallvec::{smallvec, SmallVec};
@@ -16,7 +13,7 @@ use crate::{Algorithm, AlgorithmSignature};
 macro_rules! define_hmac_key {
     (
         $(#[$($attr:meta)+])*
-        struct $name:ident<$digest:ident, $out_size:ident>([u8; $buffer_size:expr]);
+        struct $name:ident<$digest:ident>([u8; $buffer_size:expr]);
     ) => {
         $(#[$($attr)+])*
         #[derive(Clone, Zeroize)]
@@ -38,11 +35,11 @@ macro_rules! define_hmac_key {
             }
 
             /// Computes HMAC with this key and the specified `message`.
-            pub fn hmac(&self, message: impl AsRef<[u8]>) -> MacResult<$out_size> {
+            pub fn hmac(&self, message: impl AsRef<[u8]>) -> crypto_mac::Output<Hmac<$digest>> {
                 let mut hmac = Hmac::<$digest>::new_varkey(&self.0)
                     .expect("HMACs work with any key size");
-                hmac.input(message.as_ref());
-                hmac.result()
+                hmac.update(message.as_ref());
+                hmac.finalize()
             }
         }
 
@@ -68,15 +65,15 @@ macro_rules! define_hmac_key {
 
 define_hmac_key! {
     /// Signing / verifying key for `HS256` algorithm. Zeroed on drop.
-    struct Hs256Key<Sha256, U32>([u8; 64]);
+    struct Hs256Key<Sha256>([u8; 64]);
 }
 define_hmac_key! {
     /// Signing / verifying key for `HS384` algorithm. Zeroed on drop.
-    struct Hs384Key<Sha384, U48>([u8; 128]);
+    struct Hs384Key<Sha384>([u8; 128]);
 }
 define_hmac_key! {
     /// Signing / verifying key for `HS512` algorithm. Zeroed on drop.
-    struct Hs512Key<Sha512, U64>([u8; 128]);
+    struct Hs512Key<Sha512>([u8; 128]);
 }
 
 /// `HS256` signing algorithm.
@@ -87,23 +84,25 @@ define_hmac_key! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Hs256;
 
-impl AlgorithmSignature for MacResult<U32> {
+impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha256>> {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() != 32 {
             bail!("Invalid signature length");
         }
-        Ok(MacResult::new(GenericArray::clone_from_slice(bytes)))
+        Ok(crypto_mac::Output::new(GenericArray::clone_from_slice(
+            bytes,
+        )))
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.clone().code().to_vec())
+        Cow::Owned(self.clone().into_bytes().to_vec())
     }
 }
 
 impl Algorithm for Hs256 {
     type SigningKey = Hs256Key;
     type VerifyingKey = Hs256Key;
-    type Signature = MacResult<U32>;
+    type Signature = crypto_mac::Output<Hmac<Sha256>>;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("HS256")
@@ -131,23 +130,25 @@ impl Algorithm for Hs256 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Hs384;
 
-impl AlgorithmSignature for MacResult<U48> {
+impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha384>> {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() != 48 {
             bail!("Invalid signature length");
         }
-        Ok(MacResult::new(GenericArray::clone_from_slice(bytes)))
+        Ok(crypto_mac::Output::new(GenericArray::clone_from_slice(
+            bytes,
+        )))
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.clone().code().to_vec())
+        Cow::Owned(self.clone().into_bytes().to_vec())
     }
 }
 
 impl Algorithm for Hs384 {
     type SigningKey = Hs384Key;
     type VerifyingKey = Hs384Key;
-    type Signature = MacResult<U48>;
+    type Signature = crypto_mac::Output<Hmac<Sha384>>;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("HS384")
@@ -175,23 +176,25 @@ impl Algorithm for Hs384 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Hs512;
 
-impl AlgorithmSignature for MacResult<U64> {
+impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha512>> {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         if bytes.len() != 64 {
             bail!("Invalid signature length");
         }
-        Ok(MacResult::new(GenericArray::clone_from_slice(bytes)))
+        Ok(crypto_mac::Output::new(GenericArray::clone_from_slice(
+            bytes,
+        )))
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.clone().code().to_vec())
+        Cow::Owned(self.clone().into_bytes().to_vec())
     }
 }
 
 impl Algorithm for Hs512 {
     type SigningKey = Hs512Key;
     type VerifyingKey = Hs512Key;
-    type Signature = MacResult<U64>;
+    type Signature = crypto_mac::Output<Hmac<Sha512>>;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("HS512")

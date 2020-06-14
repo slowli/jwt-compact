@@ -180,7 +180,7 @@ pub trait AlgorithmSignature: Sized {
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self>;
 
     /// Represents this signature as bytes.
-    fn as_bytes(&self) -> Cow<[u8]>;
+    fn as_bytes(&self) -> Cow<'_, [u8]>;
 }
 
 /// JWT signing algorithm.
@@ -294,7 +294,7 @@ pub trait AlgorithmExt: Algorithm {
     /// Validates the token integrity against the provided `verifying_key`.
     fn validate_integrity<T>(
         &self,
-        token: &UntrustedToken,
+        token: &UntrustedToken<'_>,
         verifying_key: &Self::VerifyingKey,
     ) -> Result<Token<T>, ValidationError>
     where
@@ -306,7 +306,7 @@ pub trait AlgorithmExt: Algorithm {
     /// information about the original token, in particular, its signature.
     fn validate_for_signed_token<T>(
         &self,
-        token: &UntrustedToken,
+        token: &UntrustedToken<'_>,
         verifying_key: &Self::VerifyingKey,
     ) -> Result<SignedToken<Self, T>, ValidationError>
     where
@@ -380,7 +380,7 @@ impl<A: Algorithm> AlgorithmExt for A {
 
     fn validate_integrity<T>(
         &self,
-        token: &UntrustedToken,
+        token: &UntrustedToken<'_>,
         verifying_key: &Self::VerifyingKey,
     ) -> Result<Token<T>, ValidationError>
     where
@@ -392,7 +392,7 @@ impl<A: Algorithm> AlgorithmExt for A {
 
     fn validate_for_signed_token<T>(
         &self,
-        token: &UntrustedToken,
+        token: &UntrustedToken<'_>,
         verifying_key: &Self::VerifyingKey,
     ) -> Result<SignedToken<Self, T>, ValidationError>
     where
@@ -601,7 +601,7 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                 )?;
                 decoded_signature.truncate(signature_len);
 
-                let header: CompleteHeader =
+                let header: CompleteHeader<'_> =
                     serde_json::from_slice(&header).map_err(ParseError::MalformedHeader)?;
                 let content_type = match header.content_type {
                     None => ContentType::Json,

@@ -73,8 +73,8 @@ where
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let mut digest = D::default();
-        digest.input(message);
-        let message = Message::from_slice(&digest.result())
+        digest.update(message);
+        let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");
 
         self.context.sign(&message, signing_key)
@@ -87,8 +87,8 @@ where
         message: &[u8],
     ) -> bool {
         let mut digest = D::default();
-        digest.input(message);
-        let message = Message::from_slice(&digest.result())
+        digest.update(message);
+        let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");
 
         self.context

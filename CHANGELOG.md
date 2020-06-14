@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add signature getters for untrusted and trusted tokens.
+
 ### Changed
 
 - Update dependencies.

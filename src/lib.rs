@@ -151,7 +151,7 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
-use std::{borrow::Cow, convert::TryFrom};
+use std::{borrow::Cow, convert::TryFrom, fmt};
 
 pub mod alg;
 mod claims;
@@ -299,6 +299,18 @@ pub trait AlgorithmExt: Algorithm {
     ) -> Result<Token<T>, ValidationError>
     where
         T: DeserializeOwned;
+
+    /// Validates the token integrity against the provided `verifying_key`.
+    ///
+    /// Unlike [`validate_integrity`](#tymethod.validate_integrity), this method retains more
+    /// information about the original token, in particular, its signature.
+    fn validate_for_signed_token<T>(
+        &self,
+        token: &UntrustedToken,
+        verifying_key: &Self::VerifyingKey,
+    ) -> Result<SignedToken<Self, T>, ValidationError>
+    where
+        T: DeserializeOwned;
 }
 
 impl<A: Algorithm> AlgorithmExt for A {
@@ -374,6 +386,18 @@ impl<A: Algorithm> AlgorithmExt for A {
     where
         T: DeserializeOwned,
     {
+        self.validate_for_signed_token(token, verifying_key)
+            .map(|wrapper| wrapper.token)
+    }
+
+    fn validate_for_signed_token<T>(
+        &self,
+        token: &UntrustedToken,
+        verifying_key: &Self::VerifyingKey,
+    ) -> Result<SignedToken<Self, T>, ValidationError>
+    where
+        T: DeserializeOwned,
+    {
         if self.name() != token.algorithm {
             return Err(ValidationError::AlgorithmMismatch);
         }
@@ -392,9 +416,12 @@ impl<A: Algorithm> AlgorithmExt for A {
             return Err(ValidationError::InvalidSignature);
         }
 
-        Ok(Token {
-            header: token.header.clone(),
-            claims,
+        Ok(SignedToken {
+            signature,
+            token: Token {
+                header: token.header.clone(),
+                claims,
+            },
         })
     }
 }
@@ -487,6 +514,76 @@ impl<T> Token<T> {
     }
 }
 
+/// `Token` together with the validated token signature.
+///
+/// # Examples
+///
+/// ```
+/// # use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*};
+/// # use chrono::Duration;
+/// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
+/// # use serde::{Deserialize, Serialize};
+/// # use std::convert::TryFrom;
+/// #
+/// #[derive(Serialize, Deserialize)]
+/// struct MyClaims {
+///     // Custom claims in the token...
+/// }
+///
+/// # fn main() -> anyhow::Result<()> {
+/// # let key = Hs256Key::from(b"super_secret_key" as &[_]);
+/// # let claims = Claims::new(MyClaims {}).set_duration_and_issuance(Duration::days(7));
+/// let token_string: String = // token from an external source
+/// #   Hs256.token(Header::default(), &claims, &key)?;
+/// let token = UntrustedToken::try_from(token_string.as_str())?;
+/// let signed = Hs256.validate_for_signed_token::<MyClaims>(&token, &key)?;
+///
+/// // `signature` is strongly typed.
+/// let array: GenericArray<u8, typenum::U32> = signed.signature.into_bytes();
+/// // Token itself is available via `token` field.
+/// let claims = signed.token.claims();
+/// claims.validate_expiration(TimeOptions::default())?;
+/// // Process the claims...
+/// # Ok(())
+/// # } // end main()
+/// ```
+#[non_exhaustive]
+pub struct SignedToken<A: Algorithm + ?Sized, T> {
+    /// Token signature.
+    pub signature: A::Signature,
+    /// Verified token.
+    pub token: Token<T>,
+}
+
+impl<A, T> fmt::Debug for SignedToken<A, T>
+where
+    A: Algorithm,
+    A::Signature: fmt::Debug,
+    T: fmt::Debug,
+{
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SignedToken")
+            .field("token", &self.token)
+            .field("signature", &self.signature)
+            .finish()
+    }
+}
+
+impl<A, T> Clone for SignedToken<A, T>
+where
+    A: Algorithm,
+    A::Signature: Clone,
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            signature: self.signature.clone(),
+            token: self.token.clone(),
+        }
+    }
+}
+
 impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
     type Error = ParseError;
 
@@ -536,6 +633,12 @@ impl<'a> UntrustedToken<'a> {
     /// Gets the integrity algorithm used to secure the token.
     pub fn algorithm(&self) -> &str {
         &self.algorithm
+    }
+
+    /// Returns signature bytes from the token. These bytes are **not** guaranteed to form a valid
+    /// signature.
+    pub fn signature_bytes(&self) -> &[u8] {
+        &self.signature
     }
 }
 

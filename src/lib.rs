@@ -26,6 +26,7 @@
 //! | `HS256`, `HS384`, `HS512` | - | Uses pure Rust [`sha2`] crate |
 //! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding. Enabled by default |
 //! | `EdDSA` (Ed25519) | [`ed25519-dalek`] | Pure Rust implementation |
+//! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
 //! | `ES256K` | [`secp256k1`] | Binding for [`libsecp256k1`] |
 //!
 //! Standard `RS*`, `PS*` and `ES*` algorithms are not (yet?) implemented. The reasons (besides
@@ -50,6 +51,7 @@
 //! [`libsodium`]: https://download.libsodium.org/doc/
 //! [`exonum-crypto`]: https://docs.rs/exonum-crypto/
 //! [`ed25519-dalek`]: https://doc.dalek.rs/ed25519_dalek/
+//! [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
 //! [`secp256k1`]: https://docs.rs/secp256k1/
 //! [`libsecp256k1`]: https://github.com/bitcoin-core/secp256k1
 //! [`Header`]: struct.Header.html

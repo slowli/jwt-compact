@@ -139,7 +139,11 @@ fn es256k_reference() {
     assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
 }
 
-#[cfg(any(feature = "exonum-crypto", feature = "ed25519-dalek"))]
+#[cfg(any(
+    feature = "exonum-crypto",
+    feature = "ed25519-dalek",
+    feature = "ed25519-compact"
+))]
 #[test]
 fn ed25519_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
@@ -156,6 +160,9 @@ fn ed25519_reference() {
     let bytes_to_pk = exonum_crypto::PublicKey::from_slice;
     #[cfg(feature = "ed25519-dalek")]
     let bytes_to_pk = ed25519_dalek::PublicKey::from_bytes;
+    #[cfg(feature = "ed25519-compact")]
+    let bytes_to_pk = ed25519_compact::PublicKey::from_slice;
+
     let public_key = bytes_to_pk(&hex::decode(KEY).unwrap()).unwrap();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "Ed25519");
@@ -335,6 +342,16 @@ fn ed25519_algorithm() {
     let mut csprng = OsRng {};
     let keypair = Keypair::generate(&mut csprng);
     test_algorithm(&Ed25519, &keypair, &keypair.public);
+}
+
+#[cfg(feature = "ed25519-compact")]
+#[test]
+fn ed25519_algorithm() {
+    use ed25519_compact::{KeyPair, Seed};
+    use rand::Rng;
+
+    let keypair = KeyPair::from_seed(Seed::new(thread_rng().gen()));
+    test_algorithm(&Ed25519, &keypair.sk, &keypair.pk);
 }
 
 #[cfg(feature = "secp256k1")]

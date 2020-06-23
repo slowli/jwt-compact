@@ -4,11 +4,15 @@
 mod es256k;
 mod hmacs;
 // Alternative EdDSA implementations.
+#[cfg(feature = "ed25519-compact")]
+mod eddsa_compact;
 #[cfg(feature = "ed25519-dalek")]
 mod eddsa_dalek;
 #[cfg(feature = "exonum-crypto")]
 mod eddsa_sodium;
 
+#[cfg(feature = "ed25519-compact")]
+pub use self::eddsa_compact::Ed25519;
 #[cfg(feature = "ed25519-dalek")]
 pub use self::eddsa_dalek::Ed25519;
 #[cfg(feature = "exonum-crypto")]

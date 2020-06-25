@@ -37,6 +37,11 @@ impl Ed25519VerifyingKey {
     pub fn from_slice(raw: &[u8]) -> anyhow::Result<Ed25519VerifyingKey> {
         Ok(Ed25519VerifyingKey(PublicKey::from_slice(raw)?))
     }
+
+    /// Return the key as raw bytes.
+    pub fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(self.as_ref().as_ref().to_vec())
+    }
 }
 
 /// A signing key.
@@ -63,6 +68,11 @@ impl Ed25519SigningKey {
     /// Convert a signing key to a verification key.
     pub fn to_verifying_key(&self) -> PublicKey {
         self.as_ref().public_key()
+    }
+
+    /// Return the key as raw bytes.
+    pub fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(self.as_ref().as_ref().to_vec())
     }
 }
 

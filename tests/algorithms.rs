@@ -161,7 +161,7 @@ fn ed25519_reference() {
     #[cfg(feature = "ed25519-dalek")]
     let bytes_to_pk = ed25519_dalek::PublicKey::from_bytes;
     #[cfg(feature = "ed25519-compact")]
-    let bytes_to_pk = ed25519_compact::PublicKey::from_slice;
+    let bytes_to_pk = Ed25519VerifyingKey::from_slice;
 
     let public_key = bytes_to_pk(&hex::decode(KEY).unwrap()).unwrap();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
@@ -347,11 +347,9 @@ fn ed25519_algorithm() {
 #[cfg(feature = "ed25519-compact")]
 #[test]
 fn ed25519_algorithm() {
-    use ed25519_compact::{KeyPair, Seed};
-    use rand::Rng;
-
-    let keypair = KeyPair::from_seed(Seed::new(thread_rng().gen()));
-    test_algorithm(&Ed25519, &keypair.sk, &keypair.pk);
+    let mut rng = thread_rng();
+    let (signing_key, verifying_key) = Ed25519.generate(&mut rng);
+    test_algorithm(&Ed25519, &signing_key, &verifying_key);
 }
 
 #[cfg(feature = "secp256k1")]

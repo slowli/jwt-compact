@@ -12,7 +12,7 @@ mod eddsa_dalek;
 mod eddsa_sodium;
 
 #[cfg(feature = "ed25519-compact")]
-pub use self::eddsa_compact::Ed25519;
+pub use self::eddsa_compact::*;
 #[cfg(feature = "ed25519-dalek")]
 pub use self::eddsa_dalek::Ed25519;
 #[cfg(feature = "exonum-crypto")]

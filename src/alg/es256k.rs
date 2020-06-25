@@ -1,9 +1,10 @@
+use rand::Rng;
+use rand_core::{CryptoRng, RngCore};
 use secp256k1::{All, Message, PublicKey, Secp256k1, SecretKey, Signature};
 use sha2::{
     digest::{generic_array::typenum::U32, Digest},
     Sha256,
 };
-
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{Algorithm, AlgorithmSignature};
@@ -15,6 +16,45 @@ impl AlgorithmSignature for Signature {
 
     fn as_bytes(&self) -> Cow<[u8]> {
         Cow::Owned(self.serialize_compact()[..].to_vec())
+    }
+}
+
+/// A verification key.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Es256kVerifyingKey(PublicKey);
+
+impl AsRef<PublicKey> for Es256kVerifyingKey {
+    fn as_ref(&self) -> &PublicKey {
+        &self.0
+    }
+}
+
+impl Es256kVerifyingKey {
+    /// Create a verification key from a slice.
+    pub fn from_slice(raw: &[u8]) -> anyhow::Result<Es256kVerifyingKey> {
+        Ok(Es256kVerifyingKey(PublicKey::from_slice(raw)?))
+    }
+}
+
+/// A signing key.
+#[derive(Debug)]
+pub struct Es256kSigningKey(SecretKey);
+
+impl AsRef<SecretKey> for Es256kSigningKey {
+    fn as_ref(&self) -> &SecretKey {
+        &self.0
+    }
+}
+
+impl Es256kSigningKey {
+    /// Create a signing key from a slice.
+    pub fn from_slice(raw: &[u8]) -> anyhow::Result<Es256kSigningKey> {
+        Ok(Es256kSigningKey(SecretKey::from_slice(raw)?))
+    }
+
+    /// Convert a signing key to a verification key.
+    pub fn to_verifying_key(&self) -> PublicKey {
+        PublicKey::from_secret_key(&Secp256k1::new(), &self.0)
     }
 }
 
@@ -63,8 +103,8 @@ impl<D> Algorithm for Es256k<D>
 where
     D: Digest<OutputSize = U32> + Default,
 {
-    type SigningKey = SecretKey;
-    type VerifyingKey = PublicKey;
+    type SigningKey = Es256kSigningKey;
+    type VerifyingKey = Es256kVerifyingKey;
     type Signature = Signature;
 
     fn name(&self) -> Cow<'static, str> {
@@ -77,7 +117,7 @@ where
         let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");
 
-        self.context.sign(&message, signing_key)
+        self.context.sign(&message, signing_key.as_ref())
     }
 
     fn verify_signature(
@@ -92,7 +132,24 @@ where
             .expect("failed to convert message to the correct form");
 
         self.context
-            .verify(&message, signature, verifying_key)
+            .verify(&message, signature, verifying_key.as_ref())
             .is_ok()
+    }
+}
+
+impl Es256k {
+    /// Generate a new key pair.
+    pub fn generate<R: CryptoRng + RngCore>(
+        &self,
+        rng: &mut R,
+    ) -> (Es256kSigningKey, Es256kVerifyingKey) {
+        let signing_key = loop {
+            let bytes: [u8; secp256k1::constants::SECRET_KEY_SIZE] = rng.gen();
+            if let Ok(key) = SecretKey::from_slice(&bytes) {
+                break Es256kSigningKey(key);
+            }
+        };
+        let verifying_key = Es256kVerifyingKey(signing_key.to_verifying_key());
+        (signing_key, verifying_key)
     }
 }

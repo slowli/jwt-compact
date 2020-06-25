@@ -34,6 +34,11 @@ impl Es256kVerifyingKey {
     pub fn from_slice(raw: &[u8]) -> anyhow::Result<Es256kVerifyingKey> {
         Ok(Es256kVerifyingKey(PublicKey::from_slice(raw)?))
     }
+
+    /// Return the key as raw bytes.
+    pub fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(self.as_ref().serialize().to_vec())
+    }
 }
 
 /// A signing key.

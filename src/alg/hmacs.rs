@@ -21,7 +21,7 @@ macro_rules! define_hmac_key {
         pub struct $name(pub(crate) SmallVec<[u8; $buffer_size]>);
 
         impl fmt::Debug for $name {
-            fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.debug_tuple(stringify!($name)).field(&"_").finish()
             }
         }
@@ -94,7 +94,7 @@ impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha256>> {
         )))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.clone().into_bytes().to_vec())
     }
 }
@@ -140,7 +140,7 @@ impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha384>> {
         )))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.clone().into_bytes().to_vec())
     }
 }
@@ -186,7 +186,7 @@ impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha512>> {
         )))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.clone().into_bytes().to_vec())
     }
 }

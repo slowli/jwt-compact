@@ -10,7 +10,7 @@ impl AlgorithmSignature for Signature {
         Self::from_slice(bytes).ok_or_else(|| format_err!("Invalid signature length"))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(self.as_ref())
     }
 }

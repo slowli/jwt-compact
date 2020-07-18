@@ -1,12 +1,12 @@
-use ed25519_dalek::{Keypair, PublicKey, Signature};
+use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
 
-use std::borrow::Cow;
+use std::{borrow::Cow, convert::TryFrom};
 
 use crate::{Algorithm, AlgorithmSignature, Renamed};
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        Self::from_bytes(bytes).map_err(Into::into)
+        Self::try_from(bytes).map_err(Into::into)
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {

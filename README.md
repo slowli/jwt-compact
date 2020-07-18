@@ -2,7 +2,7 @@
 
 [![Travis Build Status](https://img.shields.io/travis/com/slowli/jwt-compact/master.svg?label=Linux%20Build)](https://travis-ci.com/slowli/jwt-compact) 
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/jwt-compact.svg)](https://github.com/slowli/jwt-compact/blob/master/LICENSE)
-![rust 1.41.0+ required](https://img.shields.io/badge/rust-1.41.0+-blue.svg?label=Required%20Rust)
+![rust 1.45.0+ required](https://img.shields.io/badge/rust-1.45.0+-blue.svg?label=Required%20Rust)
 [![Dependencies status](https://img.shields.io/librariesio/github/slowli/jwt-compact)](https://libraries.io/github/slowli/jwt-compact)
 
 **Documentation:** [![Docs.rs](https://docs.rs/jwt-compact/badge.svg)](https://docs.rs/jwt-compact/)

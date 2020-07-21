@@ -5,9 +5,15 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add signature getters for untrusted and trusted tokens.
+
 ### Changed
 
 - Update dependencies.
+
+- Update minimum supported Rust version due to dependencies.
 
 ## 0.2.0 - 2020-05-11
 

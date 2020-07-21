@@ -56,6 +56,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --no-default-features --features ed25519-dalek --all-targets
+      - name: Clippy ed25519-compact
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --no-default-features --features ed25519-compact --all-targets
 
       - name: Run tests
         uses: actions-rs/cargo@v1
@@ -67,6 +72,11 @@ jobs:
         with:
           command: test
           args: --no-default-features --features ed25519-dalek --lib --tests
+      - name: Test ed25519-compact
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --features ed25519-compact --lib --tests
 
       - name: Check docs
         run: cargo clean --doc && cargo doc --features secp256k1 --no-deps && cargo deadlinks --dir target/doc

@@ -1,4 +1,3 @@
-use rand::Rng;
 use rand_core::{CryptoRng, RngCore};
 use secp256k1::{All, Message, PublicKey, Secp256k1, SecretKey, Signature};
 use sha2::{
@@ -149,7 +148,8 @@ impl Es256k {
         rng: &mut R,
     ) -> (Es256kSigningKey, Es256kVerifyingKey) {
         let signing_key = loop {
-            let bytes: [u8; secp256k1::constants::SECRET_KEY_SIZE] = rng.gen();
+            let mut bytes: [u8; secp256k1::constants::SECRET_KEY_SIZE];
+            rng.fill_bytes(&mut bytes);
             if let Ok(key) = SecretKey::from_slice(&bytes) {
                 break Es256kSigningKey(key);
             }

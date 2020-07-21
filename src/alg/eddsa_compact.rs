@@ -1,9 +1,7 @@
 use ed25519_compact::{KeyPair, PublicKey, SecretKey, Seed, Signature};
-use rand::Rng;
 use rand_core::{CryptoRng, RngCore};
 
-use std::borrow::Cow;
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use crate::{Algorithm, AlgorithmSignature, Renamed};
 
@@ -40,7 +38,7 @@ impl Ed25519VerifyingKey {
 
     /// Return the key as raw bytes.
     pub fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.as_ref().as_ref().to_vec())
+        Cow::Borrowed(self.as_ref().as_ref())
     }
 }
 
@@ -48,7 +46,7 @@ impl Ed25519VerifyingKey {
 pub struct Ed25519SigningKey(SecretKey);
 
 impl fmt::Debug for Ed25519SigningKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Ed25519 secret key: {:?}", self.as_ref().as_ref())
     }
 }
@@ -99,7 +97,9 @@ impl Ed25519 {
         &self,
         rng: &mut R,
     ) -> (Ed25519SigningKey, Ed25519VerifyingKey) {
-        let keypair = KeyPair::from_seed(Seed::new(rng.gen()));
+        let mut seed = [0u8; Seed::BYTES];
+        rng.fill_bytes(&mut seed);
+        let keypair = KeyPair::from_seed(Seed::new(seed));
         (
             Ed25519SigningKey(keypair.sk),
             Ed25519VerifyingKey(keypair.pk),

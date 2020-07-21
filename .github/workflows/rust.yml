@@ -33,7 +33,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.41.0
+          toolchain: 1.45.0
           override: true
           components: rustfmt, clippy
       - name: Install deadlinks
@@ -96,7 +96,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-03-10
+          toolchain: nightly-2020-07-11
           profile: minimal
           override: true
 

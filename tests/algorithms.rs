@@ -112,8 +112,6 @@ fn es256k_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
     //! in the repository.
 
-    use secp256k1::PublicKey;
-
     const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.\
                          eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcyI6ImRpZDp1cG9\
                          ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.\
@@ -123,7 +121,7 @@ fn es256k_reference() {
     const KEY_HEX: &str = "04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea5358479\
                            46393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7";
 
-    let public_key = PublicKey::from_slice(&hex::decode(KEY_HEX).unwrap()).unwrap();
+    let public_key = Es256kVerifyingKey::from_slice(&hex::decode(KEY_HEX).unwrap()).unwrap();
     let es256k: Es256k = Default::default();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "ES256K");
@@ -355,18 +353,8 @@ fn ed25519_algorithm() {
 #[cfg(feature = "secp256k1")]
 #[test]
 fn es256k_algorithm() {
-    use rand::Rng;
-    use secp256k1::{PublicKey, Secp256k1, SecretKey};
-
     let mut rng = thread_rng();
-    let signing_key = loop {
-        let bytes: [u8; 32] = rng.gen();
-        if let Ok(key) = SecretKey::from_slice(&bytes) {
-            break key;
-        }
-    };
-    let context = Secp256k1::new();
-    let verifying_key = PublicKey::from_secret_key(&context, &signing_key);
-    let es256k: Es256k<sha2::Sha256> = Es256k::new(context);
+    let es256k: Es256k<_> = Es256k::default();
+    let (signing_key, verifying_key) = es256k.generate(&mut rng);
     test_algorithm(&es256k, &signing_key, &verifying_key);
 }

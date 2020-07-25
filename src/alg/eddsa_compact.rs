@@ -16,7 +16,7 @@ impl AlgorithmSignature for Signature {
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.as_ref().to_vec())
+        Cow::Borrowed(self.as_ref())
     }
 }
 
@@ -38,7 +38,7 @@ impl Ed25519VerifyingKey {
 
     /// Return the key as raw bytes.
     pub fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Borrowed(self.as_ref().as_ref())
+        Cow::Borrowed(self.0.as_ref())
     }
 }
 
@@ -46,8 +46,11 @@ impl Ed25519VerifyingKey {
 pub struct Ed25519SigningKey(SecretKey);
 
 impl fmt::Debug for Ed25519SigningKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Ed25519 secret key: {:?}", self.as_ref().as_ref())
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_tuple("Ed25519SigningKey")
+            .field(&self.0.as_ref())
+            .finish()
     }
 }
 
@@ -70,7 +73,7 @@ impl Ed25519SigningKey {
 
     /// Return the key as raw bytes.
     pub fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.as_ref().as_ref().to_vec())
+        Cow::Borrowed(self.0.as_ref())
     }
 }
 
@@ -79,7 +82,7 @@ impl Ed25519SigningKey {
 /// The name of the algorithm is specified as `EdDSA` as per the [IANA registry].
 /// Use `with_specific_name()` to switch to non-standard `Ed25519`.
 ///
-/// *This type is available if the crate is built with the `ed25519-dalek` feature.*
+/// *This type is available if the crate is built with the `ed25519-compact` feature.*
 ///
 /// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -1,9 +1,12 @@
 use ed25519_compact::{KeyPair, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
-use std::{borrow::Cow, fmt};
+use std::borrow::Cow;
 
-use crate::{Algorithm, AlgorithmSignature, Renamed};
+use crate::{
+    alg::{SigningKey, VerifyingKey},
+    Algorithm, AlgorithmSignature, Renamed,
+};
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
@@ -17,63 +20,6 @@ impl AlgorithmSignature for Signature {
 
     fn as_bytes(&self) -> Cow<[u8]> {
         Cow::Borrowed(self.as_ref())
-    }
-}
-
-/// A verification key.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Ed25519VerifyingKey(PublicKey);
-
-impl AsRef<PublicKey> for Ed25519VerifyingKey {
-    fn as_ref(&self) -> &PublicKey {
-        &self.0
-    }
-}
-
-impl Ed25519VerifyingKey {
-    /// Create a verification key from a slice.
-    pub fn from_slice(raw: &[u8]) -> anyhow::Result<Ed25519VerifyingKey> {
-        Ok(Ed25519VerifyingKey(PublicKey::from_slice(raw)?))
-    }
-
-    /// Return the key as raw bytes.
-    pub fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Borrowed(self.0.as_ref())
-    }
-}
-
-/// A signing key.
-pub struct Ed25519SigningKey(SecretKey);
-
-impl fmt::Debug for Ed25519SigningKey {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_tuple("Ed25519SigningKey")
-            .field(&self.0.as_ref())
-            .finish()
-    }
-}
-
-impl AsRef<SecretKey> for Ed25519SigningKey {
-    fn as_ref(&self) -> &SecretKey {
-        &self.0
-    }
-}
-
-impl Ed25519SigningKey {
-    /// Create a signing key from a slice.
-    pub fn from_slice(raw: &[u8]) -> anyhow::Result<Ed25519SigningKey> {
-        Ok(Ed25519SigningKey(SecretKey::from_slice(raw)?))
-    }
-
-    /// Convert a signing key to a verification key.
-    pub fn to_verifying_key(&self) -> PublicKey {
-        self.as_ref().public_key()
-    }
-
-    /// Return the key as raw bytes.
-    pub fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Borrowed(self.0.as_ref())
     }
 }
 
@@ -96,23 +42,17 @@ impl Ed25519 {
     }
 
     /// Generate a new key pair.
-    pub fn generate<R: CryptoRng + RngCore>(
-        &self,
-        rng: &mut R,
-    ) -> (Ed25519SigningKey, Ed25519VerifyingKey) {
+    pub fn generate<R: CryptoRng + RngCore>(&self, rng: &mut R) -> (SecretKey, PublicKey) {
         let mut seed = [0u8; Seed::BYTES];
         rng.fill_bytes(&mut seed);
         let keypair = KeyPair::from_seed(Seed::new(seed));
-        (
-            Ed25519SigningKey(keypair.sk),
-            Ed25519VerifyingKey(keypair.pk),
-        )
+        (keypair.sk, keypair.pk)
     }
 }
 
 impl Algorithm for Ed25519 {
-    type SigningKey = Ed25519SigningKey;
-    type VerifyingKey = Ed25519VerifyingKey;
+    type SigningKey = SecretKey;
+    type VerifyingKey = PublicKey;
     type Signature = Signature;
 
     fn name(&self) -> Cow<'static, str> {
@@ -120,7 +60,7 @@ impl Algorithm for Ed25519 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.as_ref().sign(message, Some(Default::default()))
+        signing_key.sign(message, Some(Default::default()))
     }
 
     fn verify_signature(
@@ -129,6 +69,30 @@ impl Algorithm for Ed25519 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        verifying_key.as_ref().verify(message, signature).is_ok()
+        verifying_key.verify(message, signature).is_ok()
+    }
+}
+
+impl VerifyingKey<Ed25519> for PublicKey {
+    fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        Self::from_slice(raw).map_err(From::from)
+    }
+
+    fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.as_ref())
+    }
+}
+
+impl SigningKey<Ed25519> for SecretKey {
+    fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        Self::from_slice(raw).map_err(From::from)
+    }
+
+    fn to_verifying_key(&self) -> PublicKey {
+        self.public_key()
+    }
+
+    fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.as_ref())
     }
 }

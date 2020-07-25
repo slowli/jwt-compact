@@ -139,15 +139,12 @@ fn es256k_reference() {
     assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
 }
 
-#[cfg(any(
-    feature = "exonum-crypto",
-    feature = "ed25519-dalek",
-    feature = "ed25519-compact"
-))]
-#[test]
-fn ed25519_reference() {
+fn test_ed25519_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
     //! in the repository.
+
+    type EdSigningKey = <Ed25519 as Algorithm>::SigningKey;
+    type EdVerifyingKey = <Ed25519 as Algorithm>::VerifyingKey;
 
     const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.\
                          eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzcyI6ImRpZDp1cG9yd\
@@ -155,15 +152,29 @@ fn ed25519_reference() {
                          Du1gZvmrmykgWnqtBFvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgru\
                          J3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
     const KEY: &str = "06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
+    const SIGNING_KEY: &str = "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
+        06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
 
-    #[cfg(feature = "exonum-crypto")]
-    let bytes_to_pk = exonum_crypto::PublicKey::from_slice;
-    #[cfg(feature = "ed25519-dalek")]
-    let bytes_to_pk = ed25519_dalek::PublicKey::from_bytes;
-    #[cfg(feature = "ed25519-compact")]
-    let bytes_to_pk = Ed25519VerifyingKey::from_slice;
+    fn check_key_traits<Sk, Vk>()
+    where
+        Sk: SigningKey<Ed25519>,
+        Vk: VerifyingKey<Ed25519>,
+        Ed25519: Algorithm<SigningKey = Sk, VerifyingKey = Vk>,
+    {
+        let public_key_bytes = hex::decode(KEY).unwrap();
+        let public_key = Vk::from_slice(&public_key_bytes).unwrap();
+        assert_eq!(public_key.as_bytes(), public_key_bytes);
 
-    let public_key = bytes_to_pk(&hex::decode(KEY).unwrap()).unwrap();
+        let secret_key_bytes = hex::decode(SIGNING_KEY).unwrap();
+        let secret_key = Sk::from_slice(&secret_key_bytes).unwrap();
+        assert_eq!(secret_key.as_bytes(), secret_key_bytes);
+        assert_eq!(secret_key.to_verifying_key().as_bytes(), public_key_bytes);
+    }
+
+    check_key_traits::<EdSigningKey, EdVerifyingKey>();
+
+    let public_key_bytes = hex::decode(KEY).unwrap();
+    let public_key = EdVerifyingKey::from_slice(&public_key_bytes).unwrap();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "Ed25519");
 
@@ -176,6 +187,16 @@ fn ed25519_reference() {
         "iss": "did:uport:2nQtiQG6Cgm1GYTBaaKAgr76uY7iSexUkqX",
     });
     assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
+}
+
+#[cfg(any(
+    feature = "exonum-crypto",
+    feature = "ed25519-dalek",
+    feature = "ed25519-compact"
+))]
+#[test]
+fn ed25519_reference() {
+    test_ed25519_reference();
 }
 
 fn test_algorithm<A: Algorithm>(

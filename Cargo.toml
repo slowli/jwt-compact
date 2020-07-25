@@ -4,6 +4,7 @@ version = "0.2.0"
 authors = [
   "Alex Ostrovski <ostrovski.alex@gmail.com>",
   "Akhil Velagapudi <akhilvelagapudi@gmail.com>",
+  "Frank Denis <github@pureftpd.org>",
 ]
 edition = "2018"
 readme = "README.md"

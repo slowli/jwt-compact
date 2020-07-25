@@ -9,6 +9,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Add signature getters for untrusted and trusted tokens.
 
+- Add the [`ed25519-compact`] backend for Ed25519-based tokens.
+
 ### Changed
 
 - Update dependencies.
@@ -24,3 +26,5 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ## 0.1.0 - 2019-07-01
 
 The initial release of `jwt-compact`.
+
+[`ed25519-compact`]: https://crates.io/crates/ed25519-compact

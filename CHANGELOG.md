@@ -11,11 +11,16 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Add the [`ed25519-compact`] backend for Ed25519-based tokens.
 
+- Add `SigningKey` and `VerifyingKey` traits for generic access to cryptographic keys.
+
 ### Changed
 
 - Update dependencies.
 
 - Update minimum supported Rust version due to dependencies.
+
+- `es256k` feature should now be used for access to libsecp256k1 backend instead of
+  `secp256k1`.
 
 ## 0.2.0 - 2020-05-11
 

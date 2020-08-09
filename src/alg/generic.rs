@@ -5,7 +5,8 @@ use std::borrow::Cow;
 
 use crate::Algorithm;
 
-/// Verifying key for a specific public-key signature cryptosystem.
+/// Verifying key for a specific signature cryptosystem. In the case of public-key cryptosystems,
+/// this is a public key.
 ///
 /// This trait provides a uniform interface for different backends / implementations
 /// of the same cryptosystem.
@@ -24,7 +25,8 @@ where
     fn as_bytes(&self) -> Cow<[u8]>;
 }
 
-/// Signing key for a specific public-key signature cryptosystem.
+/// Signing key for a specific signature cryptosystem. In the case of public-key cryptosystems,
+/// this is a private key.
 ///
 /// This trait provides a uniform interface for different backends / implementations
 /// of the same cryptosystem.

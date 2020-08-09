@@ -390,4 +390,15 @@ fn es256k_algorithm() {
     let verifying_key = PublicKey::from_secret_key(&context, &signing_key);
     let es256k: Es256k<sha2::Sha256> = Es256k::new(context);
     test_algorithm(&es256k, &signing_key, &verifying_key);
+
+    // Test correctness of `SigningKey` / `VerifyingKey` trait implementations.
+    let signing_key_bytes = SigningKey::as_bytes(&signing_key);
+    let signing_key_copy: SecretKey = SigningKey::from_slice(&signing_key_bytes).unwrap();
+    assert_eq!(signing_key, signing_key_copy);
+    assert_eq!(verifying_key, signing_key.to_verifying_key());
+
+    let verifying_key_bytes = verifying_key.as_bytes();
+    assert_eq!(verifying_key_bytes.len(), 33);
+    let verifying_key_copy: PublicKey = VerifyingKey::from_slice(&verifying_key_bytes).unwrap();
+    assert_eq!(verifying_key, verifying_key_copy);
 }

@@ -27,7 +27,7 @@
 //! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding. Enabled by default |
 //! | `EdDSA` (Ed25519) | [`ed25519-dalek`] | Pure Rust implementation |
 //! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
-//! | `ES256K` | [`secp256k1`] | Binding for [`libsecp256k1`] |
+//! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |
 //!
 //! Standard `RS*`, `PS*` and `ES*` algorithms are not (yet?) implemented. The reasons (besides
 //! laziness and non-friendly APIs in the relevant crypto backends) are as follows:

@@ -1,4 +1,5 @@
-//! Implementations of JWT signing / verification algorithms.
+//! Implementations of JWT signing / verification algorithms. Also contains generic traits
+//! for signing and verifying keys.
 
 #[cfg(feature = "secp256k1")]
 mod es256k;

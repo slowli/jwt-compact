@@ -2,7 +2,10 @@ use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
 
 use std::{borrow::Cow, convert::TryFrom};
 
-use crate::{Algorithm, AlgorithmSignature, Renamed};
+use crate::{
+    alg::{SigningKey, VerifyingKey},
+    Algorithm, AlgorithmSignature, Renamed,
+};
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
@@ -53,5 +56,29 @@ impl Algorithm for Ed25519 {
         message: &[u8],
     ) -> bool {
         verifying_key.verify(message, signature).is_ok()
+    }
+}
+
+impl VerifyingKey<Ed25519> for PublicKey {
+    fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        Self::from_bytes(raw).map_err(From::from)
+    }
+
+    fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.as_ref())
+    }
+}
+
+impl SigningKey<Ed25519> for Keypair {
+    fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        Self::from_bytes(raw).map_err(From::from)
+    }
+
+    fn to_verifying_key(&self) -> PublicKey {
+        self.public
+    }
+
+    fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(self.to_bytes().to_vec())
     }
 }

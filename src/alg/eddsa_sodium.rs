@@ -1,9 +1,12 @@
 use anyhow::format_err;
-use exonum_crypto::{sign, verify, PublicKey, SecretKey, Signature};
+use exonum_crypto::{sign, verify, PublicKey, SecretKey, Signature, SEED_LENGTH};
 
 use std::borrow::Cow;
 
-use crate::{Algorithm, AlgorithmSignature, Renamed};
+use crate::{
+    alg::{SigningKey, VerifyingKey},
+    Algorithm, AlgorithmSignature, Renamed,
+};
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
@@ -54,5 +57,32 @@ impl Algorithm for Ed25519 {
         message: &[u8],
     ) -> bool {
         verify(signature, message, verifying_key)
+    }
+}
+
+impl VerifyingKey<Ed25519> for PublicKey {
+    fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        Self::from_slice(raw).ok_or_else(|| format_err!("Invalid public key length"))
+    }
+
+    fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.as_ref())
+    }
+}
+
+impl SigningKey<Ed25519> for SecretKey {
+    fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        Self::from_slice(raw).ok_or_else(|| format_err!("Invalid secret key bytes"))
+    }
+
+    fn to_verifying_key(&self) -> PublicKey {
+        // Slightly hacky. The backend does not expose functions for converting secret keys
+        // to public ones, and we don't want to use `KeyPair` instead of `SecretKey`
+        // for this single purpose.
+        PublicKey::from_slice(&self[SEED_LENGTH..]).unwrap()
+    }
+
+    fn as_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(&self[..])
     }
 }

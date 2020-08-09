@@ -8,7 +8,10 @@ use zeroize::Zeroize;
 
 use std::{borrow::Cow, fmt};
 
-use crate::{Algorithm, AlgorithmSignature};
+use crate::{
+    alg::{SigningKey, VerifyingKey},
+    Algorithm, AlgorithmSignature,
+};
 
 macro_rules! define_hmac_key {
     (
@@ -213,3 +216,35 @@ impl Algorithm for Hs512 {
         verifying_key.hmac(message) == *signature
     }
 }
+
+macro_rules! impl_key_traits {
+    ($key:ident<$alg:ident>) => {
+        impl SigningKey<$alg> for $key {
+            fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+                Ok(Self::from(raw))
+            }
+
+            fn to_verifying_key(&self) -> Self {
+                self.clone()
+            }
+
+            fn as_bytes(&self) -> Cow<'_, [u8]> {
+                Cow::Borrowed(self.as_ref())
+            }
+        }
+
+        impl VerifyingKey<$alg> for $key {
+            fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+                Ok(Self::from(raw))
+            }
+
+            fn as_bytes(&self) -> Cow<'_, [u8]> {
+                Cow::Borrowed(self.as_ref())
+            }
+        }
+    };
+}
+
+impl_key_traits!(Hs256Key<Hs256>);
+impl_key_traits!(Hs384Key<Hs384>);
+impl_key_traits!(Hs512Key<Hs512>);

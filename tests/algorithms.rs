@@ -402,3 +402,21 @@ fn es256k_algorithm() {
     let verifying_key_copy: PublicKey = VerifyingKey::from_slice(&verifying_key_bytes).unwrap();
     assert_eq!(verifying_key, verifying_key_copy);
 }
+
+#[cfg(feature = "rsa")]
+#[test]
+fn ps384_algorithm() {
+    let rsa = Rsa::ps384();
+    let mut rng = thread_rng();
+    let (signing_key, verifying_key) = rsa.generate(&mut rng, 2048).unwrap();
+    test_algorithm(&rsa, &signing_key, &verifying_key);
+}
+
+#[cfg(feature = "rsa")]
+#[test]
+fn ps512_algorithm() {
+    let rsa = Rsa::ps384();
+    let mut rng = thread_rng();
+    let (signing_key, verifying_key) = rsa.generate(&mut rng, 2048).unwrap();
+    test_algorithm(&rsa, &signing_key, &verifying_key);
+}

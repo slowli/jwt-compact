@@ -61,6 +61,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --no-default-features --features ed25519-compact --all-targets
+      - name: Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --features secp256k1 rsa --all-targets
 
       - name: Run tests
         uses: actions-rs/cargo@v1
@@ -77,6 +82,11 @@ jobs:
         with:
           command: test
           args: --no-default-features --features ed25519-compact --lib --tests
+      - name: Test RSA
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features rsa --lib --tests
 
       - name: Check docs
         run: cargo clean --doc && cargo doc --features es256k --no-deps && cargo deadlinks --dir target/doc

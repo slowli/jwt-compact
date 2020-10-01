@@ -21,7 +21,7 @@ features = ["es256k"]
 [dependencies]
 # Public dependencies (present in the public API).
 anyhow = "1.0.28"
-base64 = "0.12.1"
+base64 = "0.13.0"
 chrono = "0.4.11"
 rand_core = "0.5.1"
 serde = { version = "1.0", features = ["derive"] }

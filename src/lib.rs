@@ -48,6 +48,7 @@
 //! [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
 //! [`secp256k1`]: https://docs.rs/secp256k1/
 //! [`libsecp256k1`]: https://github.com/bitcoin-core/secp256k1
+//! [`rsa`]: https://docs.rs/rsa/
 //! [`Header`]: struct.Header.html
 //! [`Algorithm`]: trait.Algorithm.html
 //!

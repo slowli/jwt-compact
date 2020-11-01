@@ -76,7 +76,7 @@ enum Padding {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum ModulusBits {
-    /// 2048 bits. This is the minimum recommended key size as of 2020.
+    /// 2048 bits. This is the minimum recommended key length as of 2020.
     TwoKilobytes,
     /// 3072 bits.
     ThreeKilobytes,
@@ -124,12 +124,14 @@ pub struct ModulusBitsError(());
 /// - `256` / `384` / `512` denote the hash function
 ///
 /// The length of RSA keys is not unequivocally specified by the algorithm; nevertheless,
-/// it **MUST** be at least 2048 bits as per RFC 7518.
+/// it **MUST** be at least 2048 bits as per RFC 7518. To minimize risks of misconfiguration,
+/// this implementation only supports key lengths specified by the [`ModulusBits`] enum.
 ///
 /// *This type is available if the crate is built with the `rsa` feature.*
 ///
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
+/// [`ModulusBits`]: enum.ModulusBits.html
 #[derive(Debug)]
 pub struct Rsa {
     hash_alg: HashAlg,
@@ -167,17 +169,17 @@ impl Rsa {
         }
     }
 
-    /// RSA with SHA-256 and PKCS1v1.5 padding.
+    /// RSA with SHA-256 and PKCS#1 v1.5 padding.
     pub const fn rs256() -> Rsa {
         Rsa::new(HashAlg::Sha256, Padding::Pkcs1v15)
     }
 
-    /// RSA with SHA-384 and PKCS1v1.5 padding.
+    /// RSA with SHA-384 and PKCS#1 v1.5 padding.
     pub const fn rs384() -> Rsa {
         Rsa::new(HashAlg::Sha384, Padding::Pkcs1v15)
     }
 
-    /// RSA with SHA-512 and PKCS1v1.5 padding.
+    /// RSA with SHA-512 and PKCS#1 v1.5 padding.
     pub const fn rs512() -> Rsa {
         Rsa::new(HashAlg::Sha512, Padding::Pkcs1v15)
     }

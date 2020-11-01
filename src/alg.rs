@@ -26,4 +26,6 @@ pub use self::es256k::Es256k;
 pub use self::generic::{SigningKey, VerifyingKey};
 pub use self::hmacs::*;
 #[cfg(feature = "rsa")]
-pub use self::rsa::{Padding, Rsa, RsaSigningKey, RsaVerifyingKey};
+pub use self::rsa::{
+    ModulusBits, ModulusBitsError, RSAPrivateKey, RSAPublicKey, Rsa, RsaSignature,
+};

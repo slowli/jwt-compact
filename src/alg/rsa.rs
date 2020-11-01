@@ -1,135 +1,145 @@
+//! RSA-based JWT schemes: `RS*` and `PS*`.
+
+pub use rsa::{RSAPrivateKey, RSAPublicKey};
+
 use rand_core::{CryptoRng, RngCore};
-use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, RSAPrivateKey, RSAPublicKey};
+use rsa::{hash::Hash, PaddingScheme, PublicKey};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use thiserror::Error;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, convert::TryFrom};
 
 use crate::{Algorithm, AlgorithmSignature};
 
-/// Errors that may occur during token parsing.
-#[derive(Debug, Error)]
-pub enum RsaError {
-    #[error("Unsupported signature length")]
-    UnsupportedSignatureLength,
-    #[error("Unsupported modulus size")]
-    UnsupportedModulusSize,
-    #[error("Invalid key: {0}")]
-    InvalidKey(rsa::errors::Error),
-    #[error("Key generation error: {0}")]
-    KeygenError(rsa::errors::Error),
-}
-
+/// RSA signature.
 #[derive(Debug)]
-pub struct Signature(Vec<u8>);
+pub struct RsaSignature(Vec<u8>);
 
-impl AlgorithmSignature for Signature {
+impl AlgorithmSignature for RsaSignature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         match bytes.len() {
-            256 | 384 | 512 => Ok(Signature(bytes.to_vec())),
-            _ => Err(RsaError::UnsupportedSignatureLength.into()),
+            256 | 384 | 512 => Ok(RsaSignature(bytes.to_vec())),
+            _ => Err(anyhow::anyhow!("Unsupported signature length")),
         }
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.0.clone())
+        Cow::Borrowed(&self.0)
+    }
+}
+
+/// RSA hash algorithm.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum HashAlg {
+    Sha256,
+    Sha384,
+    Sha512,
+}
+
+impl HashAlg {
+    fn as_hash(self) -> Hash {
+        match self {
+            Self::Sha256 => Hash::SHA2_256,
+            Self::Sha384 => Hash::SHA2_384,
+            Self::Sha512 => Hash::SHA2_512,
+        }
+    }
+
+    fn digest(self, message: &[u8]) -> Box<[u8]> {
+        match self {
+            Self::Sha256 => {
+                let digest: [u8; 32] = *(Sha256::digest(message).as_ref());
+                Box::new(digest)
+            }
+            Self::Sha384 => {
+                let mut digest = [0_u8; 48];
+                digest.copy_from_slice(Sha384::digest(message).as_ref());
+                Box::new(digest)
+            }
+            Self::Sha512 => {
+                let mut digest = [0_u8; 64];
+                digest.copy_from_slice(Sha512::digest(message).as_ref());
+                Box::new(digest)
+            }
+        }
     }
 }
 
 /// RSA padding algorithm.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Padding {
-    /// PKCS1v1.5
+enum Padding {
     Pkcs1v15,
-    /// PSS
     Pss,
 }
 
-/// An RSA public key.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct RsaVerifyingKey(RSAPublicKey);
-
-impl AsRef<RSAPublicKey> for RsaVerifyingKey {
-    fn as_ref(&self) -> &RSAPublicKey {
-        &self.0
-    }
+/// Bit length of an RSA key modulus (aka RSA key length).
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum ModulusBits {
+    /// 2048 bits. This is the minimum recommended key size as of 2020.
+    TwoKilobytes,
+    /// 3072 bits.
+    ThreeKilobytes,
+    /// 4096 bits.
+    FourKilobytes,
 }
 
-impl RsaVerifyingKey {
-    /// Create a verification key from a DER-encoded set of the parameters.
-    pub fn from_der(der: &[u8]) -> anyhow::Result<RsaVerifyingKey> {
-        match RSAPublicKey::from_pkcs8(&der) {
-            Err(e) => Err(RsaError::InvalidKey(e).into()),
-            Ok(key) => Ok(RsaVerifyingKey(key)),
-        }
-    }
-
-    /// Create a verification key from a modulus and a public exponent.
-    pub fn from_components(n: &[u8], e: &[u8]) -> anyhow::Result<RsaVerifyingKey> {
-        let n = BigUint::from_bytes_be(n);
-        let e = BigUint::from_bytes_be(e);
-        match RSAPublicKey::new(n, e) {
-            Err(e) => Err(RsaError::InvalidKey(e).into()),
-            Ok(key) => Ok(RsaVerifyingKey(key)),
+impl ModulusBits {
+    /// Converts this length to the numeric value.
+    pub fn bits(self) -> usize {
+        match self {
+            Self::TwoKilobytes => 2_048,
+            Self::ThreeKilobytes => 3_072,
+            Self::FourKilobytes => 4_096,
         }
     }
 }
 
-/// An RSA signing key.
-#[derive(Debug)]
-pub struct RsaSigningKey(RSAPrivateKey);
+impl TryFrom<usize> for ModulusBits {
+    type Error = ModulusBitsError;
 
-impl AsRef<RSAPrivateKey> for RsaSigningKey {
-    fn as_ref(&self) -> &RSAPrivateKey {
-        &self.0
-    }
-}
-
-impl RsaSigningKey {
-    /// Create a signing key from a DER-encoded set of the parameters.
-    pub fn from_der(der: &[u8]) -> anyhow::Result<RsaSigningKey> {
-        match RSAPrivateKey::from_pkcs8(&der) {
-            Err(e) => Err(RsaError::InvalidKey(e).into()),
-            Ok(key) => {
-                key.validate().map_err(RsaError::InvalidKey)?;
-                Ok(RsaSigningKey(key))
-            }
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            2_048 => Ok(Self::TwoKilobytes),
+            3_072 => Ok(Self::ThreeKilobytes),
+            4_096 => Ok(Self::FourKilobytes),
+            _ => Err(ModulusBitsError(())),
         }
     }
-
-    /// Convert a signing key to a verification key.
-    pub fn to_verifying_key(&self) -> RsaVerifyingKey {
-        RsaVerifyingKey(RSAPublicKey::from(&self.0))
-    }
 }
 
-/// Integrity algorithm using digital signatures on RSA-PKCS1v1.5 and SHA-256.
+/// Error type returned when a conversion of an integer into `ModulusBits` fails.
+#[derive(Debug, Error)]
+#[error("Unsupported bit length of RSA modulus; only lengths 2048, 3072 and 4096 are supported.")]
+pub struct ModulusBitsError(());
+
+/// Integrity algorithm using [RSA] digital signatures.
 ///
-/// The name of the algorithm is specified as `RS256` as per the [IANA registry].
+/// Depending on the variation, the algorithm employs PKCS#1 v1.5 or PSS padding and
+/// one of the hash functions from the SHA-2 family: SHA-256, SHA-384, or SHA-512.
+/// See [RFC 7518] for more details. Depending on the chosen parameters,
+/// the name of the algorithm is one of `RS256`, `RS384`, `RS512`, `PS256`, `PS384`, `PS512`:
+///
+/// - `R` / `P` denote the padding scheme: PKCS#1 v1.5 for `R`, PSS for `P`
+/// - `256` / `384` / `512` denote the hash function
+///
+/// The length of RSA keys is not unequivocally specified by the algorithm; nevertheless,
+/// it **MUST** be at least 2048 bits as per RFC 7518.
 ///
 /// *This type is available if the crate is built with the `rsa` feature.*
 ///
-/// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
+/// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
+/// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
 #[derive(Debug)]
 pub struct Rsa {
-    hash_alg: Hash,
+    hash_alg: HashAlg,
     padding_alg: Padding,
 }
 
-impl Rsa {
-    /// Create an instance using a specific hash function and padding
-    pub fn new(hash_alg: Hash, padding_alg: Padding) -> Self {
-        Rsa {
-            hash_alg,
-            padding_alg,
-        }
-    }
-}
-
 impl Algorithm for Rsa {
-    type SigningKey = RsaSigningKey;
-    type VerifyingKey = RsaVerifyingKey;
-    type Signature = Signature;
+    type SigningKey = RSAPrivateKey;
+    type VerifyingKey = RSAPublicKey;
+    type Signature = RsaSignature;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed(self.name())
@@ -150,36 +160,52 @@ impl Algorithm for Rsa {
 }
 
 impl Rsa {
-    fn hash(&self, message: &[u8]) -> Box<[u8]> {
-        match self.hash_alg {
-            Hash::SHA2_256 => {
-                let h: [u8; 32] = *(Sha256::digest(message).as_ref());
-                Box::new(h)
-            }
-            Hash::SHA2_384 => {
-                let mut h = [0u8; 48];
-                h.copy_from_slice(Sha384::digest(message).as_ref());
-                Box::new(h)
-            }
-            Hash::SHA2_512 => {
-                let mut h = [0u8; 64];
-                h.copy_from_slice(Sha512::digest(message).as_ref());
-                Box::new(h)
-            }
-            _ => unreachable!(),
+    const fn new(hash_alg: HashAlg, padding_alg: Padding) -> Self {
+        Rsa {
+            hash_alg,
+            padding_alg,
         }
+    }
+
+    /// RSA with SHA-256 and PKCS1v1.5 padding.
+    pub const fn rs256() -> Rsa {
+        Rsa::new(HashAlg::Sha256, Padding::Pkcs1v15)
+    }
+
+    /// RSA with SHA-384 and PKCS1v1.5 padding.
+    pub const fn rs384() -> Rsa {
+        Rsa::new(HashAlg::Sha384, Padding::Pkcs1v15)
+    }
+
+    /// RSA with SHA-512 and PKCS1v1.5 padding.
+    pub const fn rs512() -> Rsa {
+        Rsa::new(HashAlg::Sha512, Padding::Pkcs1v15)
+    }
+
+    /// RSA with SHA-256 and PSS padding.
+    pub const fn ps256() -> Rsa {
+        Rsa::new(HashAlg::Sha256, Padding::Pss)
+    }
+
+    /// RSA with SHA-384 and PSS padding.
+    pub const fn ps384() -> Rsa {
+        Rsa::new(HashAlg::Sha384, Padding::Pss)
+    }
+
+    /// RSA with SHA-512 and PSS padding.
+    pub const fn ps512() -> Rsa {
+        Rsa::new(HashAlg::Sha512, Padding::Pss)
     }
 
     fn padding_scheme(&self) -> PaddingScheme {
         match self.padding_alg {
-            Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg)),
+            Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
             Padding::Pss => {
-                let rng = rand_core::OsRng {};
+                let rng = rand_core::OsRng;
                 match self.hash_alg {
-                    Hash::SHA2_256 => PaddingScheme::new_pss::<Sha256, _>(rng),
-                    Hash::SHA2_384 => PaddingScheme::new_pss::<Sha384, _>(rng),
-                    Hash::SHA2_512 => PaddingScheme::new_pss::<Sha512, _>(rng),
-                    _ => unreachable!(),
+                    HashAlg::Sha256 => PaddingScheme::new_pss::<Sha256, _>(rng),
+                    HashAlg::Sha384 => PaddingScheme::new_pss::<Sha384, _>(rng),
+                    HashAlg::Sha512 => PaddingScheme::new_pss::<Sha512, _>(rng),
                 }
             }
         }
@@ -187,21 +213,19 @@ impl Rsa {
 
     fn name(&self) -> &'static str {
         match (self.padding_alg, self.hash_alg) {
-            (Padding::Pkcs1v15, Hash::SHA2_256) => "RS256",
-            (Padding::Pkcs1v15, Hash::SHA2_384) => "RS384",
-            (Padding::Pkcs1v15, Hash::SHA2_512) => "RS512",
-            (Padding::Pss, Hash::SHA2_256) => "PS256",
-            (Padding::Pss, Hash::SHA2_384) => "PS384",
-            (Padding::Pss, Hash::SHA2_512) => "PS512",
-            _ => unreachable!(),
+            (Padding::Pkcs1v15, HashAlg::Sha256) => "RS256",
+            (Padding::Pkcs1v15, HashAlg::Sha384) => "RS384",
+            (Padding::Pkcs1v15, HashAlg::Sha512) => "RS512",
+            (Padding::Pss, HashAlg::Sha256) => "PS256",
+            (Padding::Pss, HashAlg::Sha384) => "PS384",
+            (Padding::Pss, HashAlg::Sha512) => "PS512",
         }
     }
 
-    fn sign(&self, signing_key: &RsaSigningKey, message: &[u8]) -> Signature {
-        let digest = self.hash(message);
-        Signature(
+    fn sign(&self, signing_key: &RSAPrivateKey, message: &[u8]) -> RsaSignature {
+        let digest = self.hash_alg.digest(message);
+        RsaSignature(
             signing_key
-                .as_ref()
                 .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
                 .expect("Unexpected RSA signature failure"),
         )
@@ -209,62 +233,23 @@ impl Rsa {
 
     fn verify_signature(
         &self,
-        signature: &Signature,
-        verifying_key: &RsaVerifyingKey,
+        signature: &RsaSignature,
+        verifying_key: &RSAPublicKey,
         message: &[u8],
     ) -> bool {
-        let digest = self.hash(message);
+        let digest = self.hash_alg.digest(message);
         verifying_key
-            .as_ref()
             .verify(self.padding_scheme(), &digest, &signature.0)
             .is_ok()
     }
 
-    /// Generate a new key pair.
+    /// Generates a new key pair with the specified modulus bit length (aka key length).
     pub fn generate<R: CryptoRng + RngCore>(
-        &self,
         rng: &mut R,
-        modulus_bits: usize,
-    ) -> anyhow::Result<(RsaSigningKey, RsaVerifyingKey)> {
-        match modulus_bits {
-            2048 | 3072 | 4096 => {}
-            _ => return Err(RsaError::UnsupportedModulusSize.into()),
-        }
-        let signing_key = match RSAPrivateKey::new(rng, modulus_bits) {
-            Err(e) => return Err(RsaError::KeygenError(e).into()),
-            Ok(key) => RsaSigningKey(key),
-        };
-        let verifying_key = signing_key.to_verifying_key();
+        modulus_bits: ModulusBits,
+    ) -> rsa::errors::Result<(RSAPrivateKey, RSAPublicKey)> {
+        let signing_key = RSAPrivateKey::new(rng, modulus_bits.bits())?;
+        let verifying_key = signing_key.to_public_key();
         Ok((signing_key, verifying_key))
-    }
-
-    /// RSA with SHA-256 and PKCS1v1.5 padding
-    pub fn rs256() -> Rsa {
-        Rsa::new(Hash::SHA2_256, Padding::Pkcs1v15)
-    }
-
-    /// RSA with SHA-384 and PKCS1v1.5 padding
-    pub fn rs384() -> Rsa {
-        Rsa::new(Hash::SHA2_384, Padding::Pkcs1v15)
-    }
-
-    /// RSA with SHA-512 and PKCS1v1.5 padding
-    pub fn rs512() -> Rsa {
-        Rsa::new(Hash::SHA2_512, Padding::Pkcs1v15)
-    }
-
-    /// RSA with SHA-256 and PSS padding
-    pub fn ps256() -> Rsa {
-        Rsa::new(Hash::SHA2_256, Padding::Pss)
-    }
-
-    /// RSA with SHA-384 and PSS padding
-    pub fn ps384() -> Rsa {
-        Rsa::new(Hash::SHA2_384, Padding::Pss)
-    }
-
-    /// RSA with SHA-512 and PSS padding
-    pub fn ps512() -> Rsa {
-        Rsa::new(Hash::SHA2_512, Padding::Pss)
     }
 }

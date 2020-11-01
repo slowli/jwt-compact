@@ -91,17 +91,17 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --features es256k,rsa --all-targets
+          args: --features es256k,rsa --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --no-default-features --features ed25519-dalek --all-targets
+          args: --no-default-features --features ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --no-default-features --features ed25519-compact --all-targets
+          args: --no-default-features --features ed25519-compact --all-targets -- -D warnings
 
       - name: Run tests
         uses: actions-rs/cargo@v1

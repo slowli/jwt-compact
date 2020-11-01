@@ -1,4 +1,4 @@
-use ed25519_compact::{KeyPair, PublicKey, SecretKey, Seed, Signature};
+use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
 use std::borrow::Cow;
@@ -10,7 +10,7 @@ use crate::{
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        let mut signature = [0u8; Signature::BYTES];
+        let mut signature = [0_u8; Signature::BYTES];
         if bytes.len() != signature.len() {
             return Err(ed25519_compact::Error::SignatureMismatch.into());
         }
@@ -42,8 +42,8 @@ impl Ed25519 {
     }
 
     /// Generate a new key pair.
-    pub fn generate<R: CryptoRng + RngCore>(&self, rng: &mut R) -> (SecretKey, PublicKey) {
-        let mut seed = [0u8; Seed::BYTES];
+    pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> (SecretKey, PublicKey) {
+        let mut seed = [0_u8; Seed::BYTES];
         rng.fill_bytes(&mut seed);
         let keypair = KeyPair::from_seed(Seed::new(seed));
         (keypair.sk, keypair.pk)
@@ -60,7 +60,7 @@ impl Algorithm for Ed25519 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.sign(message, Some(Default::default()))
+        signing_key.sign(message, Some(Noise::default()))
     }
 
     fn verify_signature(

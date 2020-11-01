@@ -143,7 +143,13 @@
 //! # } // end main()
 //! ```
 
-#![deny(missing_debug_implementations, missing_docs, bare_trait_objects)]
+#![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::must_use_candidate,
+    clippy::module_name_repetitions
+)]
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
@@ -642,7 +648,8 @@ impl<'a> UntrustedToken<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alg::*;
+    use crate::alg::{Hs256, Hs256Key};
+
     use assert_matches::assert_matches;
 
     type Obj = serde_json::Map<String, serde_json::Value>;

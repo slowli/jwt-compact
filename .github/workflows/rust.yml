@@ -50,7 +50,7 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --features es256k --all-targets
+          args: --features es256k,rsa --all-targets
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
@@ -61,17 +61,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --no-default-features --features ed25519-compact --all-targets
-      - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --features secp256k1 rsa --all-targets
 
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features es256k
+          args: --features es256k,rsa
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -89,7 +84,7 @@ jobs:
           args: --features rsa --lib --tests
 
       - name: Check docs
-        run: cargo clean --doc && cargo doc --features es256k --no-deps && cargo deadlinks --dir target/doc
+        run: cargo clean --doc && cargo doc --features es256k,rsa --no-deps && cargo deadlinks --dir target/doc
 
   document:
     needs: build
@@ -123,7 +118,7 @@ jobs:
       - name: Build docs
         run: |
           cargo clean --doc && \
-          cargo rustdoc --features es256k -- -Z unstable-options \
+          cargo rustdoc --features es256k,rsa -- -Z unstable-options \
             --extern-html-root-url base64=https://docs.rs/base64/~0.12 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0-rc.2 \
             --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \

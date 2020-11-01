@@ -14,9 +14,9 @@ categories = ["web-programming", "cryptography"]
 description = "Minimalistic JWT implementation with focus on type safety and secure cryptographic primitives"
 repository = "https://github.com/slowli/jwt-compact"
 
-# Enable `ES256K` algorithm in documentation on `docs.rs`.
+# Enable non-conflicting additional algorithms in documentation on `docs.rs`.
 [package.metadata.docs.rs]
-features = ["es256k"]
+features = ["es256k", "rsa"]
 
 [dependencies]
 # Public dependencies (present in the public API).
@@ -49,6 +49,10 @@ optional = true
 
 [dependencies.ed25519-compact]
 version = "0.1.4"
+optional = true
+
+[dependencies.rsa]
+version = "0.3"
 optional = true
 
 [dev-dependencies]

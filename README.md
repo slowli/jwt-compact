@@ -1,6 +1,6 @@
 # Compact JWT implementation in Rust
 
-[![Travis Build Status](https://img.shields.io/travis/com/slowli/jwt-compact/master.svg?label=Linux%20Build)](https://travis-ci.com/slowli/jwt-compact) 
+[![Travis Build Status](https://img.shields.io/travis/com/slowli/jwt-compact/master.svg?label=Linux%20Build)](https://travis-ci.com/slowli/jwt-compact)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/jwt-compact.svg)](https://github.com/slowli/jwt-compact/blob/master/LICENSE)
 ![rust 1.45.0+ required](https://img.shields.io/badge/rust-1.45.0+-blue.svg?label=Required%20Rust)
 [![Dependencies status](https://img.shields.io/librariesio/github/slowli/jwt-compact)](https://libraries.io/github/slowli/jwt-compact)
@@ -25,10 +25,10 @@ See the crate docs for the examples of usage.
   with the secp256k1 elliptic curve. Both curves are widely used in crypto community
   and believed to be securely generated (there are some doubts about parameter generation
   for elliptic curves used in standard `ES*` algorithms).
+- Optional support of RSA (`RS*` and `PS*` algorithms).
 
 ### Missing features
 
-- Support of RSA (`RS*` and `PS*`) and standard elliptic curve (`ES*`) algorithms.
 - Built-in checks of some claims (e.g., `iss` – the token issuer).
   This is intentional: depending on the use case, such claims can have different semantics
   and thus be represented by different datatypes (e.g., `iss` may be a human-readable short ID,

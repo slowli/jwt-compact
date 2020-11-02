@@ -1,0 +1,27 @@
+[package]
+name = "jwt-compact-wasm"
+version = "0.0.0"
+authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
+edition = "2018"
+license = "Apache-2.0"
+description = "Testing usability of `jwt-compact` in WASM"
+repository = "https://github.com/slowli/jwt-compact"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.68", features = ["serde-serialize"] }
+getrandom = { version = "0.2.0", features = ["js"] }
+
+[dependencies.serde]
+version = "1.0"
+default-features = false
+features = ["alloc", "derive"]
+
+[dependencies.jwt-compact]
+version = "0.2.0"
+path = ".."
+default_features = false
+features = ["rsa"]

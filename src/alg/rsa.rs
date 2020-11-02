@@ -200,6 +200,23 @@ impl Rsa {
         Rsa::new(HashAlg::Sha512, Padding::Pss)
     }
 
+    /// RSA based on the specified algorithm name.
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the name is not one of the six RSA-based JWS algorithms.
+    pub fn with_name(name: &str) -> Self {
+        match name {
+            "RS256" => Self::rs256(),
+            "RS384" => Self::rs384(),
+            "RS512" => Self::rs512(),
+            "PS256" => Self::ps256(),
+            "PS384" => Self::ps384(),
+            "PS512" => Self::ps512(),
+            _ => panic!("Invalid RSA alg name: {}", name),
+        }
+    }
+
     fn padding_scheme(&self) -> PaddingScheme {
         match self.padding_alg {
             Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),

@@ -64,3 +64,6 @@ rand = "0.7.3"
 [features]
 default = ["exonum-crypto"]
 es256k = ["secp256k1", "lazy_static"]
+
+[workspace]
+members = [".", "test-wasm"]

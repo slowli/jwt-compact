@@ -1,11 +1,11 @@
 use assert_matches::assert_matches;
-use chrono::{Duration, Utc};
+use chrono::{Duration, TimeZone, Utc};
 use hex_buffer_serde::{Hex as _, HexForm};
 use rand::{seq::index::sample as sample_indexes, thread_rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use std::{collections::HashMap, convert::TryFrom};
+use core::convert::TryFrom;
 
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 
@@ -303,7 +303,7 @@ struct CompactClaims {
 }
 
 fn create_claims() -> Claims<CompactClaims> {
-    let now = Utc::now();
+    let now = Utc.ymd(2020, 9, 1).and_hms(10, 0, 0);
     let now = now - Duration::nanoseconds(i64::from(now.timestamp_subsec_nanos()));
 
     Claims {
@@ -351,12 +351,18 @@ fn compact_token_hs256() {
     assert_eq!(*token.claims(), claims);
 
     // Check that we can collect unknown / hard to parse claims into `Claims.custom`.
-    let generic_token: Token<HashMap<String, serde_cbor::Value>> =
-        Hs256.validate_integrity(&untrusted_token, &key).unwrap();
-    assert_matches!(
-        generic_token.claims().custom["sub"],
-        serde_cbor::Value::Bytes(_)
-    );
+    // `serde_cbor::Value` is not defined without `std`.
+    #[cfg(feature = "std")]
+    {
+        use std::collections::HashMap;
+
+        let generic_token: Token<HashMap<String, serde_cbor::Value>> =
+            Hs256.validate_integrity(&untrusted_token, &key).unwrap();
+        assert_matches!(
+            generic_token.claims().custom["sub"],
+            serde_cbor::Value::Bytes(_)
+        );
+    }
 }
 
 #[cfg(feature = "exonum-crypto")]

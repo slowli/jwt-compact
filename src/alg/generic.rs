@@ -1,9 +1,7 @@
 //! Generic traits providing uniform interfaces for a certain cryptosystem
 //! across different backends.
 
-use std::borrow::Cow;
-
-use crate::Algorithm;
+use crate::{alloc::Cow, Algorithm};
 
 /// Verifying key for a specific signature cryptosystem. In the case of public-key cryptosystems,
 /// this is a public key.

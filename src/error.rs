@@ -1,80 +1,140 @@
-use thiserror::Error;
+//! Error handling.
+
+use core::fmt;
+
+use crate::alloc::String;
 
 /// Errors that may occur during token parsing.
-#[derive(Debug, Error)]
+#[derive(Debug)]
+#[non_exhaustive]
 pub enum ParseError {
     /// Token has invalid structure.
     ///
     /// Valid tokens must consist of 3 base64url-encoded parts (header, claims, and signature)
     /// separated by periods.
-    #[error("Invalid token structure")]
     InvalidTokenStructure,
-
     /// Cannot decode base64.
-    #[error("base64 decoding error: {}", _0)]
-    Base64(#[from] base64::DecodeError),
-
+    Base64(base64::DecodeError),
     /// Token header cannot be parsed.
-    #[error("Malformed token header: {}", _0)]
-    MalformedHeader(#[source] serde_json::Error),
-
+    MalformedHeader(serde_json::Error),
     /// [Content type][cty] mentioned in the token header is not supported.
     ///
     /// Supported content types are JSON (used by default) and CBOR.
     ///
     /// [cty]: https://tools.ietf.org/html/rfc7515#section-4.1.10
-    #[error("Unsupported content type: {}", _0)]
     UnsupportedContentType(String),
 }
 
+impl fmt::Display for ParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidTokenStructure => formatter.write_str("Invalid token structure"),
+            Self::Base64(e) => write!(formatter, "base64 decoding error: {}", e),
+            Self::MalformedHeader(e) => write!(formatter, "Malformed token header: {}", e),
+            Self::UnsupportedContentType(ty) => {
+                write!(formatter, "Unsupported content type: {}", ty)
+            }
+        }
+    }
+}
+
+impl From<base64::DecodeError> for ParseError {
+    fn from(error: base64::DecodeError) -> Self {
+        Self::Base64(error)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ParseError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Base64(e) => Some(e),
+            Self::MalformedHeader(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 /// Errors that can occur during token validation.
-#[derive(Debug, Error)]
+#[derive(Debug)]
+#[non_exhaustive]
 pub enum ValidationError {
     /// Algorithm mentioned in the token header differs from invoked one.
-    #[error("Token algorithm differs from the expected one")]
     AlgorithmMismatch,
-
     /// Token signature is malformed (e.g., has an incorrect length).
-    #[error("Malformed token signature: {}", _0)]
-    MalformedSignature(#[source] anyhow::Error),
-
+    MalformedSignature(anyhow::Error),
     /// Token signature has failed verification.
-    #[error("Signature has failed verification")]
     InvalidSignature,
-
     /// Token claims cannot be deserialized from JSON.
-    #[error("Cannot deserialize claims: {}", _0)]
-    MalformedClaims(#[source] serde_json::Error),
-
+    MalformedClaims(serde_json::Error),
     /// Token claims cannot be deserialized from CBOR.
-    #[error("Cannot deserialize claims: {}", _0)]
-    MalformedCborClaims(#[source] serde_cbor::error::Error),
-
+    MalformedCborClaims(serde_cbor::error::Error),
     /// Claim requested during validation is not present in the token.
-    #[error("Claim requested during validation is not present in the token")]
     NoClaim,
-
     /// Token has expired.
-    #[error("Token has expired")]
     Expired,
-
     /// Token is not yet valid as per `nbf` claim.
-    #[error("Token is not yet ready")]
     NotMature,
 }
 
+impl fmt::Display for ValidationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AlgorithmMismatch => {
+                formatter.write_str("Token algorithm differs from the expected one")
+            }
+            Self::MalformedSignature(e) => write!(formatter, "Malformed token signature: {}", e),
+            Self::InvalidSignature => formatter.write_str("Signature has failed verification"),
+            Self::MalformedClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
+            Self::MalformedCborClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
+            Self::NoClaim => {
+                formatter.write_str("Claim requested during validation is not present in the token")
+            }
+            Self::Expired => formatter.write_str("Token has expired"),
+            Self::NotMature => formatter.write_str("Token is not yet ready"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ValidationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::MalformedSignature(e) => Some(e.as_ref()),
+            Self::MalformedClaims(e) => Some(e),
+            Self::MalformedCborClaims(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 /// Errors that can occur during token creation.
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum CreationError {
     /// Token header cannot be serialized.
-    #[error("Cannot serialize header: {}", _0)]
-    Header(#[source] serde_json::Error),
-
+    Header(serde_json::Error),
     /// Token claims cannot be serialized into JSON.
-    #[error("Cannot serialize claims: {}", _0)]
-    Claims(#[source] serde_json::Error),
-
+    Claims(serde_json::Error),
     /// Token claims cannot be serialized into CBOR.
-    #[error("Cannot serialize claims into CBOR: {}", _0)]
-    CborClaims(#[source] serde_cbor::error::Error),
+    CborClaims(serde_cbor::error::Error),
+}
+
+impl fmt::Display for CreationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Header(e) => write!(formatter, "Cannot serialize header: {}", e),
+            Self::Claims(e) => write!(formatter, "Cannot serialize claims: {}", e),
+            Self::CborClaims(e) => write!(formatter, "Cannot serialize claims into CBOR: {}", e),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for CreationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Header(e) | Self::Claims(e) => Some(e),
+            Self::CborClaims(e) => Some(e),
+        }
+    }
 }

@@ -1,10 +1,9 @@
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
-use std::borrow::Cow;
-
 use crate::{
     alg::{SigningKey, VerifyingKey},
+    alloc::Cow,
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -12,7 +11,7 @@ impl AlgorithmSignature for Signature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         let mut signature = [0_u8; Signature::BYTES];
         if bytes.len() != signature.len() {
-            return Err(ed25519_compact::Error::SignatureMismatch.into());
+            return Err(anyhow::anyhow!(ed25519_compact::Error::SignatureMismatch));
         }
         signature.copy_from_slice(bytes);
         Ok(Self::new(signature))
@@ -75,7 +74,7 @@ impl Algorithm for Ed25519 {
 
 impl VerifyingKey<Ed25519> for PublicKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).map_err(From::from)
+        Self::from_slice(raw).map_err(|e| anyhow::anyhow!(e))
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
@@ -85,7 +84,7 @@ impl VerifyingKey<Ed25519> for PublicKey {
 
 impl SigningKey<Ed25519> for SecretKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).map_err(From::from)
+        Self::from_slice(raw).map_err(|e| anyhow::anyhow!(e))
     }
 
     fn to_verifying_key(&self) -> PublicKey {

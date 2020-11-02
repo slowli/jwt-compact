@@ -60,7 +60,7 @@
 //! use chrono::{Duration, Utc};
 //! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! use serde::{Serialize, Deserialize};
-//! use std::convert::TryFrom;
+//! use core::convert::TryFrom;
 //!
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -111,7 +111,7 @@
 //! # use hex_buffer_serde::{Hex as _, HexForm};
 //! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! # use serde::{Serialize, Deserialize};
-//! # use std::convert::TryFrom;
+//! # use core::convert::TryFrom;
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
 //! struct CustomClaims {
@@ -143,6 +143,7 @@
 //! # } // end main()
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(
@@ -154,21 +155,44 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
-use std::{borrow::Cow, convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt};
 
 pub mod alg;
 mod claims;
 mod error;
+
+// Polyfill for `alloc` types.
+mod alloc {
+    #[cfg(not(feature = "std"))]
+    extern crate alloc;
+
+    #[cfg(not(feature = "std"))]
+    pub use alloc::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        string::String,
+        vec::Vec,
+    };
+    #[cfg(feature = "std")]
+    pub use std::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        string::String,
+        vec::Vec,
+    };
+}
+
+/// Prelude to neatly import all necessary stuff from the crate.
+pub mod prelude {
+    pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
+}
 
 pub use crate::{
     claims::{Claims, Empty, TimeOptions},
     error::{CreationError, ParseError, ValidationError},
 };
 
-/// Prelude to neatly import all necessary stuff from the crate.
-pub mod prelude {
-    pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
-}
+use crate::alloc::{Cow, String, ToOwned, Vec};
 
 /// Maximum "reasonable" signature size in bytes.
 const SIGNATURE_SIZE: usize = 128;
@@ -217,7 +241,7 @@ pub trait Algorithm {
 ///
 /// ```
 /// use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*, Empty, Renamed};
-/// # use std::convert::TryFrom;
+/// # use core::convert::TryFrom;
 ///
 /// let alg = Renamed::new(Hs256, "HS2");
 /// let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
@@ -526,7 +550,7 @@ impl<T> Token<T> {
 /// # use chrono::Duration;
 /// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
 /// # use serde::{Deserialize, Serialize};
-/// # use std::convert::TryFrom;
+/// # use core::convert::TryFrom;
 /// #
 /// #[derive(Serialize, Deserialize)]
 /// struct MyClaims {

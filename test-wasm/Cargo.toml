@@ -14,6 +14,12 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 wasm-bindgen = { version = "0.2.68", features = ["serde-serialize"] }
 getrandom = { version = "0.2.0", features = ["js"] }
+pem = "0.8.1"
+
+# Multiple other dependencies lead to `serde/std` being enabled
+# (e.g., `rsa`, `wasm-bindgen/serde-serialize`, `get_random/js`).
+# Hence, we enable `serde_cbor/std` to avoid compilation errors.
+serde_cbor = "0.11.1"
 
 [dependencies.serde]
 version = "1.0"
@@ -24,4 +30,4 @@ features = ["alloc", "derive"]
 version = "0.2.0"
 path = ".."
 default_features = false
-features = ["rsa"]
+features = ["ed25519-compact", "rsa"]

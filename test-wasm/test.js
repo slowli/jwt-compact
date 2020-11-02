@@ -1,31 +1,55 @@
 #!/usr/bin/env node
 
-const crypto = require('crypto');
 const { strict: assert } = require('assert');
-const { verifyRsaToken } = require('./pkg');
+const { JWK, JWT } = require('jose');
 
-const rsaPublicKeyPem =
-  '-----BEGIN PUBLIC KEY-----\n' +
-  'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnzyis1ZjfNB0bBgKFMSv\n' +
-  'vkTtwlvBsaJq7S5wA+kzeVOVpVWwkWdVha4s38XM/pa/yr47av7+z3VTmvDRyAHc\n' +
-  'aT92whREFpLv9cj5lTeJSibyr/Mrm/YtjCZVWgaOYIhwrXwKLqPr/11inWsAkfIy\n' +
-  'tvHWTxZYEcXLgAXFuUuaS3uF9gEiNQwzGTU1v0FqkqTBr4B8nW3HCN47XUu0t8Y0\n' +
-  'e+lf4s4OxQawWD79J9/5d3Ry0vbV3Am1FtGJiJvOwRsIfVChDpYStTcHTCMqtvWb\n' +
-  'V6L11BWkpzGXSW4Hv43qa+GSYOD2QU68Mb59oSk2OB+BtOLpJofmbGEGgvmwyCI9\n' +
-  'MwIDAQAB\n' +
-  '-----END PUBLIC KEY-----';
-const rsaPublicKey = crypto.createPublicKey(rsaPublicKeyPem).export({
-  type: 'spki',
-  format: 'der'
+const { verifyRsaToken, verifyHashToken, verifyEdToken } = require('jwt-compact-wasm');
+
+const payload = {
+  name: 'John Doe',
+  admin: false
+};
+
+// RSA algorithms.
+for (const algorithm of ['RS256', 'RS384', 'RS512', 'PS256', 'PS384', 'PS512']) {
+  console.log(`Verifying ${algorithm}...`);
+
+  const privateKey = JWK.generateSync('RSA', 2048);
+  const publicKey = privateKey.toPEM();
+
+  const token = JWT.sign(payload, privateKey, {
+    algorithm,
+    expiresIn: '1h',
+    subject: 'john.doe@example.com'
+  });
+
+  const claims = verifyRsaToken(token, publicKey);
+  assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
+}
+
+// HMAC-based algorithms.
+for (const algorithm of ['HS256', 'HS384', 'HS512']) {
+  console.log(`Verifying ${algorithm}...`);
+
+  const secretKey = JWK.generateSync('oct', 160);
+  const token = JWT.sign(payload, secretKey, {
+    algorithm,
+    expiresIn: '1h',
+    subject: 'john.doe@example.com'
+  });
+
+  const claims = verifyHashToken(token, Buffer.from(secretKey.k, 'base64'));
+  assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
+}
+
+// Ed25519 algorithm.
+console.log('Verifying Ed25519...');
+const privateKey = JWK.generateSync('OKP', 'Ed25519');
+const token = JWT.sign(payload, privateKey, {
+  algorithm: 'EdDSA',
+  expiresIn: '1h',
+  subject: 'john.doe@example.com'
 });
 
-const rsaToken =
-  'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI' +
-  'iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.POstGetfAytaZS82wHcjoTyoqhMyxXiWdR7Nn7A29DN' +
-  'Sl0EiXLdwJ6xC6AfgZWF1bOsS_TuYI3OG85AmiExREkrS6tDfTQ2B3WXlrr-wp5AokiRbz3_oB4OxG-W9KcEEb' +
-  'DRcZc0nH3L7LzYptiy1PtAylQGxHTWZXtGz4ht0bAecBgmpdgXMguEIcoqPJ1n3pIWk_dUZegpqx0Lka21H6Xx' +
-  'UTxiy8OcaarA8zdnPUnV6AmNP3ecFawIFYdvJB_cm-GvpCSbr8G8y_Mllj8f4x9nBH8pQux89_6gUY618iYv7t' +
-  'uPWBFfEbLxtF2pZS6YC1aSfLQxeNe8djT9YjpvRZA'
-
-const claims = verifyRsaToken(rsaToken, rsaPublicKey);
-assert.deepEqual(claims, { sub: "1234567890", name: "John Doe", admin: true })
+const claims = verifyEdToken(token, Buffer.from(privateKey.x, 'base64'));
+assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });

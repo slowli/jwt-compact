@@ -3,5 +3,9 @@
 **/*.rs.bk
 Cargo.lock
 
+# JavaScript
+node_modules
+npm-debug.log
+
 # IDE
 /.idea

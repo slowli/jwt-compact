@@ -74,6 +74,7 @@ enum Padding {
 
 /// Bit length of an RSA key modulus (aka RSA key length).
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[allow(clippy::pub_enum_variant_names)] // false alarm
 #[non_exhaustive]
 pub enum ModulusBits {
     /// 2048 bits. This is the minimum recommended key length as of 2020.

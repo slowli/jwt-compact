@@ -382,7 +382,7 @@ fn ed25519_algorithm() {
 #[test]
 fn ed25519_algorithm() {
     let mut rng = thread_rng();
-    let (signing_key, verifying_key) = Ed25519.generate(&mut rng);
+    let (signing_key, verifying_key) = Ed25519::generate(&mut rng);
     test_algorithm(&Ed25519, &signing_key, &verifying_key);
 }
 

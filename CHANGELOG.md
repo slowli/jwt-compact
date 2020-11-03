@@ -13,6 +13,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Add `SigningKey` and `VerifyingKey` traits for generic access to cryptographic keys.
 
+- Support RSA algorithms using pure-Rust [`rsa`] crate.
+
 ### Changed
 
 - Update dependencies.
@@ -33,3 +35,4 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 The initial release of `jwt-compact`.
 
 [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
+[`rsa`]: https://crates.io/crates/rsa

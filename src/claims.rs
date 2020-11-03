@@ -121,16 +121,15 @@ impl<T> Claims<T> {
     /// This method will return an error if the claims do not feature an expiration date,
     /// or if it is in the past (subject to the provided `options`).
     pub fn validate_expiration(&self, options: TimeOptions) -> Result<&Self, ValidationError> {
-        if let Some(expiration) = self.expiration_date {
-            let current_time = options.current_time.unwrap_or_else(Utc::now);
-            if current_time > expiration + options.leeway {
-                Err(ValidationError::Expired)
-            } else {
-                Ok(self)
-            }
-        } else {
-            Err(ValidationError::NoClaim)
-        }
+        self.expiration_date
+            .map_or(Err(ValidationError::NoClaim), |expiration| {
+                let current_time = options.current_time.unwrap_or_else(Utc::now);
+                if current_time > expiration + options.leeway {
+                    Err(ValidationError::Expired)
+                } else {
+                    Ok(self)
+                }
+            })
     }
 
     /// Validates the maturity date (`nbf` claim).
@@ -138,16 +137,15 @@ impl<T> Claims<T> {
     /// This method will return an error if the claims do not feature a maturity date,
     /// or if it is in the future (subject to the provided `options`).
     pub fn validate_maturity(&self, options: TimeOptions) -> Result<&Self, ValidationError> {
-        if let Some(not_before) = self.not_before {
-            let current_time = options.current_time.unwrap_or_else(Utc::now);
-            if current_time < not_before - options.leeway {
-                Err(ValidationError::NotMature)
-            } else {
-                Ok(self)
-            }
-        } else {
-            Err(ValidationError::NoClaim)
-        }
+        self.not_before
+            .map_or(Err(ValidationError::NoClaim), |not_before| {
+                let current_time = options.current_time.unwrap_or_else(Utc::now);
+                if current_time < not_before - options.leeway {
+                    Err(ValidationError::NotMature)
+                } else {
+                    Ok(self)
+                }
+            })
     }
 }
 
@@ -244,7 +242,7 @@ mod tests {
             claims
                 .validate_expiration(TimeOptions {
                     leeway: Duration::seconds(5),
-                    ..Default::default()
+                    ..TimeOptions::default()
                 })
                 .unwrap_err(),
             ValidationError::Expired
@@ -277,7 +275,7 @@ mod tests {
             claims
                 .validate_maturity(TimeOptions {
                     leeway: Duration::seconds(5),
-                    ..Default::default()
+                    ..TimeOptions::default()
                 })
                 .unwrap_err(),
             ValidationError::NotMature

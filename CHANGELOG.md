@@ -15,6 +15,9 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Support RSA algorithms using pure-Rust [`rsa`] crate.
 
+- Add `no_std` mode and check WASM compatibility via dedicated aux crate. Introduce
+  two corresponding crate features, `clock` and `std`.
+
 ### Changed
 
 - Update dependencies.
@@ -23,6 +26,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - `es256k` feature should now be used for access to libsecp256k1 backend instead of
   `secp256k1`.
+
+- Rework time-related validation logic. It is now possible to use a new `Leeway` type
+  (a wrapper around `chrono::Duration`) in place of `TimeOptions` if there is access
+  to the system clock.
 
 ## 0.2.0 - 2020-05-11
 

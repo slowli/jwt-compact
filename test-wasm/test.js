@@ -3,53 +3,84 @@
 const { strict: assert } = require('assert');
 const { JWK, JWT } = require('jose');
 
-const { verifyRsaToken, verifyHashToken, verifyEdToken } = require('jwt-compact-wasm');
+const {
+  verifyRsaToken,
+  createRsaToken,
+  verifyHashToken,
+  createHashToken,
+  verifyEdToken,
+  createEdToken,
+} = require('jwt-compact-wasm');
 
 const payload = {
   name: 'John Doe',
-  admin: false
+  admin: false,
 };
+
+function assertRoundTrip({
+  algorithm,
+  keyGenerator,
+  signer,
+  verifier,
+}) {
+  console.log(`Verifying ${algorithm} (JS -> WASM)...`);
+
+  const signingKey = keyGenerator();
+  const token = JWT.sign(payload, signingKey, {
+    algorithm,
+    expiresIn: '1h',
+    subject: 'john.doe@example.com',
+  });
+
+  const claims = verifier(token, signingKey);
+  assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
+
+  console.log(`Verifying ${algorithm} (WASM -> JS)...`);
+  const wasmToken = signer(claims, signingKey);
+  const wasmClaims = JWT.verify(wasmToken, signingKey);
+  assert.equal(typeof wasmClaims.exp, 'number');
+  delete wasmClaims.exp;
+  assert.deepEqual(wasmClaims, claims);
+}
 
 // RSA algorithms.
 for (const algorithm of ['RS256', 'RS384', 'RS512', 'PS256', 'PS384', 'PS512']) {
-  console.log(`Verifying ${algorithm}...`);
-
-  const privateKey = JWK.generateSync('RSA', 2048);
-  const publicKey = privateKey.toPEM();
-
-  const token = JWT.sign(payload, privateKey, {
+  assertRoundTrip({
     algorithm,
-    expiresIn: '1h',
-    subject: 'john.doe@example.com'
+    keyGenerator: () => JWK.generateSync('RSA', 2048),
+    signer: (claims, key) => createRsaToken(claims, key.toPEM(true), algorithm),
+    verifier: (token, key) => verifyRsaToken(token, key.toPEM(false)),
   });
-
-  const claims = verifyRsaToken(token, publicKey);
-  assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
 }
 
 // HMAC-based algorithms.
 for (const algorithm of ['HS256', 'HS384', 'HS512']) {
-  console.log(`Verifying ${algorithm}...`);
-
-  const secretKey = JWK.generateSync('oct', 160);
-  const token = JWT.sign(payload, secretKey, {
+  assertRoundTrip({
     algorithm,
-    expiresIn: '1h',
-    subject: 'john.doe@example.com'
+    keyGenerator: () => JWK.generateSync('oct', 160),
+    signer: (claims, key) => createHashToken(
+      claims,
+      Buffer.from(key.k, 'base64'),
+      algorithm,
+    ),
+    verifier: (token, key) => verifyHashToken(token, Buffer.from(key.k, 'base64')),
   });
-
-  const claims = verifyHashToken(token, Buffer.from(secretKey.k, 'base64'));
-  assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
 }
 
-// Ed25519 algorithm.
-console.log('Verifying Ed25519...');
-const privateKey = JWK.generateSync('OKP', 'Ed25519');
-const token = JWT.sign(payload, privateKey, {
+// EdDSA algorithm on the Ed25519 curve.
+assertRoundTrip({
   algorithm: 'EdDSA',
-  expiresIn: '1h',
-  subject: 'john.doe@example.com'
-});
+  keyGenerator: () => JWK.generateSync('OKP', 'Ed25519'),
 
-const claims = verifyEdToken(token, Buffer.from(privateKey.x, 'base64'));
-assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
+  signer: (claims, key) => {
+    const privateKeyBytes = Buffer.alloc(64);
+    // Create a conventional binary presentation of the key (first, the secret scalar,
+    // then the public key).
+    Buffer.from(key.d, 'base64').copy(privateKeyBytes, 0);
+    Buffer.from(key.x, 'base64').copy(privateKeyBytes, 32);
+
+    return createEdToken(claims, privateKeyBytes);
+  },
+
+  verifier: (token, key) => verifyEdToken(token, Buffer.from(key.x, 'base64')),
+})

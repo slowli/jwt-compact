@@ -30,7 +30,7 @@ impl AlgorithmSignature for Signature {
 /// *This type is available if the crate is built with the `ed25519-compact` feature.*
 ///
 /// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Ed25519;
 
 impl Ed25519 {

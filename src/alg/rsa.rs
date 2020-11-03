@@ -235,10 +235,19 @@ impl Rsa {
             Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
             Padding::Pss => {
                 let rng = rand_core::OsRng;
+
+                // The salt length needs to be set to the size of hash function output;
+                // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
                 match self.hash_alg {
-                    HashAlg::Sha256 => PaddingScheme::new_pss::<Sha256, _>(rng),
-                    HashAlg::Sha384 => PaddingScheme::new_pss::<Sha384, _>(rng),
-                    HashAlg::Sha512 => PaddingScheme::new_pss::<Sha512, _>(rng),
+                    HashAlg::Sha256 => {
+                        PaddingScheme::new_pss_with_salt::<Sha256, _>(rng, Sha256::output_size())
+                    }
+                    HashAlg::Sha384 => {
+                        PaddingScheme::new_pss_with_salt::<Sha384, _>(rng, Sha384::output_size())
+                    }
+                    HashAlg::Sha512 => {
+                        PaddingScheme::new_pss_with_salt::<Sha512, _>(rng, Sha512::output_size())
+                    }
                 }
             }
         }

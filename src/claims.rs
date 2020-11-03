@@ -91,6 +91,9 @@ impl<T> Claims<T> {
     }
 
     /// Sets `expiration_date` claim so that the token has the specified `duration`.
+    ///
+    /// *This method is available if the crate is built with the `clock` feature, which is on
+    /// by default.*
     #[cfg(feature = "clock")]
     pub fn set_duration(self, duration: Duration) -> Self {
         Self {
@@ -101,6 +104,9 @@ impl<T> Claims<T> {
 
     /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time,
     /// and the second to match the specified `duration` of the token.
+    ///
+    /// *This method is available if the crate is built with the `clock` feature, which is on
+    /// by default.*
     #[cfg(feature = "clock")]
     pub fn set_duration_and_issuance(self, duration: Duration) -> Self {
         let issued_at = Utc::now();

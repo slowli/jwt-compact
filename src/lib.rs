@@ -35,6 +35,19 @@
 //! securely generated). These algs have 128-bit security, making them an alternative
 //! to `ES256`.
 //!
+//! # `no_std` support
+//!
+//! The crate supports a `no_std` compilation mode. This is controlled by two features:
+//! `clock` and `std`; both are on by default.
+//!
+//! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
+//!   Without it, some claim methods (such as [`set_duration`]) are not available. It is still
+//!   possible to set the corresponding claim fields manually.
+//! - The `std` feature is propagated to the core dependencies and enables `std`-specific
+//!   functionality (such as error types implementing the standard `Error` trait).
+//!
+//! Note that not all crypto backends are `no_std`-compatible.
+//!
 //! [JWT]: https://jwt.io/
 //! [switching]: https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
 //! [JWT header]: https://tools.ietf.org/html/rfc7519#section-5
@@ -51,6 +64,8 @@
 //! [`rsa`]: https://docs.rs/rsa/
 //! [`Header`]: struct.Header.html
 //! [`Algorithm`]: trait.Algorithm.html
+//! [`chrono`]: https://docs.rs/chrono/
+//! [`set_duration`]: struct.Claims.html#method.set_duration
 //!
 //! # Examples
 //!

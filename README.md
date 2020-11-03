@@ -25,7 +25,8 @@ See the crate docs for the examples of usage.
   with the secp256k1 elliptic curve. Both curves are widely used in crypto community
   and believed to be securely generated (there are some doubts about parameter generation
   for elliptic curves used in standard `ES*` algorithms).
-- Optional support of RSA (`RS*` and `PS*` algorithms).
+- RSA algorithms (`RS*` and `PS*`) are supported via pure Rust [`rsa`] crate.
+- `no_std` mode is supported, and the WASM compatibility [is explicitly tested](test-wasm).
 
 ### Missing features
 
@@ -49,3 +50,4 @@ Licensed under the [Apache-2.0 license](LICENSE).
 [`jsonwebtoken`]: https://crates.io/crates/jsonwebtoken
 [`frank_jwt`]: https://crates.io/crates/frank_jwt
 [`biscuit`]: https://crates.io/crates/biscuit
+[`rsa`]: https://crates.io/crates/rsa

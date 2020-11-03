@@ -36,17 +36,17 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features es256k,rsa
+          args: -p jwt-compact --features es256k,rsa
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features --features ed25519-dalek --lib --tests
+          args: -p jwt-compact --no-default-features --features ed25519-dalek --lib --tests
       - name: Test ed25519-compact
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features --features ed25519-compact --lib --tests
+          args: -p jwt-compact --no-default-features --features ed25519-compact --lib --tests
 
   build:
     runs-on: ubuntu-latest
@@ -86,46 +86,87 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: -- --check
+          args: --all -- --check
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --features es256k,rsa --all-targets -- -D warnings
+          args: -p jwt-compact --features es256k,rsa --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --no-default-features --features ed25519-dalek --all-targets -- -D warnings
+          args: -p jwt-compact --no-default-features --features ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --no-default-features --features ed25519-compact --all-targets -- -D warnings
+          args: -p jwt-compact --no-default-features --features ed25519-compact --all-targets -- -D warnings
+      - name: Clippy WASM crate
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: -p jwt-compact-wasm --all-targets -- -D warnings
 
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features es256k,rsa
+          args: -p jwt-compact --features es256k,rsa
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features --features ed25519-dalek --lib --tests
+          args: -p jwt-compact --no-default-features --features ed25519-dalek --lib --tests
       - name: Test ed25519-compact
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features --features ed25519-compact --lib --tests
+          args: -p jwt-compact --no-default-features --features ed25519-compact --lib --tests
 
       - name: Check docs
-        run: cargo clean --doc && cargo doc --features es256k,rsa --no-deps && cargo deadlinks --dir target/doc
+        run: cargo clean --doc && cargo doc -p jwt-compact --features es256k,rsa --no-deps && cargo deadlinks --dir target/doc
+
+  build-wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
+
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-wasm-cargo-build-target
+
+      - name: Compile WASM
+        # The profile config must be placed in the root workspace manifest,
+        # where we don't want to commit it.
+        run: |
+          echo $'[profile.release]\nlto = true\nopt-level = "s"' >> Cargo.toml;
+          (cd test-wasm; npm run build && npm ci)
+      - name: Run WASM
+        run: (cd test-wasm; npm test)
 
   document:
     needs:
       - build
       - build-msrv
+      - build-wasm
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -156,7 +197,7 @@ jobs:
       - name: Build docs
         run: |
           cargo clean --doc && \
-          cargo rustdoc --features es256k,rsa -- -Z unstable-options \
+          cargo rustdoc -p jwt-compact --features es256k,rsa -- -Z unstable-options \
             --extern-html-root-url base64=https://docs.rs/base64/~0.13 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \
             --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \

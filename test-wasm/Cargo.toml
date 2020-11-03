@@ -9,7 +9,7 @@ repository = "https://github.com/slowli/jwt-compact"
 publish = false
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-Oz", "--enable-mutable-globals"]
+wasm-opt = ["-Os", "--enable-mutable-globals"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

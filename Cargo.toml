@@ -68,9 +68,10 @@ hex-buffer-serde = { version = "0.2.0", default-features = false }
 rand = "0.7.3"
 
 [features]
-default = ["std", "exonum-crypto"]
+default = ["std", "clock", "exonum-crypto"]
 es256k = ["secp256k1", "lazy_static"]
-std = ["anyhow/std", "base64/std", "chrono/clock", "serde/std", "serde_cbor/std"]
+std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
+clock = ["chrono/clock"]
 
 [workspace]
 members = [".", "test-wasm"]

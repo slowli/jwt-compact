@@ -226,7 +226,7 @@ fn test_algorithm<A: Algorithm>(
     let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
     assert_eq!(*token.claims(), claims);
 
-    // Mutate each bit of the signature.
+    // Mutate signature bits.
     let signature = token_string.rsplit('.').next().unwrap();
     let signature_start = token_string.rfind('.').unwrap() + 1;
     let signature = base64::decode_config(signature, base64::URL_SAFE_NO_PAD).unwrap();

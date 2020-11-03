@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "std")]
+#[cfg(feature = "clock")]
 use crate::ValidationError;
 
 /// Time-related validation options.
@@ -91,7 +91,7 @@ impl<T> Claims<T> {
     }
 
     /// Sets `expiration_date` claim so that the token has the specified `duration`.
-    #[cfg(feature = "std")]
+    #[cfg(feature = "clock")]
     pub fn set_duration(self, duration: Duration) -> Self {
         Self {
             expiration_date: Some(Utc::now() + duration),
@@ -101,7 +101,7 @@ impl<T> Claims<T> {
 
     /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time,
     /// and the second to match the specified `duration` of the token.
-    #[cfg(feature = "std")]
+    #[cfg(feature = "clock")]
     pub fn set_duration_and_issuance(self, duration: Duration) -> Self {
         let issued_at = Utc::now();
         Self {
@@ -123,7 +123,7 @@ impl<T> Claims<T> {
     ///
     /// This method will return an error if the claims do not feature an expiration date,
     /// or if it is in the past (subject to the provided `options`).
-    #[cfg(feature = "std")] // FIXME: find a better solution!
+    #[cfg(feature = "clock")] // FIXME: find a better solution!
     pub fn validate_expiration(&self, options: TimeOptions) -> Result<&Self, ValidationError> {
         self.expiration_date
             .map_or(Err(ValidationError::NoClaim), |expiration| {
@@ -140,7 +140,7 @@ impl<T> Claims<T> {
     ///
     /// This method will return an error if the claims do not feature a maturity date,
     /// or if it is in the future (subject to the provided `options`).
-    #[cfg(feature = "std")] // FIXME: find a better solution!
+    #[cfg(feature = "clock")] // FIXME: find a better solution!
     pub fn validate_maturity(&self, options: TimeOptions) -> Result<&Self, ValidationError> {
         self.not_before
             .map_or(Err(ValidationError::NoClaim), |not_before| {
@@ -203,7 +203,7 @@ mod serde_timestamp {
     }
 }
 
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, feature = "clock"))]
 mod tests {
     use super::*;
     use assert_matches::assert_matches;

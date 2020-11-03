@@ -1,23 +1,45 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "clock")]
 use crate::ValidationError;
 
 /// Time-related validation options.
+///
+/// If the `clock` feature is enabled (and it is enabled by default), [`Leeway`] can be used
+/// instead of `TimeOptions` for checks, since it will implement `Into<TimeOptions>`.
+///
+/// [`Leeway`]: struct.Leeway.html
 #[derive(Debug, Clone, Copy)]
 pub struct TimeOptions {
     /// Leeway to use during validation.
     pub leeway: Duration,
-    /// Current time to check against. If not set, the current time will be set to `Utc::now()`.
-    pub current_time: Option<DateTime<Utc>>,
+    /// Current time to check against.
+    pub current_time: DateTime<Utc>,
 }
 
-impl Default for TimeOptions {
+/// Leeway for time-related validation checks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Leeway(pub Duration);
+
+impl Leeway {
+    /// Creates a leeway measured in seconds.
+    pub fn seconds(seconds: u32) -> Self {
+        Self(Duration::seconds(i64::from(seconds)))
+    }
+}
+
+impl Default for Leeway {
     fn default() -> Self {
+        Self(Duration::seconds(60))
+    }
+}
+
+#[cfg(feature = "clock")]
+impl From<Leeway> for TimeOptions {
+    fn from(leeway: Leeway) -> TimeOptions {
         Self {
-            leeway: Duration::seconds(60),
-            current_time: None,
+            leeway: leeway.0,
+            current_time: Utc::now(),
         }
     }
 }
@@ -129,12 +151,14 @@ impl<T> Claims<T> {
     ///
     /// This method will return an error if the claims do not feature an expiration date,
     /// or if it is in the past (subject to the provided `options`).
-    #[cfg(feature = "clock")] // FIXME: find a better solution!
-    pub fn validate_expiration(&self, options: TimeOptions) -> Result<&Self, ValidationError> {
+    pub fn validate_expiration(
+        &self,
+        options: impl Into<TimeOptions>,
+    ) -> Result<&Self, ValidationError> {
+        let options = options.into();
         self.expiration_date
             .map_or(Err(ValidationError::NoClaim), |expiration| {
-                let current_time = options.current_time.unwrap_or_else(Utc::now);
-                if current_time > expiration + options.leeway {
+                if options.current_time > expiration + options.leeway {
                     Err(ValidationError::Expired)
                 } else {
                     Ok(self)
@@ -146,12 +170,14 @@ impl<T> Claims<T> {
     ///
     /// This method will return an error if the claims do not feature a maturity date,
     /// or if it is in the future (subject to the provided `options`).
-    #[cfg(feature = "clock")] // FIXME: find a better solution!
-    pub fn validate_maturity(&self, options: TimeOptions) -> Result<&Self, ValidationError> {
+    pub fn validate_maturity(
+        &self,
+        options: impl Into<TimeOptions>,
+    ) -> Result<&Self, ValidationError> {
+        let options = options.into();
         self.not_before
             .map_or(Err(ValidationError::NoClaim), |not_before| {
-                let current_time = options.current_time.unwrap_or_else(Utc::now);
-                if current_time < not_before - options.leeway {
+                if options.current_time < not_before - options.leeway {
                     Err(ValidationError::NotMature)
                 } else {
                     Ok(self)
@@ -231,64 +257,52 @@ mod tests {
     fn expired_claim() {
         let mut claims = Claims::empty();
         assert_matches!(
-            claims
-                .validate_expiration(TimeOptions::default())
-                .unwrap_err(),
+            claims.validate_expiration(Leeway::default()).unwrap_err(),
             ValidationError::NoClaim
         );
 
         claims.expiration_date = Some(Utc::now() - Duration::hours(1));
         assert_matches!(
-            claims
-                .validate_expiration(TimeOptions::default())
-                .unwrap_err(),
+            claims.validate_expiration(Leeway::default()).unwrap_err(),
             ValidationError::Expired
         );
 
         claims.expiration_date = Some(Utc::now() - Duration::seconds(10));
         // With the default leeway, this claim is still valid.
-        assert!(claims.validate_expiration(TimeOptions::default()).is_ok());
+        assert!(claims.validate_expiration(Leeway::default()).is_ok());
         // If we set leeway lower, then the claim will be considered expired.
         assert_matches!(
-            claims
-                .validate_expiration(TimeOptions {
-                    leeway: Duration::seconds(5),
-                    ..TimeOptions::default()
-                })
-                .unwrap_err(),
+            claims.validate_expiration(Leeway::seconds(5)).unwrap_err(),
             ValidationError::Expired
         );
+        // Same if we set the current time in the past.
+        let options = TimeOptions {
+            leeway: Duration::seconds(3),
+            current_time: claims.expiration_date.unwrap(),
+        };
+        assert!(claims.validate_expiration(options).is_ok());
     }
 
     #[test]
     fn immature_claim() {
         let mut claims = Claims::empty();
         assert_matches!(
-            claims
-                .validate_maturity(TimeOptions::default())
-                .unwrap_err(),
+            claims.validate_maturity(Leeway::default()).unwrap_err(),
             ValidationError::NoClaim
         );
 
         claims.not_before = Some(Utc::now() + Duration::hours(1));
         assert_matches!(
-            claims
-                .validate_maturity(TimeOptions::default())
-                .unwrap_err(),
+            claims.validate_maturity(Leeway::default()).unwrap_err(),
             ValidationError::NotMature
         );
 
         claims.not_before = Some(Utc::now() + Duration::seconds(10));
         // With the default leeway, this claim is still valid.
-        assert!(claims.validate_maturity(TimeOptions::default()).is_ok());
+        assert!(claims.validate_maturity(Leeway::default()).is_ok());
         // If we set leeway lower, then the claim will be considered expired.
         assert_matches!(
-            claims
-                .validate_maturity(TimeOptions {
-                    leeway: Duration::seconds(5),
-                    ..TimeOptions::default()
-                })
-                .unwrap_err(),
+            claims.validate_maturity(Leeway::seconds(5)).unwrap_err(),
             ValidationError::NotMature
         );
     }

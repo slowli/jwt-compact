@@ -14,7 +14,7 @@ use core::{convert::TryFrom, fmt};
 use jwt_compact::alg::RSAPrivateKey;
 use jwt_compact::{
     alg::{Ed25519, Hs256, Hs384, Hs512, RSAPublicKey, Rsa, SigningKey, VerifyingKey},
-    Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
+    Algorithm, AlgorithmExt, Claims, Header, Leeway, Token, UntrustedToken,
 };
 
 #[wasm_bindgen]
@@ -43,7 +43,7 @@ fn to_js_error(e: impl fmt::Display) -> Error {
 fn extract_claims(token: &Token<SampleClaims>) -> Result<&SampleClaims, JsValue> {
     Ok(&token
         .claims()
-        .validate_expiration(TimeOptions::default())
+        .validate_expiration(Leeway::default())
         .map_err(to_js_error)?
         .custom)
 }

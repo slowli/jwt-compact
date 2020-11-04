@@ -17,7 +17,10 @@ repository = "https://github.com/slowli/jwt-compact"
 exclude = ["e2e-tests"]
 
 [package.metadata.docs.rs]
+# Enable non-conflicting additional algorithms in documentation on `docs.rs`.
 features = ["es256k", "rsa"]
+# Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
+rustc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Public dependencies (present in the public API).

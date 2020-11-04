@@ -28,9 +28,8 @@ impl AlgorithmSignature for Signature {
 /// it is provided as a type parameter. SHA-256 is the default parameter value,
 /// but it can be set to any cryptographically secure hash function with 32-byte output
 /// (e.g., SHA3-256).
-///
-/// *This type is available if the crate is built with the `secp256k1` feature.*
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "es256k")))]
 pub struct Es256k<D = Sha256> {
     context: Secp256k1<All>,
     _digest: PhantomData<D>,
@@ -125,9 +124,7 @@ impl VerifyingKey<Es256k> for PublicKey {
         Self::from_slice(raw).map_err(From::from)
     }
 
-    /// Serializes the key as a 33-byte compressed form, as per the [`serialize()`] method.
-    ///
-    /// [`serialize()`]: https://docs.rs/secp256k1/0.17.2/secp256k1/key/struct.PublicKey.html
+    /// Serializes the key as a 33-byte compressed form, as per [`Self::serialize()`].
     fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.serialize().to_vec())
     }

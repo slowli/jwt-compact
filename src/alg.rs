@@ -21,11 +21,12 @@ pub use self::eddsa_compact::*;
 pub use self::eddsa_dalek::Ed25519;
 #[cfg(feature = "exonum-crypto")]
 pub use self::eddsa_sodium::Ed25519;
-#[cfg(feature = "secp256k1")]
+#[cfg(feature = "es256k")]
 pub use self::es256k::Es256k;
 pub use self::generic::{SigningKey, VerifyingKey};
 pub use self::hmacs::*;
 #[cfg(feature = "rsa")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub use self::rsa::{
     ModulusBits, ModulusBitsError, RSAPrivateKey, RSAPublicKey, Rsa, RsaSignature,
 };

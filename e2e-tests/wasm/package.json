@@ -1,0 +1,24 @@
+{
+  "name": "jwt-compact-wasm-test",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "collaborators": [
+    "Alex Ostrovski <ostrovski.alex@gmail.com>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/slowli/jwt-compact"
+  },
+  "files": [
+    "test.js"
+  ],
+  "scripts": {
+    "build": "wasm-pack build --target nodejs",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "jose": "^2.0.3",
+    "jwt-compact-wasm": "file:pkg"
+  }
+}

@@ -35,6 +35,21 @@
 //! securely generated). These algs have 128-bit security, making them an alternative
 //! to `ES256`.
 //!
+//! # `no_std` support
+//!
+//! The crate supports a `no_std` compilation mode. This is controlled by two features:
+//! `clock` and `std`; both are on by default.
+//!
+//! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
+//!   Without it, some claim methods (such as [`set_duration`]) are not available. It is still
+//!   possible to set the corresponding claim fields manually.
+//! - The `std` feature is propagated to the core dependencies and enables `std`-specific
+//!   functionality (such as error types implementing the standard `Error` trait).
+//!
+//! Some `alloc` types are still used in the `no_std` mode, such as `String`, `Vec` and `Cow`.
+//!
+//! Note that not all crypto backends are `no_std`-compatible.
+//!
 //! [JWT]: https://jwt.io/
 //! [switching]: https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
 //! [JWT header]: https://tools.ietf.org/html/rfc7519#section-5
@@ -51,6 +66,8 @@
 //! [`rsa`]: https://docs.rs/rsa/
 //! [`Header`]: struct.Header.html
 //! [`Algorithm`]: trait.Algorithm.html
+//! [`chrono`]: https://docs.rs/chrono/
+//! [`set_duration`]: struct.Claims.html#method.set_duration
 //!
 //! # Examples
 //!
@@ -60,7 +77,7 @@
 //! use chrono::{Duration, Utc};
 //! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! use serde::{Serialize, Deserialize};
-//! use std::convert::TryFrom;
+//! use core::convert::TryFrom;
 //!
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -95,8 +112,8 @@
 //! // Validate additional conditions.
 //! token
 //!     .claims()
-//!     .validate_expiration(TimeOptions::default())?
-//!     .validate_maturity(TimeOptions::default())?;
+//!     .validate_expiration(Leeway::default())?
+//!     .validate_maturity(Leeway::seconds(15))?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! let subject = &token.claims().custom.subject;
 //! assert_eq!(subject, "alice");
@@ -111,7 +128,7 @@
 //! # use hex_buffer_serde::{Hex as _, HexForm};
 //! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! # use serde::{Serialize, Deserialize};
-//! # use std::convert::TryFrom;
+//! # use core::convert::TryFrom;
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
 //! struct CustomClaims {
@@ -136,13 +153,14 @@
 //! // Parse the compact token.
 //! let token = UntrustedToken::try_from(compact_token.as_str())?;
 //! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
-//! token.claims().validate_expiration(TimeOptions::default())?;
+//! token.claims().validate_expiration(Leeway::default())?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! assert_eq!(token.claims().custom.subject, [111; 32]);
 //! # Ok(())
 //! # } // end main()
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(
@@ -154,21 +172,46 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
-use std::{borrow::Cow, convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt};
 
 pub mod alg;
 mod claims;
 mod error;
 
-pub use crate::{
-    claims::{Claims, Empty, TimeOptions},
-    error::{CreationError, ParseError, ValidationError},
-};
+// Polyfill for `alloc` types.
+mod alloc {
+    #[cfg(not(feature = "std"))]
+    extern crate alloc;
+
+    #[cfg(not(feature = "std"))]
+    pub use alloc::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        string::String,
+        vec::Vec,
+    };
+    #[cfg(feature = "std")]
+    pub use std::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        string::String,
+        vec::Vec,
+    };
+}
 
 /// Prelude to neatly import all necessary stuff from the crate.
 pub mod prelude {
-    pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
+    pub use crate::{
+        AlgorithmExt as _, Claims, Header, Leeway, TimeOptions, Token, UntrustedToken,
+    };
 }
+
+pub use crate::{
+    claims::{Claims, Empty, Leeway, TimeOptions},
+    error::{CreationError, ParseError, ValidationError},
+};
+
+use crate::alloc::{Cow, String, ToOwned, Vec};
 
 /// Maximum "reasonable" signature size in bytes.
 const SIGNATURE_SIZE: usize = 128;
@@ -217,7 +260,7 @@ pub trait Algorithm {
 ///
 /// ```
 /// use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*, Empty, Renamed};
-/// # use std::convert::TryFrom;
+/// # use core::convert::TryFrom;
 ///
 /// let alg = Renamed::new(Hs256, "HS2");
 /// let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
@@ -526,7 +569,7 @@ impl<T> Token<T> {
 /// # use chrono::Duration;
 /// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
 /// # use serde::{Deserialize, Serialize};
-/// # use std::convert::TryFrom;
+/// # use core::convert::TryFrom;
 /// #
 /// #[derive(Serialize, Deserialize)]
 /// struct MyClaims {
@@ -545,7 +588,7 @@ impl<T> Token<T> {
 /// let array: GenericArray<u8, typenum::U32> = signed.signature.into_bytes();
 /// // Token itself is available via `token` field.
 /// let claims = signed.token.claims();
-/// claims.validate_expiration(TimeOptions::default())?;
+/// claims.validate_expiration(Leeway::default())?;
 /// // Process the claims...
 /// # Ok(())
 /// # } // end main()

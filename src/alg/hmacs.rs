@@ -6,10 +6,11 @@ use sha2::{digest::BlockInput, Sha256, Sha384, Sha512};
 use smallvec::{smallvec, SmallVec};
 use zeroize::Zeroize;
 
-use std::{borrow::Cow, fmt};
+use core::fmt;
 
 use crate::{
     alg::{SigningKey, VerifyingKey},
+    alloc::Cow,
     Algorithm, AlgorithmSignature,
 };
 
@@ -84,7 +85,7 @@ define_hmac_key! {
 /// See [RFC 7518] for the algorithm specification.
 ///
 /// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-3.2
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hs256;
 
 impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha256>> {
@@ -130,7 +131,7 @@ impl Algorithm for Hs256 {
 /// See [RFC 7518] for the algorithm specification.
 ///
 /// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-3.2
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hs384;
 
 impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha384>> {
@@ -176,7 +177,7 @@ impl Algorithm for Hs384 {
 /// See [RFC 7518] for the algorithm specification.
 ///
 /// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-3.2
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hs512;
 
 impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha512>> {

@@ -5,11 +5,13 @@ pub use rsa::{RSAPrivateKey, RSAPublicKey};
 use rand_core::{CryptoRng, RngCore};
 use rsa::{hash::Hash, PaddingScheme, PublicKey};
 use sha2::{Digest, Sha256, Sha384, Sha512};
-use thiserror::Error;
 
-use std::{borrow::Cow, convert::TryFrom};
+use core::{convert::TryFrom, fmt};
 
-use crate::{Algorithm, AlgorithmSignature};
+use crate::{
+    alloc::{Box, Cow, Vec},
+    Algorithm, AlgorithmSignature,
+};
 
 /// RSA signature.
 #[derive(Debug)]
@@ -110,9 +112,20 @@ impl TryFrom<usize> for ModulusBits {
 }
 
 /// Error type returned when a conversion of an integer into `ModulusBits` fails.
-#[derive(Debug, Error)]
-#[error("Unsupported bit length of RSA modulus; only lengths 2048, 3072 and 4096 are supported.")]
+#[derive(Debug)]
 pub struct ModulusBitsError(());
+
+impl fmt::Display for ModulusBitsError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(
+            "Unsupported bit length of RSA modulus; only lengths 2048, 3072 and 4096 \
+            are supported.",
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ModulusBitsError {}
 
 /// Integrity algorithm using [RSA] digital signatures.
 ///
@@ -200,15 +213,41 @@ impl Rsa {
         Rsa::new(HashAlg::Sha512, Padding::Pss)
     }
 
+    /// RSA based on the specified algorithm name.
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the name is not one of the six RSA-based JWS algorithms.
+    pub fn with_name(name: &str) -> Self {
+        match name {
+            "RS256" => Self::rs256(),
+            "RS384" => Self::rs384(),
+            "RS512" => Self::rs512(),
+            "PS256" => Self::ps256(),
+            "PS384" => Self::ps384(),
+            "PS512" => Self::ps512(),
+            _ => panic!("Invalid RSA alg name: {}", name),
+        }
+    }
+
     fn padding_scheme(&self) -> PaddingScheme {
         match self.padding_alg {
             Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
             Padding::Pss => {
                 let rng = rand_core::OsRng;
+
+                // The salt length needs to be set to the size of hash function output;
+                // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
                 match self.hash_alg {
-                    HashAlg::Sha256 => PaddingScheme::new_pss::<Sha256, _>(rng),
-                    HashAlg::Sha384 => PaddingScheme::new_pss::<Sha384, _>(rng),
-                    HashAlg::Sha512 => PaddingScheme::new_pss::<Sha512, _>(rng),
+                    HashAlg::Sha256 => {
+                        PaddingScheme::new_pss_with_salt::<Sha256, _>(rng, Sha256::output_size())
+                    }
+                    HashAlg::Sha384 => {
+                        PaddingScheme::new_pss_with_salt::<Sha384, _>(rng, Sha384::output_size())
+                    }
+                    HashAlg::Sha512 => {
+                        PaddingScheme::new_pss_with_salt::<Sha512, _>(rng, Sha512::output_size())
+                    }
                 }
             }
         }

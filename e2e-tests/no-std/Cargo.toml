@@ -1,0 +1,34 @@
+[package]
+name = "jwt-compact-nostd"
+version = "0.0.0"
+authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
+edition = "2018"
+license = "Apache-2.0"
+description = "Testing usability of `jwt-compact` in no-std env"
+repository = "https://github.com/slowli/jwt-compact"
+publish = false
+
+[dependencies]
+anyhow = { version = "1.0.28", default-features = false }
+chrono = { version = "0.4.19", default-features = false }
+hex = { version = "0.4.2", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+
+# Cortex-M dependencies.
+cortex-m-rt = "0.6.13"
+cortex-m-semihosting = "0.3.5"
+alloc-cortex-m = "0.4.0"
+panic-halt = "0.2.0"
+
+[dependencies.jwt-compact]
+version = "0.2.0"
+path = "../.."
+default-features = false
+features = ["ed25519-dalek"]
+
+[profile.release]
+opt-level = "z" # Optimize for size, rather than speed
+lto = true
+
+[workspace]
+# ^-- Needed to prevent setting the `std` flag for crates (is this a cargo bug?).

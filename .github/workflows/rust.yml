@@ -164,9 +164,6 @@ jobs:
 
   build-nostd:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: e2e-tests/no-std
 
     steps:
       - uses: actions/checkout@v2
@@ -179,7 +176,7 @@ jobs:
       - name: Cache cargo build
         uses: actions/cache@v1
         with:
-          path: target
+          path: e2e-tests/no-std/target
           key: ${{ runner.os }}-nostd-cargo-build-target
 
       - name: Install Rust
@@ -189,6 +186,9 @@ jobs:
           override: true
           components: rustfmt, clippy
           target: thumbv7m-none-eabi
+
+      - name: Switch working dir
+        run: cd e2e-tests/no-std
 
       # Since it's impossible to include the `nostd` crate into the common workspace,
       # we need to perform fmt / clippy checks for it separately.

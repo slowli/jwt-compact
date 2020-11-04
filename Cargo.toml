@@ -81,3 +81,4 @@ clock = ["chrono/clock"]
 
 [workspace]
 members = [".", "test-wasm"]
+exclude = ["test-no-std"] # including leads to compilation errors for the no-std crate

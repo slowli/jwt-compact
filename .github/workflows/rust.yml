@@ -162,11 +162,58 @@ jobs:
       - name: Run WASM
         run: (cd test-wasm; npm test)
 
+  build-nostd:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: test-no-std
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install qemu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-suggests --no-install-recommends qemu-system-arm
+
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-nostd-cargo-build-target
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2020-11-02
+          override: true
+          components: rustfmt, clippy
+          target: thumbv7m-none-eabi
+
+      # Since it's impossible to include the `nostd` crate into the common workspace,
+      # we need to perform fmt / clippy checks for it separately.
+      - name: Format
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+      - name: Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --bin jwt-compact-nostd -- -D warnings
+
+      - name: Run binary!
+        uses: actions-rs/cargo@v1
+        with:
+          command: run --release
+
   document:
     needs:
       - build
       - build-msrv
       - build-wasm
+      - build-nostd
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 

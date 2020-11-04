@@ -24,12 +24,12 @@ struct SampleClaims {
 fn hs256_reference() {
     //! Example from https://tools.ietf.org/html/rfc7515#appendix-A.1
 
-    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.\
-                         eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt\
-                         cGxlLmNvbS9pc19yb290Ijp0cnVlfQ.\
-                         dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-    const KEY: &str = "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75\
-                       aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
+    const TOKEN: &str =
+        "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAs\
+         DQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1\
+         gFWFOEjXk";
+    const KEY: &str =
+        "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
 
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS256");
@@ -52,10 +52,10 @@ fn hs256_reference() {
 fn hs384_reference() {
     //! Example generated using https://jwt.io/
 
-    const TOKEN: &str = "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.\
-                         eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUs\
-                         ImlhdCI6MTUxNjIzOTAyMn0.\
-                         bQTnz6AuMJvmXXQsVPrxeQNvzDkimo7VNXxHeSBfClLufmCVZRUuyTwJF311JHuh";
+    const TOKEN: &str =
+        "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9l\
+         IiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.bQTnz6AuMJvmXXQsVPrxeQNvzDkimo7VNXxHeSBfC\
+         lLufmCVZRUuyTwJF311JHuh";
     const KEY: &[u8] = b"your-384-bit-secret";
 
     let token = UntrustedToken::try_from(TOKEN).unwrap();
@@ -81,11 +81,10 @@ fn hs384_reference() {
 fn hs512_reference() {
     //! Example generated using https://jwt.io/
 
-    const TOKEN: &str = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.\
-                         eyJzdWIiOiI5ODc2NTQzMjEiLCJuYW1lIjoiSmFuZSBEb2UiLCJhZG1pbiI6Zm\
-                         Fsc2UsImlhdCI6MTUxNjIzOTEyMn0.\
-                         zGgI9yNlkGofH0aIuYq7v_VPi6THftCS-59DXMQ0XugapLalKKDo6qAJkBy0i8\
-                         d9DFcYIySIUgQ69Dprvp4fpA";
+    const TOKEN: &str =
+        "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEiLCJuYW1lIjoiSmFuZSBEb2Ui\
+         LCJhZG1pbiI6ZmFsc2UsImlhdCI6MTUxNjIzOTEyMn0.zGgI9yNlkGofH0aIuYq7v_VPi6THftCS-59DXMQ0X\
+         ugapLalKKDo6qAJkBy0i8d9DFcYIySIUgQ69Dprvp4fpA";
     const KEY: &[u8] = b"your-512-bit-secret";
 
     let token = UntrustedToken::try_from(TOKEN).unwrap();
@@ -115,14 +114,13 @@ fn es256k_reference() {
 
     use secp256k1::PublicKey;
 
-    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.\
-                         eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcyI6ImRpZDp1cG9\
-                         ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.\
-                         cJI3_GRjb6d6LJqOXAPKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95\
-                         vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
+    const TOKEN: &str =
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcy\
+         I6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.cJI3_GRjb6d6LJqOXA\
+         PKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
     /// Uncompressed secp256k1 public key.
-    const KEY_HEX: &str = "04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea5358479\
-                           46393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7";
+    const KEY_HEX: &str = "04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847\
+         946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7";
 
     let public_key = PublicKey::from_slice(&hex::decode(KEY_HEX).unwrap()).unwrap();
     let es256k: Es256k = Default::default();
@@ -147,14 +145,13 @@ fn test_ed25519_reference() {
     type EdSigningKey = <Ed25519 as Algorithm>::SigningKey;
     type EdVerifyingKey = <Ed25519 as Algorithm>::VerifyingKey;
 
-    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.\
-                         eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzcyI6ImRpZDp1cG9yd\
-                         DoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.\
-                         Du1gZvmrmykgWnqtBFvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgru\
-                         J3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
+    const TOKEN: &str =
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzc\
+         yI6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.Du1gZvmrmykgWnqtB\
+         FvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgruJ3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
     const KEY: &str = "06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
     const SIGNING_KEY: &str = "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
-        06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
+         06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
 
     fn check_key_traits<Sk, Vk>()
     where
@@ -569,13 +566,13 @@ fn test_rsa_reference(rsa: Rsa, token: &str) {
 #[test]
 fn rs256_reference() {
     // Generated using https://jwt.io/
-    const TOKEN: &str = "\
-        eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
-        iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.POstGetfAytaZS82wHcjoTyoqhMyxXiWdR7Nn7A29DN\
-        Sl0EiXLdwJ6xC6AfgZWF1bOsS_TuYI3OG85AmiExREkrS6tDfTQ2B3WXlrr-wp5AokiRbz3_oB4OxG-W9KcEEb\
-        DRcZc0nH3L7LzYptiy1PtAylQGxHTWZXtGz4ht0bAecBgmpdgXMguEIcoqPJ1n3pIWk_dUZegpqx0Lka21H6Xx\
-        UTxiy8OcaarA8zdnPUnV6AmNP3ecFawIFYdvJB_cm-GvpCSbr8G8y_Mllj8f4x9nBH8pQux89_6gUY618iYv7t\
-        uPWBFfEbLxtF2pZS6YC1aSfLQxeNe8djT9YjpvRZA";
+    const TOKEN: &str =
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
+         iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.POstGetfAytaZS82wHcjoTyoqhMyxXiWdR7Nn7A29DN\
+         Sl0EiXLdwJ6xC6AfgZWF1bOsS_TuYI3OG85AmiExREkrS6tDfTQ2B3WXlrr-wp5AokiRbz3_oB4OxG-W9KcEEb\
+         DRcZc0nH3L7LzYptiy1PtAylQGxHTWZXtGz4ht0bAecBgmpdgXMguEIcoqPJ1n3pIWk_dUZegpqx0Lka21H6Xx\
+         UTxiy8OcaarA8zdnPUnV6AmNP3ecFawIFYdvJB_cm-GvpCSbr8G8y_Mllj8f4x9nBH8pQux89_6gUY618iYv7t\
+         uPWBFfEbLxtF2pZS6YC1aSfLQxeNe8djT9YjpvRZA";
 
     test_rsa_reference(Rsa::rs256(), TOKEN);
 }
@@ -584,13 +581,13 @@ fn rs256_reference() {
 #[test]
 fn rs384_reference() {
     // Generated using https://jwt.io/
-    const TOKEN: &str = "\
-        eyJhbGciOiJSUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
-        iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.D4kXa3UspFjRA9ys5tsD4YDyxxam3l_XnOb3hMEdPDT\
-        fSLRHPv4HPwxvin-pIkEmfJshXPSK7O4zqSXWAXFO52X-upJjFc_gpGDswctNWpOJeXe1xBgJ--VuGDzUQCqkr\
-        9UBpN-Q7TE5u9cgIVisekSFSH5Ax6aXQC9vCO5LooNFx_WnbTLNZz7FUia9vyJ544kLB7UcacL-_idgRNIWPdd\
-        _d1vvnNGkknIMarRjCsjAEf6p5JGhYZ8_C18g-9DsfokfUfSpKgBR23R8v8ZAAmPPPiJ6MZXkefqE7p3jRbA--\
-        58z5TlHmH9nTB1DYE2872RYvyzG3LoQ-2s93VaVuw";
+    const TOKEN: &str =
+        "eyJhbGciOiJSUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
+         iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.D4kXa3UspFjRA9ys5tsD4YDyxxam3l_XnOb3hMEdPDT\
+         fSLRHPv4HPwxvin-pIkEmfJshXPSK7O4zqSXWAXFO52X-upJjFc_gpGDswctNWpOJeXe1xBgJ--VuGDzUQCqkr\
+         9UBpN-Q7TE5u9cgIVisekSFSH5Ax6aXQC9vCO5LooNFx_WnbTLNZz7FUia9vyJ544kLB7UcacL-_idgRNIWPdd\
+         _d1vvnNGkknIMarRjCsjAEf6p5JGhYZ8_C18g-9DsfokfUfSpKgBR23R8v8ZAAmPPPiJ6MZXkefqE7p3jRbA--\
+         58z5TlHmH9nTB1DYE2872RYvyzG3LoQ-2s93VaVuw";
 
     test_rsa_reference(Rsa::rs384(), TOKEN);
 }
@@ -599,13 +596,13 @@ fn rs384_reference() {
 #[test]
 fn rs512_reference() {
     // Generated using https://jwt.io/
-    const TOKEN: &str = "\
-        eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
-        iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.JlX3gXGyClTBFciHhknWrjo7SKqyJ5iBO0n-3S2_I7c\
-        IgfaZAeRDJ3SQEbaPxVC7X8aqGCOM-pQOjZPKUJN8DMFrlHTOdqMs0TwQ2PRBmVAxXTSOZOoEhD4ZNCHohYoyf\
-        oDhJDP4Qye_FCqu6POJzg0Jcun4d3KW04QTiGxv2PkYqmB7nHxYuJdnqE3704hIS56pc_8q6AW0WIT0W-nIvwz\
-        aSbtBU9RgaC7ZpBD2LiNE265UBIFraMDF8IAFw9itZSUCTKg1Q-q27NwwBZNGYStMdIBDor2Bsq5ge51EkWajz\
-        Z7ALisVp-bskzUsqUf77ejqX_CBAqkNdH1Zebn93A";
+    const TOKEN: &str =
+        "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
+         iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.JlX3gXGyClTBFciHhknWrjo7SKqyJ5iBO0n-3S2_I7c\
+         IgfaZAeRDJ3SQEbaPxVC7X8aqGCOM-pQOjZPKUJN8DMFrlHTOdqMs0TwQ2PRBmVAxXTSOZOoEhD4ZNCHohYoyf\
+         oDhJDP4Qye_FCqu6POJzg0Jcun4d3KW04QTiGxv2PkYqmB7nHxYuJdnqE3704hIS56pc_8q6AW0WIT0W-nIvwz\
+         aSbtBU9RgaC7ZpBD2LiNE265UBIFraMDF8IAFw9itZSUCTKg1Q-q27NwwBZNGYStMdIBDor2Bsq5ge51EkWajz\
+         Z7ALisVp-bskzUsqUf77ejqX_CBAqkNdH1Zebn93A";
 
     test_rsa_reference(Rsa::rs512(), TOKEN);
 }
@@ -614,13 +611,13 @@ fn rs512_reference() {
 #[test]
 fn ps256_reference() {
     // Generated using https://jwt.io/
-    const TOKEN: &str = "\
-        eyJhbGciOiJQUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
-        iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.hZnl5amPk_I3tb4O-Otci_5XZdVWhPlFyVRvcqSwnDo\
-        _srcysDvhhKOD01DigPK1lJvTSTolyUgKGtpLqMfRDXQlekRsF4XhAjYZTmcynf-C-6wO5EI4wYewLNKFGGJzH\
-        AknMgotJFjDi_NCVSjHsW3a10nTao1lB82FRS305T226Q0VqNVJVWhE4G0JQvi2TssRtCxYTqzXVt22iDKkXeZ\
-        JARZ1paXHGV5Kd1CljcZtkNZYIGcwnj65gvuCwohbkIxAnhZMJXCLaVvHqv9l-AAUV7esZvkQR1IpwBAiDQJh4\
-        qxPjFGylyXrHMqh5NlT_pWL2ZoULWTg_TJjMO9TuQ";
+    const TOKEN: &str =
+        "eyJhbGciOiJQUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
+         iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.hZnl5amPk_I3tb4O-Otci_5XZdVWhPlFyVRvcqSwnDo\
+         _srcysDvhhKOD01DigPK1lJvTSTolyUgKGtpLqMfRDXQlekRsF4XhAjYZTmcynf-C-6wO5EI4wYewLNKFGGJzH\
+         AknMgotJFjDi_NCVSjHsW3a10nTao1lB82FRS305T226Q0VqNVJVWhE4G0JQvi2TssRtCxYTqzXVt22iDKkXeZ\
+         JARZ1paXHGV5Kd1CljcZtkNZYIGcwnj65gvuCwohbkIxAnhZMJXCLaVvHqv9l-AAUV7esZvkQR1IpwBAiDQJh4\
+         qxPjFGylyXrHMqh5NlT_pWL2ZoULWTg_TJjMO9TuQ";
 
     test_rsa_reference(Rsa::ps256(), TOKEN);
 }
@@ -629,13 +626,13 @@ fn ps256_reference() {
 #[test]
 fn ps384_reference() {
     // Generated using https://jwt.io/
-    const TOKEN: &str = "\
-        eyJhbGciOiJQUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
-        iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.MqF1AKsJkijKnfqEI3VA1OnzAL2S4eIpAuievMgD3tE\
-        FyFMU67gCbg-fxsc5dLrxNwdZEXs9h0kkicJZ70mp6p5vdv-j2ycDKBWg05Un4OhEl7lYcdIsCsB8QUPmstF-l\
-        QWnNqnq3wra1GynJrOXDL27qIaJnnQKlXuayFntBF0j-82jpuVdMaSXvk3OGaOM-7rCRsBcSPmocaAO-uWJEGP\
-        w_OWVaC5RRdWDroPi4YL4lTkDEC-KEvVkqCnFm_40C-T_siXquh5FVbpJjb3W2_YvcqfDRj44TsRrpVhk6ohsH\
-        MNeUad_cxnFnpolIKnaXq_COv35e9EgeQIPAbgIeg";
+    const TOKEN: &str =
+        "eyJhbGciOiJQUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lI\
+         iwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.MqF1AKsJkijKnfqEI3VA1OnzAL2S4eIpAuievMgD3tE\
+         FyFMU67gCbg-fxsc5dLrxNwdZEXs9h0kkicJZ70mp6p5vdv-j2ycDKBWg05Un4OhEl7lYcdIsCsB8QUPmstF-l\
+         QWnNqnq3wra1GynJrOXDL27qIaJnnQKlXuayFntBF0j-82jpuVdMaSXvk3OGaOM-7rCRsBcSPmocaAO-uWJEGP\
+         w_OWVaC5RRdWDroPi4YL4lTkDEC-KEvVkqCnFm_40C-T_siXquh5FVbpJjb3W2_YvcqfDRj44TsRrpVhk6ohsH\
+         MNeUad_cxnFnpolIKnaXq_COv35e9EgeQIPAbgIeg";
 
     test_rsa_reference(Rsa::ps384(), TOKEN);
 }

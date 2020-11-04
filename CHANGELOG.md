@@ -15,8 +15,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Support RSA algorithms using pure-Rust [`rsa`] crate.
 
-- Add `no_std` mode and check WASM compatibility via dedicated aux crate. Introduce
-  two corresponding crate features, `clock` and `std`.
+- Add `no_std` mode and check `no_std` / WASM compatibility via dedicated aux crates.
+  Introduce two relevant crate features, `clock` and `std`.
 
 ### Changed
 

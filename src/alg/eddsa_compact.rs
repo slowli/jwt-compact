@@ -27,8 +27,6 @@ impl AlgorithmSignature for Signature {
 /// The name of the algorithm is specified as `EdDSA` as per the [IANA registry].
 /// Use `with_specific_name()` to switch to non-standard `Ed25519`.
 ///
-/// *This type is available if the crate is built with the `ed25519-compact` feature.*
-///
 /// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Ed25519;

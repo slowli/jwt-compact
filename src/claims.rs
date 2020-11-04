@@ -7,8 +7,6 @@ use crate::ValidationError;
 ///
 /// If the `clock` feature is enabled (and it is enabled by default), [`Leeway`] can be used
 /// instead of `TimeOptions` for checks, since it will implement `Into<TimeOptions>`.
-///
-/// [`Leeway`]: struct.Leeway.html
 #[derive(Debug, Clone, Copy)]
 pub struct TimeOptions {
     /// Leeway to use during validation.
@@ -113,10 +111,8 @@ impl<T> Claims<T> {
     }
 
     /// Sets `expiration_date` claim so that the token has the specified `duration`.
-    ///
-    /// *This method is available if the crate is built with the `clock` feature, which is on
-    /// by default.*
     #[cfg(feature = "clock")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "clock")))]
     pub fn set_duration(self, duration: Duration) -> Self {
         Self {
             expiration_date: Some(Utc::now() + duration),
@@ -126,10 +122,8 @@ impl<T> Claims<T> {
 
     /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time,
     /// and the second to match the specified `duration` of the token.
-    ///
-    /// *This method is available if the crate is built with the `clock` feature, which is on
-    /// by default.*
     #[cfg(feature = "clock")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "clock")))]
     pub fn set_duration_and_issuance(self, duration: Duration) -> Self {
         let issued_at = Utc::now();
         Self {

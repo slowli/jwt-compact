@@ -41,8 +41,8 @@
 //! `clock` and `std`; both are on by default.
 //!
 //! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
-//!   Without it, some claim methods (such as [`set_duration`]) are not available. It is still
-//!   possible to set the corresponding claim fields manually.
+//!   Without it, some claim methods, such as [`Claims::set_duration()`], are not available.
+//!   It is still possible to set the corresponding claim fields manually.
 //! - The `std` feature is propagated to the core dependencies and enables `std`-specific
 //!   functionality (such as error types implementing the standard `Error` trait).
 //!
@@ -64,10 +64,7 @@
 //! [`secp256k1`]: https://docs.rs/secp256k1/
 //! [`libsecp256k1`]: https://github.com/bitcoin-core/secp256k1
 //! [`rsa`]: https://docs.rs/rsa/
-//! [`Header`]: struct.Header.html
-//! [`Algorithm`]: trait.Algorithm.html
 //! [`chrono`]: https://docs.rs/chrono/
-//! [`set_duration`]: struct.Claims.html#method.set_duration
 //!
 //! # Examples
 //!
@@ -161,6 +158,7 @@
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
 #![warn(clippy::all, clippy::pedantic)]
 #![allow(
@@ -538,10 +536,7 @@ pub struct UntrustedToken<'a> {
 /// Token with validated integrity.
 ///
 /// Claims encoded in the token can be verified by invoking [`Claims`] methods
-/// via [`claims()`] getter.
-///
-/// [`Claims`]: struct.Claims.html
-/// [`claims()`]: #fn.claims
+/// via [`Self::claims()`].
 #[derive(Debug, Clone)]
 pub struct Token<T> {
     header: Header,

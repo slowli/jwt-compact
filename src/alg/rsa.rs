@@ -15,6 +15,7 @@ use crate::{
 
 /// RSA signature.
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct RsaSignature(Vec<u8>);
 
 impl AlgorithmSignature for RsaSignature {
@@ -78,6 +79,7 @@ enum Padding {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[allow(clippy::pub_enum_variant_names)] // false alarm
 #[non_exhaustive]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub enum ModulusBits {
     /// 2048 bits. This is the minimum recommended key length as of 2020.
     TwoKilobytes,
@@ -113,6 +115,7 @@ impl TryFrom<usize> for ModulusBits {
 
 /// Error type returned when a conversion of an integer into `ModulusBits` fails.
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct ModulusBitsError(());
 
 impl fmt::Display for ModulusBitsError {
@@ -141,12 +144,10 @@ impl std::error::Error for ModulusBitsError {}
 /// it **MUST** be at least 2048 bits as per RFC 7518. To minimize risks of misconfiguration,
 /// this implementation only supports key lengths specified by the [`ModulusBits`] enum.
 ///
-/// *This type is available if the crate is built with the `rsa` feature.*
-///
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
-/// [`ModulusBits`]: enum.ModulusBits.html
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct Rsa {
     hash_alg: HashAlg,
     padding_alg: Padding,

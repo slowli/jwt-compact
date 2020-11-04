@@ -23,10 +23,16 @@ impl AlgorithmSignature for Signature {
 /// The name of the algorithm is specified as `EdDSA` as per [IANA registry].
 /// Use `with_specific_name()` to switch to non-standard `Ed25519`.
 ///
-/// *This type is available if the crate is built with the `exonum-crypto` feature.*
-///
 /// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(
+        feature = "exonum-crypto",
+        feature = "ed25519-dalek",
+        feature = "ed25519-compact"
+    )))
+)]
 pub struct Ed25519;
 
 impl Ed25519 {

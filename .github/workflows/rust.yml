@@ -235,14 +235,15 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-07-11
+          toolchain: nightly-2020-10-24
           profile: minimal
           override: true
 
       - name: Build docs
         run: |
           cargo clean --doc && \
-          cargo rustdoc -p jwt-compact --features es256k,rsa -- -Z unstable-options \
+          cargo rustdoc -p jwt-compact --features es256k,rsa -- \
+            --cfg docsrs -Z unstable-options \
             --extern-html-root-url base64=https://docs.rs/base64/~0.13 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \
             --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \

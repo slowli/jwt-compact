@@ -158,15 +158,15 @@ jobs:
         # where we don't want to commit it.
         run: |
           echo $'[profile.release]\nlto = true\nopt-level = "s"' >> Cargo.toml;
-          (cd test-wasm; npm run build && npm ci)
+          (cd e2e-tests/test-wasm; npm run build && npm ci)
       - name: Run WASM
-        run: (cd test-wasm; npm test)
+        run: (cd e2e-tests/test-wasm; npm test)
 
   build-nostd:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: test-no-std
+        working-directory: e2e-tests/no-std
 
     steps:
       - uses: actions/checkout@v2

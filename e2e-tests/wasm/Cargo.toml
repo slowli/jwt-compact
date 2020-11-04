@@ -33,6 +33,6 @@ getrandom = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [dependencies.jwt-compact]
 version = "0.2.0"
-path = ".."
+path = "../.."
 default_features = false
 features = ["clock", "ed25519-compact", "rsa"]

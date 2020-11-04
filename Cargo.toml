@@ -80,5 +80,5 @@ std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
 clock = ["chrono/clock"]
 
 [workspace]
-members = [".", "test-wasm"]
-exclude = ["test-no-std"] # including leads to compilation errors for the no-std crate
+members = [".", "e2e-tests/wasm"]
+exclude = ["e2e-tests/no-std"] # including leads to compilation errors for the no-std crate

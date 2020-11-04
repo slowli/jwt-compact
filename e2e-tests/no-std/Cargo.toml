@@ -22,7 +22,7 @@ panic-halt = "0.2.0"
 
 [dependencies.jwt-compact]
 version = "0.2.0"
-path = ".."
+path = "../.."
 default-features = false
 features = ["ed25519-dalek"]
 

@@ -128,6 +128,9 @@ jobs:
         run: cargo clean --doc && cargo doc -p jwt-compact --features es256k,rsa --no-deps && cargo deadlinks --dir target/doc
 
   build-wasm:
+    needs:
+      - build
+
     runs-on: ubuntu-latest
 
     steps:
@@ -158,12 +161,18 @@ jobs:
         # where we don't want to commit it.
         run: |
           echo $'[profile.release]\nlto = true\nopt-level = "s"' >> Cargo.toml;
-          (cd e2e-tests/test-wasm; npm run build && npm ci)
+          (cd e2e-tests/wasm; npm run build && npm ci)
       - name: Run WASM
-        run: (cd e2e-tests/test-wasm; npm test)
+        run: (cd e2e-tests/wasm; npm test)
 
   build-nostd:
+    needs:
+      - build
+
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e-tests/no-std
 
     steps:
       - uses: actions/checkout@v2
@@ -182,31 +191,20 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-11-02
+          toolchain: nightly-2020-10-24
           override: true
           components: rustfmt, clippy
           target: thumbv7m-none-eabi
 
-      - name: Switch working dir
-        run: cd e2e-tests/no-std
-
       # Since it's impossible to include the `nostd` crate into the common workspace,
       # we need to perform fmt / clippy checks for it separately.
       - name: Format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
       - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --bin jwt-compact-nostd -- -D warnings
+        run: cargo clippy --bin jwt-compact-nostd -- -D warnings
 
       - name: Run binary!
-        uses: actions-rs/cargo@v1
-        with:
-          command: run --release
+        run: cargo run --release
 
   document:
     needs:

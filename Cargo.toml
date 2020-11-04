@@ -10,11 +10,12 @@ edition = "2018"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["JWT", "token", "authorization"]
-categories = ["web-programming", "cryptography"]
+categories = ["web-programming", "cryptography", "no-std"]
 description = "Minimalistic JWT implementation with focus on type safety and secure cryptographic primitives"
 repository = "https://github.com/slowli/jwt-compact"
 
-# Enable non-conflicting additional algorithms in documentation on `docs.rs`.
+exclude = ["e2e-tests"]
+
 [package.metadata.docs.rs]
 features = ["es256k", "rsa"]
 

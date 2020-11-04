@@ -69,8 +69,14 @@ rand = "0.7.3"
 
 [features]
 default = ["std", "clock", "exonum-crypto"]
+# `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
 es256k = ["secp256k1", "lazy_static"]
+# Enables `std`-specific functionality (such as error types implementing
+# the standard `Error` trait).
 std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
+# Enables getting the current time using `Utc::now()` from `chrono`.
+# Without this feature, some claim methods (such as `set_duration`)
+# are not available. It is still possible to set the corresponding claim fields manually.
 clock = ["chrono/clock"]
 
 [workspace]

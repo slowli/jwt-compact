@@ -46,6 +46,8 @@
 //! - The `std` feature is propagated to the core dependencies and enables `std`-specific
 //!   functionality (such as error types implementing the standard `Error` trait).
 //!
+//! Some `alloc` types are still used in the `no_std` mode, such as `String`, `Vec` and `Cow`.
+//!
 //! Note that not all crypto backends are `no_std`-compatible.
 //!
 //! [JWT]: https://jwt.io/

@@ -26,7 +26,7 @@ See the crate docs for the examples of usage.
   and believed to be securely generated (there are some doubts about parameter generation
   for elliptic curves used in standard `ES*` algorithms).
 - RSA algorithms (`RS*` and `PS*`) are supported via pure Rust [`rsa`] crate.
-- `no_std` mode is supported, and the WASM compatibility [is explicitly tested](test-wasm).
+- Supports the `no_std` mode, and the WASM compatibility [is explicitly tested](test-wasm).
 
 ### Missing features
 

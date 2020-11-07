@@ -4,6 +4,25 @@ use serde::{Deserialize, Serialize};
 use crate::ValidationError;
 
 /// Time-related options for token creation and validation.
+///
+/// If the `clock` crate feature is on (and it's on by default), `TimeOptions` can be created
+/// using the `Default` impl or [`Self::from_leeway()`]. If the feature is off,
+/// you can still create options using [a generic constructor](Self::new).
+///
+/// # Examples
+///
+/// ```
+/// # use chrono::{Duration, Utc};
+/// # use jwt_compact::TimeOptions;
+/// // Default options.
+/// let default_options = TimeOptions::default();
+/// let options_with_custom_leeway =
+///     TimeOptions::from_leeway(Duration::seconds(5));
+/// // Options that have a fixed time. Can be useful for testing.
+/// let clock_time = Utc::now();
+/// let options_with_stopped_clock =
+///     TimeOptions::new(Duration::seconds(10), move || clock_time);
+/// ```
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct TimeOptions<F = fn() -> DateTime<Utc>> {

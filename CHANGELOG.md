@@ -31,6 +31,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
   use a custom clock, which could be useful for testing or if there is no access
   to the system clock.
 
+- Make `Header`, `Claims`, `TimeOptions`, and error types non-exhaustive.
+
 ## 0.2.0 - 2020-05-11
 
 ### Changed

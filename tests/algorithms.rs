@@ -364,6 +364,7 @@ fn compact_token_hs256() {
 #[test]
 fn ed25519_algorithm() {
     use exonum_crypto::gen_keypair;
+
     let (verifying_key, signing_key) = gen_keypair();
     test_algorithm(&Ed25519, &signing_key, &verifying_key);
 }
@@ -372,18 +373,15 @@ fn ed25519_algorithm() {
 #[test]
 fn ed25519_algorithm() {
     use ed25519_dalek::Keypair;
-    use rand::rngs::OsRng;
 
-    let mut csprng = OsRng {};
-    let keypair = Keypair::generate(&mut csprng);
+    let keypair = Keypair::generate(&mut thread_rng());
     test_algorithm(&Ed25519, &keypair, &keypair.public);
 }
 
 #[cfg(feature = "ed25519-compact")]
 #[test]
 fn ed25519_algorithm() {
-    let mut rng = thread_rng();
-    let (signing_key, verifying_key) = Ed25519::generate(&mut rng);
+    let (signing_key, verifying_key) = Ed25519::generate(&mut thread_rng());
     test_algorithm(&Ed25519, &signing_key, &verifying_key);
 }
 
@@ -467,7 +465,7 @@ fn rs256_algorithm_with_generated_keys() {
 
     let rsa = Rsa::rs256();
     let (signing_key, verifying_key) =
-        Rsa::generate(&mut thread_rng(), ModulusBits::TwoKilobytes).unwrap();
+        Rsa::generate(&mut thread_rng(), ModulusBits::TwoKibibytes).unwrap();
     test_algorithm(&rsa, &signing_key, &verifying_key);
 }
 

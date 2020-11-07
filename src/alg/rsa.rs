@@ -82,20 +82,20 @@ enum Padding {
 #[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub enum ModulusBits {
     /// 2048 bits. This is the minimum recommended key length as of 2020.
-    TwoKilobytes,
+    TwoKibibytes,
     /// 3072 bits.
-    ThreeKilobytes,
+    ThreeKibibytes,
     /// 4096 bits.
-    FourKilobytes,
+    FourKibibytes,
 }
 
 impl ModulusBits {
     /// Converts this length to the numeric value.
     pub fn bits(self) -> usize {
         match self {
-            Self::TwoKilobytes => 2_048,
-            Self::ThreeKilobytes => 3_072,
-            Self::FourKilobytes => 4_096,
+            Self::TwoKibibytes => 2_048,
+            Self::ThreeKibibytes => 3_072,
+            Self::FourKibibytes => 4_096,
         }
     }
 }
@@ -105,9 +105,9 @@ impl TryFrom<usize> for ModulusBits {
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            2_048 => Ok(Self::TwoKilobytes),
-            3_072 => Ok(Self::ThreeKilobytes),
-            4_096 => Ok(Self::FourKilobytes),
+            2_048 => Ok(Self::TwoKibibytes),
+            3_072 => Ok(Self::ThreeKibibytes),
+            4_096 => Ok(Self::FourKibibytes),
             _ => Err(ModulusBitsError(())),
         }
     }

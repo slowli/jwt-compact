@@ -27,9 +27,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - `es256k` feature should now be used for access to libsecp256k1 backend instead of
   `secp256k1`.
 
-- Rework time-related validation logic. It is now possible to use a new `Leeway` type
-  (a wrapper around `chrono::Duration`) in place of `TimeOptions` if there is access
+- Rework time-related token creation / validation logic. It is now possible to
+  use a custom clock, which could be useful for testing or if there is no access
   to the system clock.
+
+- Make `Header`, `Claims`, `TimeOptions`, and error types non-exhaustive.
 
 ## 0.2.0 - 2020-05-11
 

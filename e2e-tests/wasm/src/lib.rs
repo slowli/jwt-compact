@@ -14,7 +14,7 @@ use core::{convert::TryFrom, fmt};
 use jwt_compact::alg::RSAPrivateKey;
 use jwt_compact::{
     alg::{Ed25519, Hs256, Hs384, Hs512, RSAPublicKey, Rsa, SigningKey, VerifyingKey},
-    Algorithm, AlgorithmExt, Claims, Header, Leeway, Token, UntrustedToken,
+    Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
 };
 
 #[wasm_bindgen]
@@ -43,7 +43,7 @@ fn to_js_error(e: impl fmt::Display) -> Error {
 fn extract_claims(token: &Token<SampleClaims>) -> Result<&SampleClaims, JsValue> {
     Ok(&token
         .claims()
-        .validate_expiration(Leeway::default())
+        .validate_expiration(&TimeOptions::default())
         .map_err(to_js_error)?
         .custom)
 }
@@ -68,7 +68,7 @@ where
     T::SigningKey: SigningKey<T>,
 {
     let secret_key = <T::SigningKey>::from_slice(secret_key).map_err(to_js_error)?;
-    let claims = Claims::new(claims).set_duration(Duration::hours(1));
+    let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
 
     let token = T::default()
         .token(Header::default(), &claims, &secret_key)
@@ -126,7 +126,7 @@ pub fn create_rsa_token(
     let private_key = RSAPrivateKey::from_pkcs8(&private_key).map_err(to_js_error)?;
 
     let claims: SampleClaims = claims.into_serde().map_err(to_js_error)?;
-    let claims = Claims::new(claims).set_duration(Duration::hours(1));
+    let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
 
     let token = Rsa::with_name(alg)
         .token(Header::default(), &claims, &private_key)

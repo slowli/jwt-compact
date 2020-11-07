@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::ValidationError;
+use crate::{Claim, ValidationError};
 
 /// Time-related options for token creation and validation.
 ///
@@ -172,14 +172,16 @@ impl<T> Claims<T> {
     where
         F: Fn() -> DateTime<Utc>,
     {
-        self.expiration_date
-            .map_or(Err(ValidationError::NoClaim), |expiration| {
+        self.expiration_date.map_or(
+            Err(ValidationError::NoClaim(Claim::Expiration)),
+            |expiration| {
                 if (options.clock_fn)() > expiration + options.leeway {
                     Err(ValidationError::Expired)
                 } else {
                     Ok(self)
                 }
-            })
+            },
+        )
     }
 
     /// Validates the maturity date (`nbf` claim).
@@ -190,14 +192,16 @@ impl<T> Claims<T> {
     where
         F: Fn() -> DateTime<Utc>,
     {
-        self.not_before
-            .map_or(Err(ValidationError::NoClaim), |not_before| {
+        self.not_before.map_or(
+            Err(ValidationError::NoClaim(Claim::NotBefore)),
+            |not_before| {
                 if (options.clock_fn)() < not_before - options.leeway {
                     Err(ValidationError::NotMature)
                 } else {
                     Ok(self)
                 }
-            })
+            },
+        )
     }
 }
 
@@ -274,7 +278,7 @@ mod tests {
         let time_options = TimeOptions::default();
         assert_matches!(
             claims.validate_expiration(&time_options).unwrap_err(),
-            ValidationError::NoClaim
+            ValidationError::NoClaim(Claim::Expiration)
         );
 
         claims.expiration_date = Some(Utc::now() - Duration::hours(1));
@@ -308,7 +312,7 @@ mod tests {
         let time_options = TimeOptions::default();
         assert_matches!(
             claims.validate_maturity(&time_options).unwrap_err(),
-            ValidationError::NoClaim
+            ValidationError::NoClaim(Claim::NotBefore)
         );
 
         claims.not_before = Some(Utc::now() + Duration::hours(1));

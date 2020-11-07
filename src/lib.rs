@@ -89,10 +89,7 @@
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
 //! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
 //! // Create a token.
-//! let header = Header {
-//!     key_id: Some("my-key".to_owned()),
-//!     ..Default::default()
-//! };
+//! let header = Header::default().with_key_id("my-key");
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
 //!     .set_duration_and_issuance(Duration::days(7))
 //!     .set_not_before(Utc::now() - Duration::hours(1));
@@ -477,7 +474,18 @@ impl<A: Algorithm> AlgorithmExt for A {
 /// the verifying key. Since these values will be provided by the adversary in the case of
 /// an attack, they require additional verification (e.g., a provided certificate might
 /// be checked against the list of "acceptable" certificate authorities).
+///
+/// A `Header` can be created using `Default` implementation, which does not set any fields.
+/// For added fluency, you may use `with_*` methods:
+///
+/// ```
+/// # use jwt_compact::Header;
+/// let header = Header::default()
+///     .with_key_id("my-key-id")
+///     .with_certificate_thumbprint("thumbprint");
+/// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Header {
     /// URL of the JSON Web Key Set containing the key that has signed the token.
     /// This field is renamed to `jku` for serialization.
@@ -502,6 +510,41 @@ pub struct Header {
     /// Application-specific signature type. This field is renamed to `typ` for serialization.
     #[serde(rename = "typ", default, skip_serializing_if = "Option::is_none")]
     pub signature_type: Option<String>,
+}
+
+impl Header {
+    /// Sets the `key_set_url` field for this instance.
+    pub fn with_key_set_url(mut self, key_set_url: impl Into<String>) -> Self {
+        self.key_set_url = Some(key_set_url.into());
+        self
+    }
+
+    /// Sets the `key_id` field for this instance.
+    pub fn with_key_id(mut self, key_id: impl Into<String>) -> Self {
+        self.key_id = Some(key_id.into());
+        self
+    }
+
+    /// Sets the `certificate_url` field for this instance.
+    pub fn with_certificate_url(mut self, certificate_url: impl Into<String>) -> Self {
+        self.certificate_url = Some(certificate_url.into());
+        self
+    }
+
+    /// Sets the `certificate_thumbprint` field for this instance.
+    pub fn with_certificate_thumbprint(
+        mut self,
+        certificate_thumbprint: impl Into<String>,
+    ) -> Self {
+        self.certificate_thumbprint = Some(certificate_thumbprint.into());
+        self
+    }
+
+    /// Sets the `signature_type` field for this instance.
+    pub fn with_signature_type(mut self, signature_type: impl Into<String>) -> Self {
+        self.signature_type = Some(signature_type.into());
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

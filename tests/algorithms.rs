@@ -303,12 +303,10 @@ fn create_claims() -> Claims<CompactClaims> {
     let now = Utc.ymd(2020, 9, 1).and_hms(10, 0, 0);
     let now = now - Duration::nanoseconds(i64::from(now.timestamp_subsec_nanos()));
 
-    Claims {
-        issued_at: Some(now),
-        expiration_date: Some(now + Duration::days(7)),
-        not_before: None,
-        custom: CompactClaims { subject: [1; 32] },
-    }
+    let mut claims = Claims::new(CompactClaims { subject: [1; 32] });
+    claims.issued_at = Some(now);
+    claims.expiration_date = Some(now + Duration::days(7));
+    claims
 }
 
 #[test]

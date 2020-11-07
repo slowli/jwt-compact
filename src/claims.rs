@@ -54,6 +54,7 @@ pub struct Empty {}
 ///
 /// [JWT spec]: https://tools.ietf.org/html/rfc7519#section-4.1
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Claims<T> {
     /// Expiration date of the token.
     #[serde(

@@ -80,16 +80,14 @@ impl TokenChecker {
         Ok(claims.to_owned())
     }
 
-    fn create_token<T>(claims: SampleClaims, signing_key: &[u8]) -> anyhow::Result<String>
+    fn create_token<T>(&self, claims: SampleClaims, signing_key: &[u8]) -> anyhow::Result<String>
     where
         T: Algorithm + Default,
         T::SigningKey: SigningKey<T>,
     {
         let secret_key = <T::SigningKey>::from_slice(signing_key).map_err(|e| anyhow!(e))?;
-        let mut claims = Claims::new(claims);
-        let timestamp = now();
-        claims.issued_at = Some(timestamp);
-        claims.expiration_date = Some(timestamp + Duration::minutes(10));
+        let claims = Claims::new(claims)
+            .set_duration_and_issuance(&self.time_options, Duration::minutes(10));
 
         let token = T::default()
             .token(Header::default(), &claims, &secret_key)
@@ -110,7 +108,7 @@ impl TokenChecker {
             name: "John Doe".to_owned(),
             admin: false,
         };
-        let token = Self::create_token::<T>(claims.clone(), signing_key)?;
+        let token = self.create_token::<T>(claims.clone(), signing_key)?;
         hprintln!("Created token: {}", token).unwrap();
         let recovered_claims = self.verify_token::<T>(&token, verifying_key)?;
         hprintln!("Verified token").unwrap();

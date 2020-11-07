@@ -41,8 +41,9 @@
 //! `clock` and `std`; both are on by default.
 //!
 //! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
-//!   Without it, some claim methods, such as [`Claims::set_duration()`], are not available.
-//!   It is still possible to set the corresponding claim fields manually.
+//!   Without it, some [`TimeOptions`] constructors, such as the `Default` impl,
+//!   are not available. It is still possible to create `TimeOptions` with an excplicitly specified
+//!   clock function, or to set / verify time-related [`Claims`] fields manually.
 //! - The `std` feature is propagated to the core dependencies and enables `std`-specific
 //!   functionality (such as error types implementing the standard `Error` trait).
 //!
@@ -86,12 +87,14 @@
 //! }
 //!
 //! # fn main() -> anyhow::Result<()> {
+//! // Choose time-related options for token creation / validation.
+//! let time_options = TimeOptions::default();
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
 //! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
 //! // Create a token.
 //! let header = Header::default().with_key_id("my-key");
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
-//!     .set_duration_and_issuance(Duration::days(7))
+//!     .set_duration_and_issuance(&time_options, Duration::days(7))
 //!     .set_not_before(Utc::now() - Duration::hours(1));
 //! let token_string = Hs256.token(header, &claims, &key)?;
 //! println!("token: {}", token_string);
@@ -104,10 +107,9 @@
 //! // Validate the token integrity.
 //! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
 //! // Validate additional conditions.
-//! token
-//!     .claims()
-//!     .validate_expiration(&TimeOptions::default())?
-//!     .validate_maturity(&TimeOptions::from_leeway(Duration::seconds(15)))?;
+//! token.claims()
+//!     .validate_expiration(&time_options)?
+//!     .validate_maturity(&time_options)?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! let subject = &token.claims().custom.subject;
 //! assert_eq!(subject, "alice");
@@ -135,9 +137,10 @@
 //! }
 //!
 //! # fn main() -> anyhow::Result<()> {
+//! let time_options = TimeOptions::default();
 //! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
-//!     .set_duration_and_issuance(Duration::days(7));
+//!     .set_duration_and_issuance(&time_options, Duration::days(7));
 //! let token = Hs256.token(Header::default(), &claims, &key)?;
 //! println!("token: {}", token);
 //! let compact_token = Hs256.compact_token(Header::default(), &claims, &key)?;
@@ -147,7 +150,7 @@
 //! // Parse the compact token.
 //! let token = UntrustedToken::try_from(compact_token.as_str())?;
 //! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
-//! token.claims().validate_expiration(&TimeOptions::default())?;
+//! token.claims().validate_expiration(&time_options)?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! assert_eq!(token.claims().custom.subject, [111; 32]);
 //! # Ok(())
@@ -196,9 +199,7 @@ mod alloc {
 
 /// Prelude to neatly import all necessary stuff from the crate.
 pub mod prelude {
-    pub use crate::{
-        AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken,
-    };
+    pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
 }
 
 pub use crate::{
@@ -616,7 +617,8 @@ impl<T> Token<T> {
 ///
 /// # fn main() -> anyhow::Result<()> {
 /// # let key = Hs256Key::from(b"super_secret_key" as &[_]);
-/// # let claims = Claims::new(MyClaims {}).set_duration_and_issuance(Duration::days(7));
+/// # let claims = Claims::new(MyClaims {})
+/// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
 /// #   Hs256.token(Header::default(), &claims, &key)?;
 /// let token = UntrustedToken::try_from(token_string.as_str())?;

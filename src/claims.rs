@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ValidationError;
 
-/// Time-related validation options.
+/// Time-related options for token creation and validation.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct TimeOptions<F = fn() -> DateTime<Utc>> {
@@ -32,6 +32,9 @@ impl TimeOptions {
     }
 }
 
+/// Creates options with a default leeway (60 seconds) and the [`Utc::now()`] clock.
+///
+/// This impl is supported on **crate feature `clock`** only.
 #[cfg(feature = "clock")]
 impl Default for TimeOptions {
     fn default() -> Self {
@@ -109,21 +112,24 @@ impl<T> Claims<T> {
     }
 
     /// Sets `expiration_date` claim so that the token has the specified `duration`.
-    #[cfg(feature = "clock")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "clock")))]
-    pub fn set_duration(self, duration: Duration) -> Self {
+    /// The current timestamp is taken from `options`.
+    pub fn set_duration<F>(self, options: &TimeOptions<F>, duration: Duration) -> Self
+    where
+        F: Fn() -> DateTime<Utc>,
+    {
         Self {
-            expiration_date: Some(Utc::now() + duration),
+            expiration_date: Some((options.clock_fn)() + duration),
             ..self
         }
     }
 
-    /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time,
-    /// and the second to match the specified `duration` of the token.
-    #[cfg(feature = "clock")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "clock")))]
-    pub fn set_duration_and_issuance(self, duration: Duration) -> Self {
-        let issued_at = Utc::now();
+    /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time
+    /// (taken from `options`), and the second to match the specified `duration` of the token.
+    pub fn set_duration_and_issuance<F>(self, options: &TimeOptions<F>, duration: Duration) -> Self
+    where
+        F: Fn() -> DateTime<Utc>,
+    {
+        let issued_at = (options.clock_fn)();
         Self {
             expiration_date: Some(issued_at + duration),
             issued_at: Some(issued_at),

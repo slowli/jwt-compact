@@ -68,7 +68,7 @@ where
     T::SigningKey: SigningKey<T>,
 {
     let secret_key = <T::SigningKey>::from_slice(secret_key).map_err(to_js_error)?;
-    let claims = Claims::new(claims).set_duration(Duration::hours(1));
+    let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
 
     let token = T::default()
         .token(Header::default(), &claims, &secret_key)
@@ -126,7 +126,7 @@ pub fn create_rsa_token(
     let private_key = RSAPrivateKey::from_pkcs8(&private_key).map_err(to_js_error)?;
 
     let claims: SampleClaims = claims.into_serde().map_err(to_js_error)?;
-    let claims = Claims::new(claims).set_duration(Duration::hours(1));
+    let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
 
     let token = Rsa::with_name(alg)
         .token(Header::default(), &claims, &private_key)

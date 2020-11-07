@@ -106,8 +106,8 @@
 //! // Validate additional conditions.
 //! token
 //!     .claims()
-//!     .validate_expiration(Leeway::default())?
-//!     .validate_maturity(Leeway::seconds(15))?;
+//!     .validate_expiration(&TimeOptions::default())?
+//!     .validate_maturity(&TimeOptions::from_leeway(Duration::seconds(15)))?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! let subject = &token.claims().custom.subject;
 //! assert_eq!(subject, "alice");
@@ -147,7 +147,7 @@
 //! // Parse the compact token.
 //! let token = UntrustedToken::try_from(compact_token.as_str())?;
 //! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
-//! token.claims().validate_expiration(Leeway::default())?;
+//! token.claims().validate_expiration(&TimeOptions::default())?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! assert_eq!(token.claims().custom.subject, [111; 32]);
 //! # Ok(())
@@ -197,12 +197,12 @@ mod alloc {
 /// Prelude to neatly import all necessary stuff from the crate.
 pub mod prelude {
     pub use crate::{
-        AlgorithmExt as _, Claims, Header, Leeway, TimeOptions, Token, UntrustedToken,
+        AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken,
     };
 }
 
 pub use crate::{
-    claims::{Claims, Empty, Leeway, TimeOptions},
+    claims::{Claims, Empty, TimeOptions},
     error::{CreationError, ParseError, ValidationError},
 };
 
@@ -626,7 +626,7 @@ impl<T> Token<T> {
 /// let array: GenericArray<u8, typenum::U32> = signed.signature.into_bytes();
 /// // Token itself is available via `token` field.
 /// let claims = signed.token.claims();
-/// claims.validate_expiration(Leeway::default())?;
+/// claims.validate_expiration(&TimeOptions::default())?;
 /// // Process the claims...
 /// # Ok(())
 /// # } // end main()

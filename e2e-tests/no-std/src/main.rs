@@ -42,68 +42,81 @@ struct SampleClaims {
     admin: bool,
 }
 
-fn extract_claims(token: &Token<SampleClaims>) -> anyhow::Result<&SampleClaims> {
-    Ok(&token
-        .claims()
-        .validate_expiration(TimeOptions {
-            leeway: Duration::seconds(15),
-            current_time: now(),
-        })
-        .map_err(|e| anyhow!(e))?
-        .custom)
+#[derive(Debug)]
+struct TokenChecker {
+    time_options: TimeOptions,
 }
 
-fn verify_token<T>(token: &str, verifying_key: &[u8]) -> anyhow::Result<SampleClaims>
-where
-    T: Algorithm + Default,
-    T::VerifyingKey: VerifyingKey<T>,
-{
-    let token = UntrustedToken::try_from(token).map_err(|e| anyhow!(e))?;
-    let secret_key = <T::VerifyingKey>::from_slice(verifying_key)?;
+impl TokenChecker {
+    fn new() -> Self {
+        Self {
+            time_options: TimeOptions::new(Duration::seconds(15), now),
+        }
+    }
 
-    let token = T::default()
-        .validate_integrity::<SampleClaims>(&token, &secret_key)
-        .map_err(|e| anyhow!(e))?;
-    let claims = extract_claims(&token)?;
-    Ok(claims.to_owned())
-}
+    fn extract_claims<'a>(
+        &self,
+        token: &'a Token<SampleClaims>,
+    ) -> anyhow::Result<&'a SampleClaims> {
+        Ok(&token
+            .claims()
+            .validate_expiration(&self.time_options)
+            .map_err(|e| anyhow!(e))?
+            .custom)
+    }
 
-fn create_token<T>(claims: SampleClaims, signing_key: &[u8]) -> anyhow::Result<String>
-where
-    T: Algorithm + Default,
-    T::SigningKey: SigningKey<T>,
-{
-    let secret_key = <T::SigningKey>::from_slice(signing_key).map_err(|e| anyhow!(e))?;
-    let mut claims = Claims::new(claims);
-    let timestamp = now();
-    claims.issued_at = Some(timestamp);
-    claims.expiration_date = Some(timestamp + Duration::minutes(10));
+    fn verify_token<T>(&self, token: &str, verifying_key: &[u8]) -> anyhow::Result<SampleClaims>
+    where
+        T: Algorithm + Default,
+        T::VerifyingKey: VerifyingKey<T>,
+    {
+        let token = UntrustedToken::try_from(token).map_err(|e| anyhow!(e))?;
+        let secret_key = <T::VerifyingKey>::from_slice(verifying_key)?;
 
-    let token = T::default()
-        .token(Header::default(), &claims, &secret_key)
-        .map_err(|e| anyhow!(e))?;
-    Ok(token)
-}
+        let token = T::default()
+            .validate_integrity::<SampleClaims>(&token, &secret_key)
+            .map_err(|e| anyhow!(e))?;
+        let claims = self.extract_claims(&token)?;
+        Ok(claims.to_owned())
+    }
 
-fn roundtrip_alg<T>(signing_key: &[u8], verifying_key: &[u8]) -> anyhow::Result<()>
-where
-    T: Algorithm + Default,
-    T::SigningKey: SigningKey<T>,
-    T::VerifyingKey: VerifyingKey<T>,
-{
-    hprintln!("Testing algorithm: {}", T::default().name()).unwrap();
+    fn create_token<T>(claims: SampleClaims, signing_key: &[u8]) -> anyhow::Result<String>
+    where
+        T: Algorithm + Default,
+        T::SigningKey: SigningKey<T>,
+    {
+        let secret_key = <T::SigningKey>::from_slice(signing_key).map_err(|e| anyhow!(e))?;
+        let mut claims = Claims::new(claims);
+        let timestamp = now();
+        claims.issued_at = Some(timestamp);
+        claims.expiration_date = Some(timestamp + Duration::minutes(10));
 
-    let claims = SampleClaims {
-        subject: "j.doe@example.com".to_owned(),
-        name: "John Doe".to_owned(),
-        admin: false,
-    };
-    let token = create_token::<T>(claims.clone(), signing_key)?;
-    hprintln!("Created token: {}", token).unwrap();
-    let recovered_claims = verify_token::<T>(&token, verifying_key)?;
-    hprintln!("Verified token").unwrap();
-    assert_eq!(claims, recovered_claims);
-    Ok(())
+        let token = T::default()
+            .token(Header::default(), &claims, &secret_key)
+            .map_err(|e| anyhow!(e))?;
+        Ok(token)
+    }
+
+    fn roundtrip_alg<T>(&self, signing_key: &[u8], verifying_key: &[u8]) -> anyhow::Result<()>
+    where
+        T: Algorithm + Default,
+        T::SigningKey: SigningKey<T>,
+        T::VerifyingKey: VerifyingKey<T>,
+    {
+        hprintln!("Testing algorithm: {}", T::default().name()).unwrap();
+
+        let claims = SampleClaims {
+            subject: "j.doe@example.com".to_owned(),
+            name: "John Doe".to_owned(),
+            admin: false,
+        };
+        let token = Self::create_token::<T>(claims.clone(), signing_key)?;
+        hprintln!("Created token: {}", token).unwrap();
+        let recovered_claims = self.verify_token::<T>(&token, verifying_key)?;
+        hprintln!("Verified token").unwrap();
+        assert_eq!(claims, recovered_claims);
+        Ok(())
+    }
 }
 
 const HEAP_SIZE: usize = 16_384;
@@ -115,6 +128,16 @@ const HASH_SECRET_KEY: &[u8] = b"super_secret_key_donut_steel";
 const ED_PRIVATE_KEY_HEX: &str = "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
      06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
 
+fn main_inner() -> anyhow::Result<()> {
+    let token_checker = TokenChecker::new();
+    token_checker.roundtrip_alg::<Hs256>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
+    token_checker.roundtrip_alg::<Hs384>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
+    token_checker.roundtrip_alg::<Hs512>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
+
+    let ed_private_key = hex::decode(ED_PRIVATE_KEY_HEX).map_err(|e| anyhow!(e))?;
+    token_checker.roundtrip_alg::<Ed25519>(&ed_private_key, &ed_private_key[32..])
+}
+
 #[entry]
 fn main() -> ! {
     let start = cortex_m_rt::heap_start() as usize;
@@ -122,12 +145,7 @@ fn main() -> ! {
         ALLOCATOR.init(start, HEAP_SIZE);
     }
 
-    roundtrip_alg::<Hs256>(HASH_SECRET_KEY, HASH_SECRET_KEY).unwrap();
-    roundtrip_alg::<Hs384>(HASH_SECRET_KEY, HASH_SECRET_KEY).unwrap();
-    roundtrip_alg::<Hs512>(HASH_SECRET_KEY, HASH_SECRET_KEY).unwrap();
-
-    let ed_private_key = hex::decode(ED_PRIVATE_KEY_HEX).unwrap();
-    roundtrip_alg::<Ed25519>(&ed_private_key, &ed_private_key[32..]).unwrap();
+    main_inner().unwrap();
 
     debug::exit(debug::EXIT_SUCCESS);
     loop {}

@@ -3,12 +3,13 @@
 pub use rsa::{RSAPrivateKey, RSAPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
-use rsa::{hash::Hash, PaddingScheme, PublicKey};
+use rsa::{hash::Hash, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use core::{convert::TryFrom, fmt};
 
 use crate::{
+    alg::StrongKey,
     alloc::{Box, Cow, Vec},
     Algorithm, AlgorithmSignature,
 };
@@ -20,10 +21,7 @@ pub struct RsaSignature(Vec<u8>);
 
 impl AlgorithmSignature for RsaSignature {
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        match bytes.len() {
-            256 | 384 | 512 => Ok(RsaSignature(bytes.to_vec())),
-            _ => Err(anyhow::anyhow!("Unsupported signature length")),
-        }
+        Ok(RsaSignature(bytes.to_vec()))
     }
 
     fn as_bytes(&self) -> Cow<[u8]> {
@@ -98,6 +96,10 @@ impl ModulusBits {
             Self::FourKibibytes => 4_096,
         }
     }
+
+    fn is_valid_bits(bits: usize) -> bool {
+        matches!(bits, 2_048 | 3_072 | 4_096)
+    }
 }
 
 impl TryFrom<usize> for ModulusBits {
@@ -142,7 +144,13 @@ impl std::error::Error for ModulusBitsError {}
 ///
 /// The length of RSA keys is not unequivocally specified by the algorithm; nevertheless,
 /// it **MUST** be at least 2048 bits as per RFC 7518. To minimize risks of misconfiguration,
-/// this implementation only supports key lengths specified by the [`ModulusBits`] enum.
+/// use [`StrongAlg`](super::StrongAlg) wrapper around `Rsa`:
+///
+/// ```
+/// # use jwt_compact::alg::{StrongAlg, Rsa};
+/// const ALG: StrongAlg<Rsa> = StrongAlg(Rsa::rs256());
+/// // `ALG` will not support RSA keys with unsecure lengths by design!
+/// ```
 ///
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
@@ -290,9 +298,40 @@ impl Rsa {
     pub fn generate<R: CryptoRng + RngCore>(
         rng: &mut R,
         modulus_bits: ModulusBits,
-    ) -> rsa::errors::Result<(RSAPrivateKey, RSAPublicKey)> {
+    ) -> rsa::errors::Result<(StrongKey<RSAPrivateKey>, StrongKey<RSAPublicKey>)> {
         let signing_key = RSAPrivateKey::new(rng, modulus_bits.bits())?;
         let verifying_key = signing_key.to_public_key();
-        Ok((signing_key, verifying_key))
+        Ok((StrongKey(signing_key), StrongKey(verifying_key)))
+    }
+}
+
+impl StrongKey<RSAPrivateKey> {
+    /// Converts this private key to a public key.
+    pub fn to_public_key(&self) -> StrongKey<RSAPublicKey> {
+        StrongKey(self.0.to_public_key())
+    }
+}
+
+impl TryFrom<RSAPrivateKey> for StrongKey<RSAPrivateKey> {
+    type Error = RSAPrivateKey;
+
+    fn try_from(key: RSAPrivateKey) -> Result<Self, Self::Error> {
+        if ModulusBits::is_valid_bits(key.n().bits()) {
+            Ok(StrongKey(key))
+        } else {
+            Err(key)
+        }
+    }
+}
+
+impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
+    type Error = RSAPublicKey;
+
+    fn try_from(key: RSAPublicKey) -> Result<Self, Self::Error> {
+        if ModulusBits::is_valid_bits(key.n().bits()) {
+            Ok(StrongKey(key))
+        } else {
+            Err(key)
+        }
     }
 }

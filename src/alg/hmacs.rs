@@ -6,10 +6,10 @@ use sha2::{digest::BlockInput, Sha256, Sha384, Sha512};
 use smallvec::{smallvec, SmallVec};
 use zeroize::Zeroize;
 
-use core::fmt;
+use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{SigningKey, StrongKey, VerifyingKey},
     alloc::Cow,
     Algorithm, AlgorithmSignature,
 };
@@ -32,10 +32,10 @@ macro_rules! define_hmac_key {
 
         impl $name {
             /// Generates a random key using a cryptographically secure RNG.
-            pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> Self {
+            pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> StrongKey<Self> {
                 let mut key = $name(smallvec![0; <$digest as BlockInput>::BlockSize::to_usize()]);
                 rng.fill_bytes(&mut key.0);
-                key
+                StrongKey(key)
             }
 
             /// Computes HMAC with this key and the specified `message`.
@@ -62,6 +62,18 @@ macro_rules! define_hmac_key {
         impl AsMut<[u8]> for $name {
             fn as_mut(&mut self) -> &mut [u8] {
                 &mut self.0
+            }
+        }
+
+        impl TryFrom<$name> for StrongKey<$name> {
+            type Error = $name;
+
+            fn try_from(value: $name) -> Result<Self, Self::Error> {
+                if value.0.len() >= <$digest as BlockInput>::BlockSize::to_usize() {
+                    Ok(StrongKey(value))
+                } else {
+                    Err(value)
+                }
             }
         }
     };

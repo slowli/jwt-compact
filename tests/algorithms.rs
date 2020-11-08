@@ -7,7 +7,7 @@ use serde_json::json;
 
 use core::convert::TryFrom;
 
-use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
+use jwt_compact::{alg::*, prelude::*, Algorithm, AlgorithmExt, ValidationError};
 
 #[cfg(feature = "rsa")]
 mod rsa;
@@ -39,16 +39,33 @@ fn hs256_reference() {
 
     let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
     let key = Hs256Key::from(key.as_slice());
-    let token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
+    let validated_token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
     assert_eq!(
-        token.claims().expiration_date.unwrap().timestamp(),
+        validated_token
+            .claims()
+            .expiration_date
+            .unwrap()
+            .timestamp(),
         1_300_819_380
     );
-    assert_eq!(token.claims().custom["iss"], json!("joe"));
+    assert_eq!(validated_token.claims().custom["iss"], json!("joe"));
     assert_eq!(
-        token.claims().custom["http://example.com/is_root"],
+        validated_token.claims().custom["http://example.com/is_root"],
         json!(true)
     );
+
+    let checked_key = StrongKey::try_from(key).unwrap();
+    StrongAlg(Hs256)
+        .validate_integrity::<Obj>(&token, &checked_key)
+        .unwrap();
+}
+
+#[test]
+fn short_hs256_key_cannot_be_checked() {
+    const KEY: &[u8] = b"your-256-bit-secret";
+
+    let key = Hs384Key::from(KEY);
+    assert!(StrongKey::try_from(key).is_err());
 }
 
 #[test]
@@ -314,26 +331,26 @@ fn create_claims() -> Claims<CompactClaims> {
 
 #[test]
 fn hs256_algorithm() {
-    let key = Hs256Key::generate(&mut thread_rng());
+    let key = Hs256Key::generate(&mut thread_rng()).inner();
     test_algorithm(&Hs256, &key, &key);
 }
 
 #[test]
 fn hs384_algorithm() {
-    let key = Hs384Key::generate(&mut thread_rng());
+    let key = Hs384Key::generate(&mut thread_rng()).inner();
     test_algorithm(&Hs384, &key, &key);
 }
 
 #[test]
 fn hs512_algorithm() {
-    let key = Hs512Key::generate(&mut thread_rng());
+    let key = Hs512Key::generate(&mut thread_rng()).inner();
     test_algorithm(&Hs512, &key, &key);
 }
 
 #[test]
 fn compact_token_hs256() {
     let claims = create_claims();
-    let key = Hs256Key::generate(&mut thread_rng());
+    let key = Hs256Key::generate(&mut thread_rng()).inner();
     let long_token_str = Hs256.token(Header::default(), &claims, &key).unwrap();
     let token_str = Hs256
         .compact_token(Header::default(), &claims, &key)

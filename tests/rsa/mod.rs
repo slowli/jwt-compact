@@ -1,11 +1,12 @@
 //! Tests for RSA algorithms.
 
+use assert_matches::assert_matches;
 use rand::thread_rng;
+
 use core::convert::TryFrom;
 
-use jwt_compact::{alg::*, prelude::*, Algorithm};
-
-use super::{test_algorithm, SampleClaims};
+use super::{create_claims, test_algorithm, CompactClaims, SampleClaims};
+use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 
 const RSA_PRIVATE_KEY: &str = r#"
 -----BEGIN RSA PRIVATE KEY-----
@@ -60,14 +61,51 @@ fn rs256_algorithm() {
 }
 
 #[test]
+fn rs256_algorithm_with_checked_len() {
+    let rsa = StrongAlg(Rsa::rs256());
+    let signing_key = {
+        let key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
+        let key = RSAPrivateKey::from_pkcs1(&key.contents).unwrap();
+        key.validate().unwrap();
+        StrongKey::try_from(key).unwrap()
+    };
+    let verifying_key = signing_key.to_public_key();
+    test_algorithm(&rsa, &signing_key, &verifying_key);
+}
+
+#[test]
 fn rs256_algorithm_with_generated_keys() {
     //! Since RSA key generation is very slow in the debug mode, we test generated keys
     //! for only one JWS algorithm.
 
-    let rsa = Rsa::rs256();
+    let rsa = StrongAlg(Rsa::rs256());
     let (signing_key, verifying_key) =
         Rsa::generate(&mut thread_rng(), ModulusBits::TwoKibibytes).unwrap();
     test_algorithm(&rsa, &signing_key, &verifying_key);
+}
+
+#[test]
+fn ps256_checked_len_fails_on_undersized_key() {
+    let small_private_key = RSAPrivateKey::new(&mut thread_rng(), 1_024).unwrap();
+    let claims = create_claims();
+    let token = Rsa::ps256()
+        .compact_token(Header::default(), &claims, &small_private_key)
+        .unwrap();
+    let token = UntrustedToken::try_from(token.as_str()).unwrap();
+
+    // We should not be able to wrap the private key or a public key generated from it.
+    let small_public_key = small_private_key.to_public_key();
+    assert!(StrongKey::try_from(small_public_key).is_err());
+    assert!(StrongKey::try_from(small_private_key).is_err());
+
+    let public_key = rsa::pem::parse(RSA_PUBLIC_KEY).unwrap();
+    let public_key = RSAPublicKey::from_pkcs8(&public_key.contents).unwrap();
+    let public_key = StrongKey::try_from(public_key).unwrap();
+
+    let err = StrongAlg(Rsa::ps256())
+        .validate_integrity::<CompactClaims>(&token, &public_key)
+        .unwrap_err();
+    assert_matches!(err, ValidationError::InvalidSignature);
 }
 
 #[test]
@@ -126,18 +164,27 @@ fn test_rsa_reference(rsa: Rsa, token: &str) {
     let token = UntrustedToken::try_from(token).unwrap();
     assert_eq!(token.algorithm(), rsa.name());
 
-    let token = rsa
+    let validated_token = rsa
         .validate_integrity::<SampleClaims>(&token, &public_key)
         .unwrap();
-    assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_516_239_022);
     assert_eq!(
-        token.claims().custom,
+        validated_token.claims().issued_at.unwrap().timestamp(),
+        1_516_239_022
+    );
+    assert_eq!(
+        validated_token.claims().custom,
         SampleClaims {
             subject: "1234567890".to_owned(),
             name: "John Doe".to_owned(),
             admin: true
         }
     );
+
+    // A version with checked key length should work as well.
+    let public_key = StrongKey::try_from(public_key).unwrap();
+    StrongAlg(rsa)
+        .validate_integrity::<SampleClaims>(&token, &public_key)
+        .unwrap();
 }
 
 #[test]

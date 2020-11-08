@@ -20,7 +20,7 @@ exclude = ["e2e-tests"]
 # Enable non-conflicting additional algorithms in documentation on `docs.rs`.
 features = ["es256k", "rsa"]
 # Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
-rustc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Public dependencies (present in the public API).

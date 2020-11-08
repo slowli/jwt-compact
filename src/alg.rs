@@ -1,7 +1,7 @@
 //! Implementations of JWT signing / verification algorithms. Also contains generic traits
 //! for signing and verifying keys.
 
-use core::convert::TryFrom;
+use core::{convert::TryFrom, fmt};
 
 use crate::{alloc::Cow, Algorithm};
 
@@ -40,11 +40,14 @@ pub use self::rsa::{
 /// The wrapper signifies that the key has supported strength as per the corresponding
 /// algorithm spec. For example, RSA keys must have length at least 2,048 bits per [RFC 7518].
 /// Likewise, `HS*` keys must have at least the length of the hash output
-/// (e.g., 32 bytes for `HS256`).
+/// (e.g., 32 bytes for `HS256`). Since these requirements sometimes clash with backward
+/// compatibility (and sometimes a lesser level of security is enough),
+/// notion of key strength is implemented in such an opt-in, composable way.
 ///
 /// It's easy to convert a `StrongKey<T>` to `T` via [`inner()`](Self::inner()) or to access `&T`
 /// via `AsRef` impl. In contrast, the reverse transformation is fallible, and is defined
-/// with the help of [`TryFrom`].
+/// with the help of [`TryFrom`]. The error type for `TryFrom` is [`WeakKeyError`], a simple
+/// wrapper around a weak key.
 ///
 /// # Examples
 ///
@@ -66,6 +69,21 @@ impl<T> AsRef<T> for StrongKey<T> {
         &self.0
     }
 }
+
+/// Error type used for fallible conversion into a [`StrongKey`].
+///
+/// The error wraps around a weak key, which can be extracted for further use.
+#[derive(Debug)]
+pub struct WeakKeyError<T>(pub T);
+
+impl<T> fmt::Display for WeakKeyError<T> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("Weak cryptographic key")
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
 
 /// Wrapper around a JWT algorithm signalling that it supports only [`StrongKey`]s.
 ///

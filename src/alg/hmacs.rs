@@ -9,7 +9,7 @@ use zeroize::Zeroize;
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{SigningKey, StrongKey, VerifyingKey},
+    alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
     Algorithm, AlgorithmSignature,
 };
@@ -66,13 +66,13 @@ macro_rules! define_hmac_key {
         }
 
         impl TryFrom<$name> for StrongKey<$name> {
-            type Error = $name;
+            type Error = WeakKeyError<$name>;
 
             fn try_from(value: $name) -> Result<Self, Self::Error> {
                 if value.0.len() >= <$digest as BlockInput>::BlockSize::to_usize() {
                     Ok(StrongKey(value))
                 } else {
-                    Err(value)
+                    Err(WeakKeyError(value))
                 }
             }
         }

@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::StrongKey,
+    alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
     Algorithm, AlgorithmSignature,
 };
@@ -313,25 +313,25 @@ impl StrongKey<RSAPrivateKey> {
 }
 
 impl TryFrom<RSAPrivateKey> for StrongKey<RSAPrivateKey> {
-    type Error = RSAPrivateKey;
+    type Error = WeakKeyError<RSAPrivateKey>;
 
     fn try_from(key: RSAPrivateKey) -> Result<Self, Self::Error> {
         if ModulusBits::is_valid_bits(key.n().bits()) {
             Ok(StrongKey(key))
         } else {
-            Err(key)
+            Err(WeakKeyError(key))
         }
     }
 }
 
 impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
-    type Error = RSAPublicKey;
+    type Error = WeakKeyError<RSAPublicKey>;
 
     fn try_from(key: RSAPublicKey) -> Result<Self, Self::Error> {
         if ModulusBits::is_valid_bits(key.n().bits()) {
             Ok(StrongKey(key))
         } else {
-            Err(key)
+            Err(WeakKeyError(key))
         }
     }
 }

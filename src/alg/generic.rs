@@ -20,7 +20,7 @@ where
     ///
     /// Implementations should return `Cow::Borrowed` whenever possible (that is, if the bytes
     /// are actually stored within the implementing data structure).
-    fn as_bytes(&self) -> Cow<[u8]>;
+    fn as_bytes(&self) -> Cow<'_, [u8]>;
 }
 
 /// Signing key for a specific signature cryptosystem. In the case of public-key cryptosystems,
@@ -43,5 +43,5 @@ where
     ///
     /// Implementations should return `Cow::Borrowed` whenever possible (that is, if the bytes
     /// are actually stored within the implementing data structure).
-    fn as_bytes(&self) -> Cow<[u8]>;
+    fn as_bytes(&self) -> Cow<'_, [u8]>;
 }

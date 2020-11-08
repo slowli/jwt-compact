@@ -71,7 +71,7 @@ impl VerifyingKey<Ed25519> for PublicKey {
         Self::from_slice(raw).ok_or_else(|| format_err!("Invalid public key length"))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(self.as_ref())
     }
 }
@@ -88,7 +88,7 @@ impl SigningKey<Ed25519> for SecretKey {
         PublicKey::from_slice(&self[SEED_LENGTH..]).unwrap()
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(&self[..])
     }
 }

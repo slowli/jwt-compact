@@ -204,7 +204,7 @@ pub mod prelude {
 
 pub use crate::{
     claims::{Claims, Empty, TimeOptions},
-    error::{CreationError, ParseError, ValidationError},
+    error::{Claim, CreationError, ParseError, ValidationError},
 };
 
 use crate::alloc::{Cow, String, ToOwned, Vec};
@@ -440,8 +440,12 @@ impl<A: Algorithm> AlgorithmExt for A {
     where
         T: DeserializeOwned,
     {
-        if self.name() != token.algorithm {
-            return Err(ValidationError::AlgorithmMismatch);
+        let expected_alg = self.name();
+        if expected_alg != token.algorithm {
+            return Err(ValidationError::AlgorithmMismatch {
+                expected: expected_alg.into_owned(),
+                actual: token.algorithm.to_owned(),
+            });
         }
 
         let signature = Self::Signature::try_from_slice(&token.signature[..])

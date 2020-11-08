@@ -18,6 +18,7 @@ See the crate docs for the examples of usage.
 ## Features
 
 - Algorithm-specific signing and verifying keys (i.e., type safety).
+- Key strength requirements from [RFC 7518] are expressed with wrapper types, as well.
 - Easy to extend to support new signing algorithms.
 - The crate supports more compact [CBOR] encoding of the claims.
 - `HS256`, `HS384` and `HS512` algorithms are implemented via pure Rust [`sha2`] crate.
@@ -47,6 +48,7 @@ Licensed under the [Apache-2.0 license](LICENSE).
 
 [JWT]: https://jwt.io/
 [CBOR]: https://tools.ietf.org/html/rfc7049
+[RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
 [`sha2`]: https://crates.io/crates/sha2
 [`jsonwebtoken`]: https://crates.io/crates/jsonwebtoken
 [`frank_jwt`]: https://crates.io/crates/frank_jwt

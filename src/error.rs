@@ -60,7 +60,12 @@ impl std::error::Error for ParseError {
 #[non_exhaustive]
 pub enum ValidationError {
     /// Algorithm mentioned in the token header differs from invoked one.
-    AlgorithmMismatch,
+    AlgorithmMismatch {
+        /// Expected algorithm name.
+        expected: String,
+        /// Actual algorithm in the token.
+        actual: String,
+    },
     /// Token signature is malformed (e.g., has an incorrect length).
     MalformedSignature(anyhow::Error),
     /// Token signature has failed verification.
@@ -70,26 +75,50 @@ pub enum ValidationError {
     /// Token claims cannot be deserialized from CBOR.
     MalformedCborClaims(serde_cbor::error::Error),
     /// Claim requested during validation is not present in the token.
-    NoClaim,
+    NoClaim(Claim),
     /// Token has expired.
     Expired,
     /// Token is not yet valid as per `nbf` claim.
     NotMature,
 }
 
+/// Identifier of a claim in `Claims`.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub enum Claim {
+    /// `exp` claim (expiration time).
+    Expiration,
+    /// `nbf` claim (valid not before).
+    NotBefore,
+}
+
+impl fmt::Display for Claim {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Expiration => "exp",
+            Self::NotBefore => "nbf",
+        })
+    }
+}
+
 impl fmt::Display for ValidationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::AlgorithmMismatch => {
-                formatter.write_str("Token algorithm differs from the expected one")
-            }
+            Self::AlgorithmMismatch { expected, actual } => write!(
+                formatter,
+                "Token algorithm ({actual}) differs from expected ({expected})",
+                expected = expected,
+                actual = actual
+            ),
             Self::MalformedSignature(e) => write!(formatter, "Malformed token signature: {}", e),
             Self::InvalidSignature => formatter.write_str("Signature has failed verification"),
             Self::MalformedClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
             Self::MalformedCborClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
-            Self::NoClaim => {
-                formatter.write_str("Claim requested during validation is not present in the token")
-            }
+            Self::NoClaim(claim) => write!(
+                formatter,
+                "Claim `{}` requested during validation is not present in the token",
+                claim
+            ),
             Self::Expired => formatter.write_str("Token has expired"),
             Self::NotMature => formatter.write_str("Token is not yet ready"),
         }

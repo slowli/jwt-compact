@@ -9,7 +9,7 @@ repository = "https://github.com/slowli/jwt-compact"
 publish = false
 
 [dependencies]
-anyhow = { version = "1.0.28", default-features = false }
+anyhow = { version = "1.0.34", default-features = false }
 chrono = { version = "0.4.19", default-features = false }
 hex = { version = "0.4.2", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
@@ -21,7 +21,7 @@ alloc-cortex-m = "0.4.0"
 panic-halt = "0.2.0"
 
 [dependencies.jwt-compact]
-version = "0.2.0"
+version = "0.3.0-beta.1"
 path = "../.."
 default-features = false
 features = ["ed25519-dalek"]

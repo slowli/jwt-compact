@@ -1,6 +1,6 @@
 [package]
 name = "jwt-compact"
-version = "0.2.0"
+version = "0.3.0-beta.1"
 authors = [
   "Alex Ostrovski <ostrovski.alex@gmail.com>",
   "Akhil Velagapudi <akhilvelagapudi@gmail.com>",
@@ -24,9 +24,9 @@ rustc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Public dependencies (present in the public API).
-anyhow = { version = "1.0.28", default-features = false }
+anyhow = { version = "1.0.34", default-features = false }
 base64 = { version = "0.13.0", default-features = false, features = ["alloc"] }
-chrono = { version = "0.4.11", default-features = false }
+chrono = { version = "0.4.19", default-features = false }
 rand_core = "0.5.1"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_cbor = { version = "0.11.1", default-features = false, features = ["alloc"] }
@@ -34,12 +34,12 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 # Crypto backends (all public dependencies).
 hmac = "0.10.1"
-sha2 = { version = "0.9.0", default-features = false }
-secp256k1 = { version = "0.19.0", optional = true }
+sha2 = { version = "0.9", default-features = false }
+secp256k1 = { version = "0.19", optional = true }
 
 # Private dependencies (not exposed in the public API).
-lazy_static = { version = "1.4.0", optional = true }
-smallvec = "1.4.0"
+lazy_static = { version = "1.4", optional = true }
+smallvec = "1.4"
 zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 # `exonum-crypto` backend (public dependency).
@@ -79,8 +79,10 @@ es256k = ["secp256k1", "lazy_static"]
 # the standard `Error` trait).
 std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
 # Enables getting the current time using `Utc::now()` from `chrono`.
-# Without this feature, some claim methods (such as `set_duration`)
-# are not available. It is still possible to set the corresponding claim fields manually.
+# Without it, some `TimeOptions` constructors, such as the `Default` impl,
+# are not available. It is still possible to create `TimeOptions`
+# with an excplicitly specified clock function, or to set / verify
+# time-related `Claims` fields manually.
 clock = ["chrono/clock"]
 
 [workspace]

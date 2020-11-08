@@ -18,6 +18,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - Add `no_std` mode and check `no_std` / WASM compatibility via dedicated aux crates.
   Introduce two relevant crate features, `clock` and `std`.
 
+- Add wrapper types for strong keys / JWT algorithms.
+
+- Add details to some `ValidationError` variants.
+
 ### Changed
 
 - Update dependencies.

@@ -79,8 +79,10 @@ es256k = ["secp256k1", "lazy_static"]
 # the standard `Error` trait).
 std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
 # Enables getting the current time using `Utc::now()` from `chrono`.
-# Without this feature, some claim methods (such as `set_duration`)
-# are not available. It is still possible to set the corresponding claim fields manually.
+# Without it, some `TimeOptions` constructors, such as the `Default` impl,
+# are not available. It is still possible to create `TimeOptions`
+# with an excplicitly specified clock function, or to set / verify
+# time-related `Claims` fields manually.
 clock = ["chrono/clock"]
 
 [workspace]

@@ -5,6 +5,12 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Make `CreationError` non-exhaustive.
+
+- Rename `StrongKey::inner()` method to `into_inner`.
+
 ## 0.3.0-beta.1 - 2020-11-08
 
 ### Added

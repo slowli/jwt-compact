@@ -1,7 +1,7 @@
 use assert_matches::assert_matches;
-use hex_literal::hex;
 use chrono::{Duration, TimeZone, Utc};
 use hex_buffer_serde::{Hex as _, HexForm};
+use hex_literal::hex;
 use rand::{seq::index::sample as sample_indexes, thread_rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;

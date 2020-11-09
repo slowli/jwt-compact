@@ -259,11 +259,12 @@ pub trait Algorithm {
 /// use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*, Empty, Renamed};
 /// # use core::convert::TryFrom;
 ///
+/// # fn main() -> anyhow::Result<()> {
 /// let alg = Renamed::new(Hs256, "HS2");
 /// let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
-/// let token_string = alg.token(Header::default(), &Claims::empty(), &key).unwrap();
+/// let token_string = alg.token(Header::default(), &Claims::empty(), &key)?;
 ///
-/// let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
+/// let token = UntrustedToken::try_from(token_string.as_str())?;
 /// assert_eq!(token.algorithm(), "HS2");
 /// // Note that the created token cannot be verified against the original algorithm
 /// // since the algorithm name recorded in the token header doesn't match.
@@ -271,6 +272,8 @@ pub trait Algorithm {
 ///
 /// // ...but the modified alg is working as expected.
 /// assert!(alg.validate_integrity::<Empty>(&token, &key).is_ok());
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Renamed<A> {

@@ -41,12 +41,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --no-default-features --features ed25519-dalek --lib --tests
+          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
       - name: Test ed25519-compact
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --no-default-features --features ed25519-compact --lib --tests
+          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
 
   build:
     runs-on: ubuntu-latest
@@ -96,12 +96,12 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features ed25519-dalek --all-targets -- -D warnings
+          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features ed25519-compact --all-targets -- -D warnings
+          args: -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
       - name: Clippy WASM crate
         uses: actions-rs/clippy-check@v1
         with:
@@ -117,12 +117,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --no-default-features --features ed25519-dalek --lib --tests
+          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
       - name: Test ed25519-compact
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --no-default-features --features ed25519-compact --lib --tests
+          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
 
       - name: Check docs
         run: cargo clean --doc && cargo doc -p jwt-compact --features es256k,rsa --no-deps && cargo deadlinks --dir target/doc

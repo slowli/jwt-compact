@@ -5,11 +5,19 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.3.0-beta.2 - 2020-11-09
+
+*(All changes are relative compared to [the 0.3.0-beta.1 release](#030-beta1---2020-11-08))*
+
 ### Changed
 
 - Make `CreationError` non-exhaustive.
 
 - Rename `StrongKey::inner()` method to `into_inner`.
+
+### Fixed
+
+- Fix `docs.rs` configuration.
 
 ## 0.3.0-beta.1 - 2020-11-08
 

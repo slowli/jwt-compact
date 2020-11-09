@@ -59,7 +59,7 @@ pub struct StrongKey<T>(T);
 
 impl<T> StrongKey<T> {
     /// Returns the wrapped value.
-    pub fn inner(self) -> T {
+    pub fn into_inner(self) -> T {
         self.0
     }
 }

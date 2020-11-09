@@ -334,26 +334,26 @@ fn create_claims() -> Claims<CompactClaims> {
 
 #[test]
 fn hs256_algorithm() {
-    let key = Hs256Key::generate(&mut thread_rng()).inner();
+    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs256, &key, &key);
 }
 
 #[test]
 fn hs384_algorithm() {
-    let key = Hs384Key::generate(&mut thread_rng()).inner();
+    let key = Hs384Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs384, &key, &key);
 }
 
 #[test]
 fn hs512_algorithm() {
-    let key = Hs512Key::generate(&mut thread_rng()).inner();
+    let key = Hs512Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs512, &key, &key);
 }
 
 #[test]
 fn compact_token_hs256() {
     let claims = create_claims();
-    let key = Hs256Key::generate(&mut thread_rng()).inner();
+    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
     let long_token_str = Hs256.token(Header::default(), &claims, &key).unwrap();
     let token_str = Hs256
         .compact_token(Header::default(), &claims, &key)

@@ -44,10 +44,10 @@ pub use self::rsa::{
 /// compatibility (and sometimes a lesser level of security is enough),
 /// notion of key strength is implemented in such an opt-in, composable way.
 ///
-/// It's easy to convert a `StrongKey<T>` to `T` via [`inner()`](Self::inner()) or to access `&T`
-/// via `AsRef` impl. In contrast, the reverse transformation is fallible, and is defined
-/// with the help of [`TryFrom`]. The error type for `TryFrom` is [`WeakKeyError`], a simple
-/// wrapper around a weak key.
+/// It's easy to convert a `StrongKey<T>` to `T` via [`into_inner()`](Self::into_inner()) or to
+/// access `&T` via `AsRef` impl. In contrast, the reverse transformation is fallible, and
+/// is defined with the help of [`TryFrom`]. The error type for `TryFrom` is [`WeakKeyError`],
+/// a simple wrapper around a weak key.
 ///
 /// # Examples
 ///
@@ -59,7 +59,7 @@ pub struct StrongKey<T>(T);
 
 impl<T> StrongKey<T> {
     /// Returns the wrapped value.
-    pub fn inner(self) -> T {
+    pub fn into_inner(self) -> T {
         self.0
     }
 }
@@ -96,6 +96,7 @@ impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
 /// # use core::convert::{TryFrom, TryInto};
 /// # use rand::thread_rng;
 /// # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key, StrongAlg, StrongKey}};
+/// # fn main() -> anyhow::Result<()> {
 /// let weak_key = Hs256Key::from(b"too short!" as &[u8]);
 /// assert!(StrongKey::try_from(weak_key).is_err());
 /// // There is no way to create a `StrongKey` from `weak_key`!
@@ -104,8 +105,9 @@ impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
 /// let claims = // ...
 /// #   Claims::empty();
 /// let token = StrongAlg(Hs256)
-///     .token(Header::default(), &claims, &strong_key)
-///     .unwrap();
+///     .token(Header::default(), &claims, &strong_key)?;
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone, Copy, Default)]
 pub struct StrongAlg<T>(pub T);

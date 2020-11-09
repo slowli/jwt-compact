@@ -1,6 +1,7 @@
 use assert_matches::assert_matches;
 use chrono::{Duration, TimeZone, Utc};
 use hex_buffer_serde::{Hex as _, HexForm};
+use hex_literal::hex;
 use rand::{seq::index::sample as sample_indexes, thread_rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -138,11 +139,14 @@ fn es256k_reference() {
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcy\
          I6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.cJI3_GRjb6d6LJqOXA\
          PKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
-    /// Uncompressed secp256k1 public key.
-    const KEY_HEX: &str = "04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847\
-         946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7";
 
-    let public_key = PublicKey::from_slice(&hex::decode(KEY_HEX).unwrap()).unwrap();
+    /// Uncompressed secp256k1 public key.
+    const KEY: &[u8] = &hex!(
+        "04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847
+         946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7"
+    );
+
+    let public_key = PublicKey::from_slice(KEY).unwrap();
     let es256k: Es256k = Default::default();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "ES256K");
@@ -169,9 +173,11 @@ fn test_ed25519_reference() {
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzc\
          yI6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.Du1gZvmrmykgWnqtB\
          FvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgruJ3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
-    const KEY: &str = "06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
-    const SIGNING_KEY: &str = "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
-         06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
+    const KEY: &[u8] = &hex!("06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075");
+    const SIGNING_KEY: &[u8] = &hex!(
+        "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352
+         06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075"
+    );
 
     fn check_key_traits<Sk, Vk>()
     where
@@ -179,20 +185,17 @@ fn test_ed25519_reference() {
         Vk: VerifyingKey<Ed25519>,
         Ed25519: Algorithm<SigningKey = Sk, VerifyingKey = Vk>,
     {
-        let public_key_bytes = hex::decode(KEY).unwrap();
-        let public_key = Vk::from_slice(&public_key_bytes).unwrap();
-        assert_eq!(public_key.as_bytes(), public_key_bytes);
+        let public_key = Vk::from_slice(KEY).unwrap();
+        assert_eq!(public_key.as_bytes(), KEY);
 
-        let secret_key_bytes = hex::decode(SIGNING_KEY).unwrap();
-        let secret_key = Sk::from_slice(&secret_key_bytes).unwrap();
-        assert_eq!(secret_key.as_bytes(), secret_key_bytes);
-        assert_eq!(secret_key.to_verifying_key().as_bytes(), public_key_bytes);
+        let secret_key = Sk::from_slice(SIGNING_KEY).unwrap();
+        assert_eq!(secret_key.as_bytes(), SIGNING_KEY);
+        assert_eq!(secret_key.to_verifying_key().as_bytes(), KEY);
     }
 
     check_key_traits::<EdSigningKey, EdVerifyingKey>();
 
-    let public_key_bytes = hex::decode(KEY).unwrap();
-    let public_key = EdVerifyingKey::from_slice(&public_key_bytes).unwrap();
+    let public_key = EdVerifyingKey::from_slice(KEY).unwrap();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "Ed25519");
 
@@ -331,26 +334,26 @@ fn create_claims() -> Claims<CompactClaims> {
 
 #[test]
 fn hs256_algorithm() {
-    let key = Hs256Key::generate(&mut thread_rng()).inner();
+    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs256, &key, &key);
 }
 
 #[test]
 fn hs384_algorithm() {
-    let key = Hs384Key::generate(&mut thread_rng()).inner();
+    let key = Hs384Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs384, &key, &key);
 }
 
 #[test]
 fn hs512_algorithm() {
-    let key = Hs512Key::generate(&mut thread_rng()).inner();
+    let key = Hs512Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs512, &key, &key);
 }
 
 #[test]
 fn compact_token_hs256() {
     let claims = create_claims();
-    let key = Hs256Key::generate(&mut thread_rng()).inner();
+    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
     let long_token_str = Hs256.token(Header::default(), &claims, &key).unwrap();
     let token_str = Hs256
         .compact_token(Header::default(), &claims, &key)

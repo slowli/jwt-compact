@@ -139,6 +139,7 @@ impl std::error::Error for ValidationError {
 
 /// Errors that can occur during token creation.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum CreationError {
     /// Token header cannot be serialized.
     Header(serde_json::Error),

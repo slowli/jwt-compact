@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.3.0 - 2020-11-30
+
+No substantial changes compared to the 0.3.0-beta.2 release.
+
 ## 0.3.0-beta.2 - 2020-11-09
 
 *(All changes are relative compared to [the 0.3.0-beta.1 release](#030-beta1---2020-11-08))*

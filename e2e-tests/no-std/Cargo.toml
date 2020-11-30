@@ -21,7 +21,7 @@ alloc-cortex-m = "0.4.0"
 panic-halt = "0.2.0"
 
 [dependencies.jwt-compact]
-version = "0.3.0-beta.2"
+version = "0.3.0"
 path = "../.."
 default-features = false
 features = ["ed25519-dalek"]

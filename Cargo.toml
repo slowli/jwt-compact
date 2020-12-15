@@ -27,7 +27,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 anyhow = { version = "1.0.34", default-features = false }
 base64 = { version = "0.13.0", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4.19", default-features = false }
-rand_core = "0.5.1"
+rand_core = "0.6.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_cbor = { version = "0.11.1", default-features = false, features = ["alloc"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

@@ -132,7 +132,8 @@ fn main_inner() -> anyhow::Result<()> {
     token_checker.roundtrip_alg::<Hs384>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
     token_checker.roundtrip_alg::<Hs512>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
 
-    let ed_private_key = hex::decode(ED_PRIVATE_KEY_HEX).map_err(|e| anyhow!(e))?;
+    let mut ed_private_key = [0_u8; ED_PRIVATE_KEY_HEX.len() / 2];
+    hex::decode_to_slice(ED_PRIVATE_KEY_HEX, &mut ed_private_key).map_err(|e| anyhow!(e))?;
     token_checker.roundtrip_alg::<Ed25519>(&ed_private_key, &ed_private_key[32..])
 }
 

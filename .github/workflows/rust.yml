@@ -189,7 +189,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-10-24
+          toolchain: nightly-2021-04-15
           override: true
           components: rustfmt, clippy
           target: thumbv7m-none-eabi

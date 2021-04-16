@@ -11,7 +11,7 @@ publish = false
 [dependencies]
 anyhow = { version = "1.0.34", default-features = false }
 chrono = { version = "0.4.19", default-features = false }
-hex = { version = "0.4.2", default-features = false }
+const-decoder = "0.1.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 
 # Cortex-M dependencies.

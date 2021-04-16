@@ -9,6 +9,7 @@ extern crate alloc;
 use alloc_cortex_m::CortexMHeap;
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, TimeZone, Utc};
+use const_decoder::Decoder;
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln, syscall};
 use panic_halt as _;
@@ -120,21 +121,17 @@ impl TokenChecker {
 const HEAP_SIZE: usize = 16_384;
 
 const HASH_SECRET_KEY: &[u8] = b"super_secret_key_donut_steel";
-
-// We could use something like https://crates.io/crates/binary_macros, but it doesn't work
-// with `no_std`.
-const ED_PRIVATE_KEY_HEX: &str = "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
-     06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075";
+const ED_PRIVATE_KEY: [u8; 64] = Decoder::Hex.decode(
+    b"9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
+     06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075",
+);
 
 fn main_inner() -> anyhow::Result<()> {
     let token_checker = TokenChecker::new();
     token_checker.roundtrip_alg::<Hs256>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
     token_checker.roundtrip_alg::<Hs384>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
     token_checker.roundtrip_alg::<Hs512>(HASH_SECRET_KEY, HASH_SECRET_KEY)?;
-
-    let mut ed_private_key = [0_u8; ED_PRIVATE_KEY_HEX.len() / 2];
-    hex::decode_to_slice(ED_PRIVATE_KEY_HEX, &mut ed_private_key).map_err(|e| anyhow!(e))?;
-    token_checker.roundtrip_alg::<Ed25519>(&ed_private_key, &ed_private_key[32..])
+    token_checker.roundtrip_alg::<Ed25519>(&ED_PRIVATE_KEY, &ED_PRIVATE_KEY[32..])
 }
 
 #[entry]
@@ -147,5 +144,5 @@ fn main() -> ! {
     main_inner().unwrap();
 
     debug::exit(debug::EXIT_SUCCESS);
-    loop {}
+    unreachable!("Program must exit by this point");
 }

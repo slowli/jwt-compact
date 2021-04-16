@@ -144,5 +144,5 @@ fn main() -> ! {
     main_inner().unwrap();
 
     debug::exit(debug::EXIT_SUCCESS);
-    loop {}
+    unreachable!("Program must exit by this point");
 }

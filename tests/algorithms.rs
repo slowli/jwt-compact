@@ -1,7 +1,7 @@
 use assert_matches::assert_matches;
 use chrono::{Duration, TimeZone, Utc};
+use const_decoder::Decoder;
 use hex_buffer_serde::{Hex as _, HexForm};
-use hex_literal::hex;
 use rand::{seq::index::sample as sample_indexes, thread_rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -133,7 +133,7 @@ fn es256k_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
     //! in the repository.
 
-    use secp256k1::PublicKey;
+    use secp256k1::{constants::UNCOMPRESSED_PUBLIC_KEY_SIZE, PublicKey};
 
     const TOKEN: &str =
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcy\
@@ -141,12 +141,12 @@ fn es256k_reference() {
          PKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
 
     /// Uncompressed secp256k1 public key.
-    const KEY: &[u8] = &hex!(
-        "04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847
-         946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7"
+    const KEY: [u8; UNCOMPRESSED_PUBLIC_KEY_SIZE] = Decoder::Hex.decode(
+        b"04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847\
+          946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7",
     );
 
-    let public_key = PublicKey::from_slice(KEY).unwrap();
+    let public_key = PublicKey::from_slice(&KEY).unwrap();
     let es256k: Es256k = Default::default();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "ES256K");
@@ -173,10 +173,11 @@ fn test_ed25519_reference() {
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzc\
          yI6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.Du1gZvmrmykgWnqtB\
          FvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgruJ3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
-    const KEY: &[u8] = &hex!("06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075");
-    const SIGNING_KEY: &[u8] = &hex!(
-        "9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352
-         06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075"
+    const KEY: [u8; 32] =
+        Decoder::Hex.decode(b"06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075");
+    const SIGNING_KEY: [u8; 64] = Decoder::Hex.decode(
+        b"9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
+          06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075",
     );
 
     fn check_key_traits<Sk, Vk>()
@@ -185,17 +186,17 @@ fn test_ed25519_reference() {
         Vk: VerifyingKey<Ed25519>,
         Ed25519: Algorithm<SigningKey = Sk, VerifyingKey = Vk>,
     {
-        let public_key = Vk::from_slice(KEY).unwrap();
-        assert_eq!(public_key.as_bytes(), KEY);
+        let public_key = Vk::from_slice(&KEY).unwrap();
+        assert_eq!(*public_key.as_bytes(), KEY);
 
-        let secret_key = Sk::from_slice(SIGNING_KEY).unwrap();
-        assert_eq!(secret_key.as_bytes(), SIGNING_KEY);
-        assert_eq!(secret_key.to_verifying_key().as_bytes(), KEY);
+        let secret_key = Sk::from_slice(&SIGNING_KEY).unwrap();
+        assert_eq!(*secret_key.as_bytes(), SIGNING_KEY);
+        assert_eq!(*secret_key.to_verifying_key().as_bytes(), KEY);
     }
 
     check_key_traits::<EdSigningKey, EdVerifyingKey>();
 
-    let public_key = EdVerifyingKey::from_slice(KEY).unwrap();
+    let public_key = EdVerifyingKey::from_slice(&KEY).unwrap();
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "Ed25519");
 

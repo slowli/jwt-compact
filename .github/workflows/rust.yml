@@ -31,21 +31,21 @@ jobs:
           toolchain: 1.45.0
           override: true
 
-      - name: Run tests
+      - name: Build with ES256K & RSA
         uses: actions-rs/cargo@v1
         with:
-          command: test
-          args: -p jwt-compact --features es256k,rsa
-      - name: Test dalek crypto
+          command: build
+          args: -p jwt-compact --lib --features es256k,rsa
+      - name: Build with dalek crypto
         uses: actions-rs/cargo@v1
         with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
-      - name: Test ed25519-compact
+          command: build
+          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
+      - name: Build with ed25519-compact
         uses: actions-rs/cargo@v1
         with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
+          command: build
+          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib
 
   build:
     runs-on: ubuntu-latest

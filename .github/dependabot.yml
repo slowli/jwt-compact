@@ -1,0 +1,21 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "03:00"
+  open-pull-requests-limit: 10
+  assignees:
+  - slowli
+  ignore:
+  - dependency-name: rsa
+    versions:
+    - 0.4.0
+  - dependency-name: rand_core
+    versions:
+    - 0.6.1
+    - 0.6.2
+  - dependency-name: rand
+    versions:
+    - 0.8.3

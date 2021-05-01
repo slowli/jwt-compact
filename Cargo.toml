@@ -68,9 +68,10 @@ optional = true
 [dev-dependencies]
 assert_matches = "1.3"
 const-decoder = "0.1.0"
-hex = "0.4.2"
-hex-buffer-serde = { version = "0.2.0", default-features = false }
+criterion = "0.3.4"
+hex-buffer-serde = "0.2.2"
 rand = "0.8.3"
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]
@@ -86,6 +87,11 @@ std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
 # with an excplicitly specified clock function, or to set / verify
 # time-related `Claims` fields manually.
 clock = ["chrono/clock"]
+
+[[bench]]
+name = "encoding"
+harness = false
+path = "benches/encoding.rs"
 
 [workspace]
 members = [".", "e2e-tests/wasm"]

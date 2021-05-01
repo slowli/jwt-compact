@@ -40,7 +40,7 @@ macro_rules! define_hmac_key {
 
             /// Computes HMAC with this key and the specified `message`.
             pub fn hmac(&self, message: impl AsRef<[u8]>) -> crypto_mac::Output<Hmac<$digest>> {
-                let mut hmac = Hmac::<$digest>::new_varkey(&self.0)
+                let mut hmac = Hmac::<$digest>::new_from_slice(&self.0)
                     .expect("HMACs work with any key size");
                 hmac.update(message.as_ref());
                 hmac.finalize()

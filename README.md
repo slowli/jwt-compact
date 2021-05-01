@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/slowli/jwt-compact/workflows/Rust/badge.svg?branch=master)](https://github.com/slowli/jwt-compact/actions)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/jwt-compact.svg)](https://github.com/slowli/jwt-compact/blob/master/LICENSE)
 ![rust 1.45.0+ required](https://img.shields.io/badge/rust-1.45.0+-blue.svg?label=Required%20Rust)
-[![Dependencies status](https://img.shields.io/librariesio/github/slowli/jwt-compact)](https://libraries.io/github/slowli/jwt-compact)
+[![dependency status](https://deps.rs/repo/github/slowli/jwt-compact/status.svg)](https://deps.rs/repo/github/slowli/jwt-compact)
 
 **Documentation:** [![Docs.rs](https://docs.rs/jwt-compact/badge.svg)](https://docs.rs/jwt-compact/)
 [![crate docs (master)](https://img.shields.io/badge/master-yellow.svg?label=docs)](https://slowli.github.io/jwt-compact/jwt_compact/)

@@ -33,13 +33,13 @@ serde_cbor = { version = "0.11.1", default-features = false, features = ["alloc"
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 # Crypto backends (all public dependencies).
-hmac = "0.10.1"
+hmac = "0.11.0"
 sha2 = { version = "0.9", default-features = false }
 secp256k1 = { version = "0.20", optional = true }
 
 # Private dependencies (not exposed in the public API).
 lazy_static = { version = "1.4", optional = true }
-smallvec = "1.4"
+smallvec = "1.6.1"
 zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 # `exonum-crypto` backend (public dependency).

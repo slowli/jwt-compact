@@ -81,7 +81,7 @@ fn hs384_reference() {
 
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS384");
-    assert_eq!(token.header().signature_type, Some("JWT".to_owned()));
+    assert_eq!(token.header().token_type, Some("JWT".to_owned()));
 
     let key = Hs384Key::from(KEY);
     let token = Hs384
@@ -110,7 +110,7 @@ fn hs512_reference() {
 
     let token = UntrustedToken::try_from(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS512");
-    assert_eq!(token.header().signature_type, Some("JWT".to_owned()));
+    assert_eq!(token.header().token_type, Some("JWT".to_owned()));
 
     let key = Hs512Key::from(KEY);
     let token = Hs512

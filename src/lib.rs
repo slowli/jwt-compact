@@ -481,7 +481,7 @@ impl<A: Algorithm> AlgorithmExt for A {
 /// JWT header.
 ///
 /// See [RFC 7515](https://tools.ietf.org/html/rfc7515#section-4.1) for the description
-/// of the fields. The purpose of all fields except `signature_type` is to determine
+/// of the fields. The purpose of all fields except `token_type` is to determine
 /// the verifying key. Since these values will be provided by the adversary in the case of
 /// an attack, they require additional verification (e.g., a provided certificate might
 /// be checked against the list of "acceptable" certificate authorities).
@@ -518,31 +518,33 @@ pub struct Header {
     #[serde(rename = "x5t", default, skip_serializing_if = "Option::is_none")]
     pub certificate_thumbprint: Option<String>,
 
-    /// Application-specific signature type. This field is renamed to `typ` for serialization.
+    /// Application-specific [token type]. This field is renamed to `typ` for serialization.
+    ///
+    /// [token type]: https://tools.ietf.org/html/rfc7519#section-5.1
     #[serde(rename = "typ", default, skip_serializing_if = "Option::is_none")]
-    pub signature_type: Option<String>,
+    pub token_type: Option<String>,
 }
 
 impl Header {
-    /// Sets the `key_set_url` field for this instance.
+    /// Sets the `key_set_url` field for this header.
     pub fn with_key_set_url(mut self, key_set_url: impl Into<String>) -> Self {
         self.key_set_url = Some(key_set_url.into());
         self
     }
 
-    /// Sets the `key_id` field for this instance.
+    /// Sets the `key_id` field for this header.
     pub fn with_key_id(mut self, key_id: impl Into<String>) -> Self {
         self.key_id = Some(key_id.into());
         self
     }
 
-    /// Sets the `certificate_url` field for this instance.
+    /// Sets the `certificate_url` field for this header.
     pub fn with_certificate_url(mut self, certificate_url: impl Into<String>) -> Self {
         self.certificate_url = Some(certificate_url.into());
         self
     }
 
-    /// Sets the `certificate_thumbprint` field for this instance.
+    /// Sets the `certificate_thumbprint` field for this header.
     pub fn with_certificate_thumbprint(
         mut self,
         certificate_thumbprint: impl Into<String>,
@@ -551,9 +553,9 @@ impl Header {
         self
     }
 
-    /// Sets the `signature_type` field for this instance.
-    pub fn with_signature_type(mut self, signature_type: impl Into<String>) -> Self {
-        self.signature_type = Some(signature_type.into());
+    /// Sets the `token_type` field for this header.
+    pub fn with_token_type(mut self, token_type: impl Into<String>) -> Self {
+        self.token_type = Some(token_type.into());
         self
     }
 }
@@ -562,10 +564,8 @@ impl Header {
 struct CompleteHeader<'a> {
     #[serde(rename = "alg")]
     algorithm: Cow<'a, str>,
-
     #[serde(rename = "cty", default, skip_serializing_if = "Option::is_none")]
     content_type: Option<String>,
-
     #[serde(flatten)]
     inner: Header,
 }

@@ -90,7 +90,7 @@
 //! // Choose time-related options for token creation / validation.
 //! let time_options = TimeOptions::default();
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
-//! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+//! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! // Create a token.
 //! let header = Header::default().with_key_id("my-key");
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
@@ -138,7 +138,7 @@
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! let time_options = TimeOptions::default();
-//! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+//! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7));
 //! let token = Hs256.token(Header::default(), &claims, &key)?;
@@ -263,7 +263,7 @@ pub trait Algorithm {
 ///
 /// # fn main() -> anyhow::Result<()> {
 /// let alg = Renamed::new(Hs256, "HS2");
-/// let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+/// let key = Hs256Key::new(b"super_secret_key_donut_steel");
 /// let token_string = alg.token(Header::default(), &Claims::empty(), &key)?;
 ///
 /// let token = UntrustedToken::try_from(token_string.as_str())?;
@@ -626,7 +626,7 @@ impl<T> Token<T> {
 /// }
 ///
 /// # fn main() -> anyhow::Result<()> {
-/// # let key = Hs256Key::from(b"super_secret_key" as &[_]);
+/// # let key = Hs256Key::new(b"super_secret_key");
 /// # let claims = Claims::new(MyClaims {})
 /// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
@@ -849,7 +849,7 @@ mod tests {
         let claims_start = HS256_TOKEN.find('.').unwrap() + 1;
         let claims_end = HS256_TOKEN.rfind('.').unwrap();
         let key = base64::decode_config(HS256_KEY, base64::URL_SAFE_NO_PAD).unwrap();
-        let key = Hs256Key::from(&*key);
+        let key = Hs256Key::new(&key);
 
         for claims in &malformed_claims {
             let encoded_claims = base64::encode_config(claims.as_bytes(), base64::URL_SAFE_NO_PAD);

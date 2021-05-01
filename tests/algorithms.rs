@@ -39,7 +39,7 @@ fn hs256_reference() {
     assert_eq!(token.algorithm(), "HS256");
 
     let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
-    let key = Hs256Key::from(key.as_slice());
+    let key = Hs256Key::new(&key);
     let validated_token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
     assert_eq!(
         validated_token

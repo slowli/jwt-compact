@@ -38,6 +38,11 @@ macro_rules! define_hmac_key {
                 StrongKey(key)
             }
 
+            /// Creates a key from the specified `bytes`.
+            pub fn new(bytes: impl AsRef<[u8]>) -> Self {
+                Self(bytes.as_ref().into())
+            }
+
             /// Computes HMAC with this key and the specified `message`.
             pub fn hmac(&self, message: impl AsRef<[u8]>) -> crypto_mac::Output<Hmac<$digest>> {
                 let mut hmac = Hmac::<$digest>::new_from_slice(&self.0)

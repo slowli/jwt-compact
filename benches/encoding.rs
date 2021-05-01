@@ -46,7 +46,7 @@ enum Role {
 
 fn encoding_benches(criterion: &mut Criterion) {
     let claims = CustomClaims::default();
-    let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+    let key = Hs256Key::new(b"super_secret_key_donut_steel");
     let key_id = Uuid::new_v4().to_string();
     let time_options = TimeOptions::default();
 
@@ -72,7 +72,7 @@ fn encoding_benches(criterion: &mut Criterion) {
 }
 
 fn decoding_benches(criterion: &mut Criterion) {
-    let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+    let key = Hs256Key::new(b"super_secret_key_donut_steel");
     let header = Header::default().with_key_id(Uuid::new_v4().to_string());
     let time_options = TimeOptions::default();
     let claims = Claims::new(CustomClaims::default())

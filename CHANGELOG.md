@@ -5,6 +5,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add `new()` constructor for `HS*` keys that accepts any type implementing
+  `AsRef<[u8]>`. This simplifies key loading.
+
 ### Changed
 
 - Update dependencies.

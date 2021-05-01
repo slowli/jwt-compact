@@ -10,6 +10,9 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - Add `new()` constructor for `HS*` keys that accepts any type implementing
   `AsRef<[u8]>`. This simplifies key loading.
 
+- Add `new()` constructor for `UntrustedToken` that accepts any type implementing
+  `AsRef<str>`. This simplifies token processing. 
+
 ### Changed
 
 - Update dependencies.

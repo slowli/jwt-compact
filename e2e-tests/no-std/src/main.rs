@@ -16,7 +16,6 @@ use panic_halt as _;
 use serde::{Deserialize, Serialize};
 
 use alloc::{borrow::ToOwned, string::String};
-use core::convert::TryFrom;
 
 use jwt_compact::{
     alg::{Ed25519, Hs256, Hs384, Hs512, SigningKey, VerifyingKey},
@@ -71,7 +70,7 @@ impl TokenChecker {
         T: Algorithm + Default,
         T::VerifyingKey: VerifyingKey<T>,
     {
-        let token = UntrustedToken::try_from(token).map_err(|e| anyhow!(e))?;
+        let token = UntrustedToken::new(token).map_err(|e| anyhow!(e))?;
         let secret_key = <T::VerifyingKey>::from_slice(verifying_key)?;
 
         let token = T::default()

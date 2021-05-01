@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use alloc::string::{String, ToString};
-use core::{convert::TryFrom, fmt};
+use core::fmt;
 
 use jwt_compact::alg::RSAPrivateKey;
 use jwt_compact::{
@@ -78,7 +78,7 @@ where
 
 #[wasm_bindgen(js_name = "verifyHashToken")]
 pub fn verify_hash_token(token: &str, secret_key: &[u8]) -> Result<JsValue, JsValue> {
-    let token = UntrustedToken::try_from(token).map_err(to_js_error)?;
+    let token = UntrustedToken::new(token).map_err(to_js_error)?;
     match token.algorithm() {
         "HS256" => do_verify_token::<Hs256>(&token, secret_key),
         "HS384" => do_verify_token::<Hs384>(&token, secret_key),
@@ -106,7 +106,7 @@ pub fn create_hash_token(
 pub fn verify_rsa_token(token: &str, public_key_pem: &str) -> Result<JsValue, JsValue> {
     let public_key = pem::parse(public_key_pem).map_err(to_js_error)?.contents;
     let public_key = RSAPublicKey::from_pkcs8(&public_key).map_err(to_js_error)?;
-    let token = UntrustedToken::try_from(token).map_err(to_js_error)?;
+    let token = UntrustedToken::new(token).map_err(to_js_error)?;
 
     let rsa = Rsa::with_name(token.algorithm());
     let token = rsa
@@ -136,7 +136,7 @@ pub fn create_rsa_token(
 
 #[wasm_bindgen(js_name = "verifyEdToken")]
 pub fn verify_ed_token(token: &str, public_key: &[u8]) -> Result<JsValue, JsValue> {
-    let token = UntrustedToken::try_from(token).map_err(to_js_error)?;
+    let token = UntrustedToken::new(token).map_err(to_js_error)?;
     do_verify_token::<Ed25519>(&token, public_key)
 }
 

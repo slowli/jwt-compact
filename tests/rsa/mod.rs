@@ -91,7 +91,7 @@ fn ps256_checked_len_fails_on_undersized_key() {
     let token = Rsa::ps256()
         .compact_token(Header::default(), &claims, &small_private_key)
         .unwrap();
-    let token = UntrustedToken::try_from(token.as_str()).unwrap();
+    let token = UntrustedToken::new(&token).unwrap();
 
     // We should not be able to wrap the private key or a public key generated from it.
     let small_public_key = small_private_key.to_public_key();
@@ -161,7 +161,7 @@ fn ps512_algorithm() {
 fn test_rsa_reference(rsa: Rsa, token: &str) {
     let public_key = rsa::pem::parse(RSA_PUBLIC_KEY).unwrap();
     let public_key = RSAPublicKey::from_pkcs8(&public_key.contents).unwrap();
-    let token = UntrustedToken::try_from(token).unwrap();
+    let token = UntrustedToken::new(token).unwrap();
     assert_eq!(token.algorithm(), rsa.name());
 
     let validated_token = rsa

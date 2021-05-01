@@ -5,8 +5,6 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use std::convert::TryFrom;
-
 use jwt_compact::{
     alg::{Hs256, Hs256Key},
     AlgorithmExt, Claims, Header, TimeOptions, UntrustedToken,
@@ -81,11 +79,11 @@ fn decoding_benches(criterion: &mut Criterion) {
 
     let token = Hs256.token(header.clone(), &claims, &key).unwrap();
     criterion.bench_function("decoding", |bencher| {
-        bencher.iter(|| UntrustedToken::try_from(token.as_str()).unwrap())
+        bencher.iter(|| UntrustedToken::new(&token).unwrap())
     });
     criterion.bench_function("decoding/full", |bencher| {
         bencher.iter(|| {
-            let token = UntrustedToken::try_from(token.as_str()).unwrap();
+            let token = UntrustedToken::new(&token).unwrap();
             Hs256
                 .validate_integrity::<CustomClaims>(&token, &key)
                 .unwrap()
@@ -94,11 +92,11 @@ fn decoding_benches(criterion: &mut Criterion) {
 
     let compact_token = Hs256.compact_token(header, &claims, &key).unwrap();
     criterion.bench_function("decoding_cbor", |bencher| {
-        bencher.iter(|| UntrustedToken::try_from(compact_token.as_str()).unwrap())
+        bencher.iter(|| UntrustedToken::new(&compact_token).unwrap())
     });
     criterion.bench_function("decoding_cbor/full", |bencher| {
         bencher.iter(|| {
-            let token = UntrustedToken::try_from(compact_token.as_str()).unwrap();
+            let token = UntrustedToken::new(&compact_token).unwrap();
             Hs256
                 .validate_integrity::<CustomClaims>(&token, &key)
                 .unwrap()

@@ -35,7 +35,7 @@ fn hs256_reference() {
     const KEY: &str =
         "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
 
-    let token = UntrustedToken::try_from(TOKEN).unwrap();
+    let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS256");
 
     let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
@@ -79,7 +79,7 @@ fn hs384_reference() {
          lLufmCVZRUuyTwJF311JHuh";
     const KEY: &[u8] = b"your-384-bit-secret";
 
-    let token = UntrustedToken::try_from(TOKEN).unwrap();
+    let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS384");
     assert_eq!(token.header().token_type, Some("JWT".to_owned()));
 
@@ -108,7 +108,7 @@ fn hs512_reference() {
          ugapLalKKDo6qAJkBy0i8d9DFcYIySIUgQ69Dprvp4fpA";
     const KEY: &[u8] = b"your-512-bit-secret";
 
-    let token = UntrustedToken::try_from(TOKEN).unwrap();
+    let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS512");
     assert_eq!(token.header().token_type, Some("JWT".to_owned()));
 
@@ -148,7 +148,7 @@ fn es256k_reference() {
 
     let public_key = PublicKey::from_slice(&KEY).unwrap();
     let es256k: Es256k = Default::default();
-    let token = UntrustedToken::try_from(TOKEN).unwrap();
+    let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "ES256K");
 
     let token = es256k
@@ -197,7 +197,7 @@ fn test_ed25519_reference() {
     check_key_traits::<EdSigningKey, EdVerifyingKey>();
 
     let public_key = EdVerifyingKey::from_slice(&KEY).unwrap();
-    let token = UntrustedToken::try_from(TOKEN).unwrap();
+    let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "Ed25519");
 
     let token = Ed25519::with_specific_name()
@@ -365,7 +365,7 @@ fn compact_token_hs256() {
         long_token_str.len(),
         token_str.len(),
     );
-    let untrusted_token = UntrustedToken::try_from(&*token_str).unwrap();
+    let untrusted_token = UntrustedToken::new(&token_str).unwrap();
     let token = Hs256.validate_integrity(&untrusted_token, &key).unwrap();
     assert_eq!(*token.claims(), claims);
 

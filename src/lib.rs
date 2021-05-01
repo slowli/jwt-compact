@@ -75,7 +75,6 @@
 //! use chrono::{Duration, Utc};
 //! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! use serde::{Serialize, Deserialize};
-//! use core::convert::TryFrom;
 //!
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -100,7 +99,7 @@
 //! println!("token: {}", token_string);
 //!
 //! // Parse the token.
-//! let token = UntrustedToken::try_from(token_string.as_str())?;
+//! let token = UntrustedToken::new(&token_string)?;
 //! // Before verifying the token, we might find the key which has signed the token
 //! // using the `Header.key_id` field.
 //! assert_eq!(token.header().key_id, Some("my-key".to_owned()));
@@ -124,7 +123,6 @@
 //! # use hex_buffer_serde::{Hex as _, HexForm};
 //! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! # use serde::{Serialize, Deserialize};
-//! # use core::convert::TryFrom;
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
 //! struct CustomClaims {
@@ -148,7 +146,7 @@
 //! // The compact token should be ~40 chars shorter.
 //!
 //! // Parse the compact token.
-//! let token = UntrustedToken::try_from(compact_token.as_str())?;
+//! let token = UntrustedToken::new(&compact_token)?;
 //! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
 //! token.claims().validate_expiration(&time_options)?;
 //! // Now, we can extract information from the token (e.g., its subject).
@@ -259,14 +257,13 @@ pub trait Algorithm {
 ///
 /// ```
 /// use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*, Empty, Renamed};
-/// # use core::convert::TryFrom;
 ///
 /// # fn main() -> anyhow::Result<()> {
 /// let alg = Renamed::new(Hs256, "HS2");
 /// let key = Hs256Key::new(b"super_secret_key_donut_steel");
 /// let token_string = alg.token(Header::default(), &Claims::empty(), &key)?;
 ///
-/// let token = UntrustedToken::try_from(token_string.as_str())?;
+/// let token = UntrustedToken::new(&token_string)?;
 /// assert_eq!(token.algorithm(), "HS2");
 /// // Note that the created token cannot be verified against the original algorithm
 /// // since the algorithm name recorded in the token header doesn't match.
@@ -618,7 +615,6 @@ impl<T> Token<T> {
 /// # use chrono::Duration;
 /// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
 /// # use serde::{Deserialize, Serialize};
-/// # use core::convert::TryFrom;
 /// #
 /// #[derive(Serialize, Deserialize)]
 /// struct MyClaims {
@@ -631,7 +627,7 @@ impl<T> Token<T> {
 /// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
 /// #   Hs256.token(Header::default(), &claims, &key)?;
-/// let token = UntrustedToken::try_from(token_string.as_str())?;
+/// let token = UntrustedToken::new(&token_string)?;
 /// let signed = Hs256.validate_for_signed_token::<MyClaims>(&token, &key)?;
 ///
 /// // `signature` is strongly typed.
@@ -721,6 +717,12 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
 }
 
 impl<'a> UntrustedToken<'a> {
+    /// Creates an untrusted token from a string. This is a shortcut for calling the [`TryFrom`]
+    /// conversion.
+    pub fn new<S: AsRef<str> + ?Sized>(s: &'a S) -> Result<Self, ParseError> {
+        Self::try_from(s.as_ref())
+    }
+
     /// Gets the token header.
     pub fn header(&self) -> &Header {
         &self.header
@@ -758,7 +760,7 @@ mod tests {
     fn invalid_token_structure() {
         let mangled_str = HS256_TOKEN.replace('.', "");
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidTokenStructure
         );
 
@@ -766,14 +768,14 @@ mod tests {
         let signature_start = mangled_str.rfind('.').unwrap();
         mangled_str.truncate(signature_start);
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidTokenStructure
         );
 
         let mut mangled_str = HS256_TOKEN.to_owned();
         mangled_str.push('.');
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidTokenStructure
         );
     }
@@ -782,14 +784,14 @@ mod tests {
     fn base64_error_during_parsing() {
         let mangled_str = HS256_TOKEN.replace('0', "+");
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::Base64(_)
         );
 
         let mut mangled_str = HS256_TOKEN.to_owned();
         mangled_str.truncate(mangled_str.len() - 1);
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::Base64(_)
         );
     }
@@ -814,7 +816,7 @@ mod tests {
             let mut mangled_str = HS256_TOKEN.to_owned();
             mangled_str.replace_range(..mangled_str.find('.').unwrap(), &mangled_header);
             assert_matches!(
-                UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+                UntrustedToken::new(&mangled_str).unwrap_err(),
                 ParseError::MalformedHeader(_)
             );
         }
@@ -827,7 +829,7 @@ mod tests {
         let mut mangled_str = HS256_TOKEN.to_owned();
         mangled_str.replace_range(..mangled_str.find('.').unwrap(), &mangled_header);
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::UnsupportedContentType(ref s) if s == "txt"
         );
     }
@@ -855,7 +857,7 @@ mod tests {
             let encoded_claims = base64::encode_config(claims.as_bytes(), base64::URL_SAFE_NO_PAD);
             let mut mangled_str = HS256_TOKEN.to_owned();
             mangled_str.replace_range(claims_start..claims_end, &encoded_claims);
-            let token = UntrustedToken::try_from(mangled_str.as_str()).unwrap();
+            let token = UntrustedToken::new(&mangled_str).unwrap();
             assert_matches!(
                 Hs256.validate_integrity::<Obj>(&token, &key).unwrap_err(),
                 ValidationError::MalformedClaims(_),

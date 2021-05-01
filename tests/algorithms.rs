@@ -42,11 +42,7 @@ fn hs256_reference() {
     let key = Hs256Key::new(&key);
     let validated_token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
     assert_eq!(
-        validated_token
-            .claims()
-            .expiration_date
-            .unwrap()
-            .timestamp(),
+        validated_token.claims().expiration.unwrap().timestamp(),
         1_300_819_380
     );
     assert_eq!(validated_token.claims().custom["iss"], json!("joe"));
@@ -329,7 +325,7 @@ fn create_claims() -> Claims<CompactClaims> {
 
     let mut claims = Claims::new(CompactClaims { subject: [1; 32] });
     claims.issued_at = Some(now);
-    claims.expiration_date = Some(now + Duration::days(7));
+    claims.expiration = Some(now + Duration::days(7));
     claims
 }
 

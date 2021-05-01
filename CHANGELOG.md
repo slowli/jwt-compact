@@ -17,7 +17,9 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Update dependencies.
 
-- Rename `Header.signature_type` field to `token_type` to be more precise.
+- Rename `Header.signature_type` field to `token_type` to be more in line with JWT spec.
+
+- Rename `Claims.expiration_date` to `expiration` to be more precise.
 
 ## 0.3.0 - 2020-11-30
 

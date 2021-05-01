@@ -75,16 +75,16 @@ pub struct Empty {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Claims<T> {
-    /// Expiration date of the token.
+    /// Expiration time of the token.
     #[serde(
         rename = "exp",
         default,
         skip_serializing_if = "Option::is_none",
         with = "self::serde_timestamp"
     )]
-    pub expiration_date: Option<DateTime<Utc>>,
+    pub expiration: Option<DateTime<Utc>>,
 
-    /// Minimum date at which token is valid.
+    /// Minimum time at which token is valid.
     #[serde(
         rename = "nbf",
         default,
@@ -93,7 +93,7 @@ pub struct Claims<T> {
     )]
     pub not_before: Option<DateTime<Utc>>,
 
-    /// Date of token issuance.
+    /// Time of token issuance.
     #[serde(
         rename = "iat",
         default,
@@ -111,7 +111,7 @@ impl Claims<Empty> {
     /// Creates an empty claims instance.
     pub fn empty() -> Self {
         Self {
-            expiration_date: None,
+            expiration: None,
             not_before: None,
             issued_at: None,
             custom: Empty {},
@@ -123,26 +123,26 @@ impl<T> Claims<T> {
     /// Creates a new instance with the provided custom claims.
     pub fn new(custom_claims: T) -> Self {
         Self {
-            expiration_date: None,
+            expiration: None,
             not_before: None,
             issued_at: None,
             custom: custom_claims,
         }
     }
 
-    /// Sets `expiration_date` claim so that the token has the specified `duration`.
+    /// Sets the `expiration` claim so that the token has the specified `duration`.
     /// The current timestamp is taken from `options`.
     pub fn set_duration<F>(self, options: &TimeOptions<F>, duration: Duration) -> Self
     where
         F: Fn() -> DateTime<Utc>,
     {
         Self {
-            expiration_date: Some((options.clock_fn)() + duration),
+            expiration: Some((options.clock_fn)() + duration),
             ..self
         }
     }
 
-    /// Atomically sets `issued_at` and `expiration_date` claims: first to the current time
+    /// Atomically sets `issued_at` and `expiration` claims: first to the current time
     /// (taken from `options`), and the second to match the specified `duration` of the token.
     pub fn set_duration_and_issuance<F>(self, options: &TimeOptions<F>, duration: Duration) -> Self
     where
@@ -150,7 +150,7 @@ impl<T> Claims<T> {
     {
         let issued_at = (options.clock_fn)();
         Self {
-            expiration_date: Some(issued_at + duration),
+            expiration: Some(issued_at + duration),
             issued_at: Some(issued_at),
             ..self
         }
@@ -166,13 +166,13 @@ impl<T> Claims<T> {
 
     /// Validates the expiration claim.
     ///
-    /// This method will return an error if the claims do not feature an expiration date,
+    /// This method will return an error if the claims do not feature an expiration time,
     /// or if it is in the past (subject to the provided `options`).
     pub fn validate_expiration<F>(&self, options: &TimeOptions<F>) -> Result<&Self, ValidationError>
     where
         F: Fn() -> DateTime<Utc>,
     {
-        self.expiration_date.map_or(
+        self.expiration.map_or(
             Err(ValidationError::NoClaim(Claim::Expiration)),
             |expiration| {
                 if (options.clock_fn)() > expiration + options.leeway {
@@ -184,9 +184,9 @@ impl<T> Claims<T> {
         )
     }
 
-    /// Validates the maturity date (`nbf` claim).
+    /// Validates the maturity time (`nbf` claim).
     ///
-    /// This method will return an error if the claims do not feature a maturity date,
+    /// This method will return an error if the claims do not feature a maturity time,
     /// or if it is in the future (subject to the provided `options`).
     pub fn validate_maturity<F>(&self, options: &TimeOptions<F>) -> Result<&Self, ValidationError>
     where
@@ -264,7 +264,7 @@ mod tests {
         let mut claims = Claims::empty();
         assert!(serde_json::to_string(&claims).is_ok());
         assert!(serde_cbor::to_vec(&claims).is_ok());
-        claims.expiration_date = Some(Utc::now());
+        claims.expiration = Some(Utc::now());
         assert!(serde_json::to_string(&claims).is_ok());
         assert!(serde_cbor::to_vec(&claims).is_ok());
         claims.not_before = Some(Utc::now());
@@ -281,13 +281,13 @@ mod tests {
             ValidationError::NoClaim(Claim::Expiration)
         );
 
-        claims.expiration_date = Some(Utc::now() - Duration::hours(1));
+        claims.expiration = Some(Utc::now() - Duration::hours(1));
         assert_matches!(
             claims.validate_expiration(&time_options).unwrap_err(),
             ValidationError::Expired
         );
 
-        claims.expiration_date = Some(Utc::now() - Duration::seconds(10));
+        claims.expiration = Some(Utc::now() - Duration::seconds(10));
         // With the default leeway, this claim is still valid.
         assert!(claims.validate_expiration(&time_options).is_ok());
         // If we set leeway lower, then the claim will be considered expired.
@@ -298,10 +298,10 @@ mod tests {
             ValidationError::Expired
         );
         // Same if we set the current time in the past.
-        let expiration_date = claims.expiration_date.unwrap();
+        let expiration = claims.expiration.unwrap();
         assert!(claims
             .validate_expiration(&TimeOptions::new(Duration::seconds(3), move || {
-                expiration_date
+                expiration
             }))
             .is_ok());
     }

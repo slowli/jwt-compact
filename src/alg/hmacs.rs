@@ -1,8 +1,13 @@
-use anyhow::bail;
+//! JWT algorithms based on HMACs.
+
+use anyhow::ensure;
 use hmac::crypto_mac::generic_array::{typenum::Unsigned, GenericArray};
 use hmac::{crypto_mac, Hmac, Mac as _, NewMac};
 use rand_core::{CryptoRng, RngCore};
-use sha2::{digest::BlockInput, Sha256, Sha384, Sha512};
+use sha2::{
+    digest::{BlockInput, Digest},
+    Sha256, Sha384, Sha512,
+};
 use smallvec::{smallvec, SmallVec};
 use zeroize::Zeroize;
 
@@ -13,6 +18,49 @@ use crate::{
     alloc::Cow,
     Algorithm, AlgorithmSignature,
 };
+
+macro_rules! define_hmac_signature {
+    (
+        $(#[$($attr:meta)+])*
+        struct $name:ident<$digest:ident>;
+    ) => {
+        $(#[$($attr)+])*
+        #[derive(Clone, PartialEq, Eq)]
+        pub struct $name(crypto_mac::Output<Hmac<$digest>>);
+
+        impl fmt::Debug for $name {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.debug_tuple(stringify!($name)).field(&"_").finish()
+            }
+        }
+
+        impl AlgorithmSignature for $name {
+            fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
+                let expected_len = <$digest as Digest>::OutputSize::to_usize();
+                ensure!(bytes.len() == expected_len, "Invalid signature length");
+                let bytes = GenericArray::clone_from_slice(bytes);
+                Ok(Self(crypto_mac::Output::new(bytes)))
+            }
+
+            fn as_bytes(&self) -> Cow<'_, [u8]> {
+                Cow::Owned(self.0.clone().into_bytes().to_vec())
+            }
+        }
+    };
+}
+
+define_hmac_signature!(
+    /// Signature produced by the [`Hs256`] algorithm.
+    struct Hs256Signature<Sha256>;
+);
+define_hmac_signature!(
+    /// Signature produced by the [`Hs384`] algorithm.
+    struct Hs384Signature<Sha384>;
+);
+define_hmac_signature!(
+    /// Signature produced by the [`Hs512`] algorithm.
+    struct Hs512Signature<Sha512>;
+);
 
 macro_rules! define_hmac_key {
     (
@@ -44,7 +92,7 @@ macro_rules! define_hmac_key {
             }
 
             /// Computes HMAC with this key and the specified `message`.
-            pub fn hmac(&self, message: impl AsRef<[u8]>) -> crypto_mac::Output<Hmac<$digest>> {
+            fn hmac(&self, message: impl AsRef<[u8]>) -> crypto_mac::Output<Hmac<$digest>> {
                 let mut hmac = Hmac::<$digest>::new_from_slice(&self.0)
                     .expect("HMACs work with any key size");
                 hmac.update(message.as_ref());
@@ -105,32 +153,17 @@ define_hmac_key! {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hs256;
 
-impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha256>> {
-    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        if bytes.len() != 32 {
-            bail!("Invalid signature length");
-        }
-        Ok(crypto_mac::Output::new(GenericArray::clone_from_slice(
-            bytes,
-        )))
-    }
-
-    fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(self.clone().into_bytes().to_vec())
-    }
-}
-
 impl Algorithm for Hs256 {
     type SigningKey = Hs256Key;
     type VerifyingKey = Hs256Key;
-    type Signature = crypto_mac::Output<Hmac<Sha256>>;
+    type Signature = Hs256Signature;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("HS256")
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.hmac(message)
+        Hs256Signature(signing_key.hmac(message))
     }
 
     fn verify_signature(
@@ -139,7 +172,7 @@ impl Algorithm for Hs256 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        verifying_key.hmac(message) == *signature
+        verifying_key.hmac(message) == signature.0
     }
 }
 
@@ -151,32 +184,17 @@ impl Algorithm for Hs256 {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hs384;
 
-impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha384>> {
-    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        if bytes.len() != 48 {
-            bail!("Invalid signature length");
-        }
-        Ok(crypto_mac::Output::new(GenericArray::clone_from_slice(
-            bytes,
-        )))
-    }
-
-    fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(self.clone().into_bytes().to_vec())
-    }
-}
-
 impl Algorithm for Hs384 {
     type SigningKey = Hs384Key;
     type VerifyingKey = Hs384Key;
-    type Signature = crypto_mac::Output<Hmac<Sha384>>;
+    type Signature = Hs384Signature;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("HS384")
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.hmac(message)
+        Hs384Signature(signing_key.hmac(message))
     }
 
     fn verify_signature(
@@ -185,7 +203,7 @@ impl Algorithm for Hs384 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        verifying_key.hmac(message) == *signature
+        verifying_key.hmac(message) == signature.0
     }
 }
 
@@ -197,32 +215,17 @@ impl Algorithm for Hs384 {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Hs512;
 
-impl AlgorithmSignature for crypto_mac::Output<Hmac<Sha512>> {
-    fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        if bytes.len() != 64 {
-            bail!("Invalid signature length");
-        }
-        Ok(crypto_mac::Output::new(GenericArray::clone_from_slice(
-            bytes,
-        )))
-    }
-
-    fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(self.clone().into_bytes().to_vec())
-    }
-}
-
 impl Algorithm for Hs512 {
     type SigningKey = Hs512Key;
     type VerifyingKey = Hs512Key;
-    type Signature = crypto_mac::Output<Hmac<Sha512>>;
+    type Signature = Hs512Signature;
 
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("HS512")
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.hmac(message)
+        Hs512Signature(signing_key.hmac(message))
     }
 
     fn verify_signature(
@@ -231,7 +234,7 @@ impl Algorithm for Hs512 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        verifying_key.hmac(message) == *signature
+        verifying_key.hmac(message) == signature.0
     }
 }
 

@@ -21,6 +21,9 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Rename `Claims.expiration_date` to `expiration` to be more precise.
 
+- Encapsulate `hmac` and `sha2` dependencies by introducing signature types 
+  for `HS*` algorithms.
+
 ## 0.3.0 - 2020-11-30
 
 No substantial changes compared to the 0.3.0-beta.2 release.

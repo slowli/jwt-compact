@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 env:
-  msrv: 1.46.0
+  msrv: 1.45.0
   nightly: nightly-2021-04-15
 
 jobs:
@@ -236,9 +236,6 @@ jobs:
             --extern-html-root-url base64=https://docs.rs/base64/~0.13 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \
             --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \
-            --extern-html-root-url digest=https://docs.rs/digest/~0.9 \
-            --extern-html-root-url hmac=https://docs.rs/hmac/~0.11 \
-            --extern-html-root-url crypto-mac=https://docs.rs/crypto-mac/~0.10 \
             --extern-html-root-url secp256k1=https://docs.rs/secp256k1/~0.20 \
             --extern-html-root-url serde_json=https://docs.rs/serde_json/~1 \
             --extern-html-root-url serde_cbor=https://docs.rs/serde_cbor/~0.11 \

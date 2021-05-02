@@ -611,7 +611,7 @@ impl<T> Token<T> {
 /// # Examples
 ///
 /// ```
-/// # use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*};
+/// # use jwt_compact::{alg::{Hs256, Hs256Key, Hs256Signature}, prelude::*};
 /// # use chrono::Duration;
 /// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
 /// # use serde::{Deserialize, Serialize};
@@ -631,7 +631,7 @@ impl<T> Token<T> {
 /// let signed = Hs256.validate_for_signed_token::<MyClaims>(&token, &key)?;
 ///
 /// // `signature` is strongly typed.
-/// let array: GenericArray<u8, typenum::U32> = signed.signature.into_bytes();
+/// let signature: Hs256Signature = signed.signature;
 /// // Token itself is available via `token` field.
 /// let claims = signed.token.claims();
 /// claims.validate_expiration(&TimeOptions::default())?;

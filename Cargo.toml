@@ -92,6 +92,7 @@ clock = ["chrono/clock"]
 name = "encoding"
 harness = false
 path = "benches/encoding.rs"
+required-features = ["std", "clock"]
 
 [workspace]
 members = [".", "e2e-tests/wasm"]

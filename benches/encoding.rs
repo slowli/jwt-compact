@@ -17,6 +17,8 @@ struct CustomClaims {
     audience: String,
     #[serde(rename = "sub")]
     user_id: Uuid,
+    #[serde(rename = "jti")]
+    token_id: Uuid,
     name: String,
     email: String,
     roles: Vec<Role>,
@@ -27,6 +29,7 @@ impl Default for CustomClaims {
         Self {
             audience: "content_management".to_owned(),
             user_id: Uuid::new_v4(),
+            token_id: Uuid::new_v4(),
             name: "John Doe".to_owned(),
             email: "john.doe@example.com".to_string(),
             roles: vec![Role::ContentManager],

@@ -5,9 +5,24 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add `new()` constructor for `HS*` keys that accepts any type implementing
+  `AsRef<[u8]>`. This simplifies key loading.
+
+- Add `new()` constructor for `UntrustedToken` that accepts any type implementing
+  `AsRef<str>`. This simplifies token processing. 
+
 ### Changed
 
 - Update dependencies.
+
+- Rename `Header.signature_type` field to `token_type` to be more in line with JWT spec.
+
+- Rename `Claims.expiration_date` to `expiration` to be more precise.
+
+- Encapsulate `hmac` and `sha2` dependencies by introducing signature types 
+  for `HS*` algorithms.
 
 ## 0.3.0 - 2020-11-30
 

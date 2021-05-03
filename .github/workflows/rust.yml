@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  msrv: 1.45.0
+  nightly: nightly-2021-04-15
+
 jobs:
   # Checks minimum supported Rust version.
   build-msrv:
@@ -28,7 +32,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.45.0
+          toolchain: ${{ env.msrv }}
           override: true
 
       - name: Build with ES256K & RSA
@@ -58,11 +62,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
 
-      - name: Cache cargo bins
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bin
       - name: Cache cargo build
         uses: actions/cache@v1
         with:
@@ -75,10 +74,6 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
-      - name: Install deadlinks
-        run: cargo deadlinks -V | grep $DEADLINKS_VERS || cargo install cargo-deadlinks --vers $DEADLINKS_VERS --force
-        env:
-          DEADLINKS_VERS: 0.4.1
 
       - name: Format
         uses: actions-rs/cargo@v1
@@ -121,9 +116,6 @@ jobs:
         with:
           command: test
           args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
-
-      - name: Check docs
-        run: cargo clean --doc && cargo doc -p jwt-compact --features es256k,rsa --no-deps && cargo deadlinks --dir target/doc
 
   build-wasm:
     needs:
@@ -189,7 +181,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-04-15
+          toolchain: ${{ env.nightly }}
           override: true
           components: rustfmt, clippy
           target: thumbv7m-none-eabi
@@ -232,7 +224,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-10-24
+          toolchain: ${{ env.nightly }}
           profile: minimal
           override: true
 
@@ -244,13 +236,10 @@ jobs:
             --extern-html-root-url base64=https://docs.rs/base64/~0.13 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \
             --extern-html-root-url anyhow=https://docs.rs/anyhow/~1.0 \
-            --extern-html-root-url digest=https://docs.rs/digest/~0.9 \
-            --extern-html-root-url hmac=https://docs.rs/hmac/~0.10 \
-            --extern-html-root-url crypto-mac=https://docs.rs/crypto-mac/~0.10 \
-            --extern-html-root-url secp256k1=https://docs.rs/secp256k1/~0.19 \
+            --extern-html-root-url secp256k1=https://docs.rs/secp256k1/~0.20 \
             --extern-html-root-url serde_json=https://docs.rs/serde_json/~1 \
             --extern-html-root-url serde_cbor=https://docs.rs/serde_cbor/~0.11 \
-            --extern-html-root-url rsa=https://docs.rs/rsa/~0.3
+            --extern-html-root-url rsa=https://docs.rs/rsa/~0.4
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@releases/v3

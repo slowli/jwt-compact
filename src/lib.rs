@@ -75,7 +75,6 @@
 //! use chrono::{Duration, Utc};
 //! use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! use serde::{Serialize, Deserialize};
-//! use core::convert::TryFrom;
 //!
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -90,7 +89,7 @@
 //! // Choose time-related options for token creation / validation.
 //! let time_options = TimeOptions::default();
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
-//! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+//! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! // Create a token.
 //! let header = Header::default().with_key_id("my-key");
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
@@ -100,7 +99,7 @@
 //! println!("token: {}", token_string);
 //!
 //! // Parse the token.
-//! let token = UntrustedToken::try_from(token_string.as_str())?;
+//! let token = UntrustedToken::new(&token_string)?;
 //! // Before verifying the token, we might find the key which has signed the token
 //! // using the `Header.key_id` field.
 //! assert_eq!(token.header().key_id, Some("my-key".to_owned()));
@@ -124,7 +123,6 @@
 //! # use hex_buffer_serde::{Hex as _, HexForm};
 //! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
 //! # use serde::{Serialize, Deserialize};
-//! # use core::convert::TryFrom;
 //! /// Custom claims encoded in the token.
 //! #[derive(Debug, PartialEq, Serialize, Deserialize)]
 //! struct CustomClaims {
@@ -138,7 +136,7 @@
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! let time_options = TimeOptions::default();
-//! let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+//! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7));
 //! let token = Hs256.token(Header::default(), &claims, &key)?;
@@ -148,7 +146,7 @@
 //! // The compact token should be ~40 chars shorter.
 //!
 //! // Parse the compact token.
-//! let token = UntrustedToken::try_from(compact_token.as_str())?;
+//! let token = UntrustedToken::new(&compact_token)?;
 //! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
 //! token.claims().validate_expiration(&time_options)?;
 //! // Now, we can extract information from the token (e.g., its subject).
@@ -259,14 +257,13 @@ pub trait Algorithm {
 ///
 /// ```
 /// use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*, Empty, Renamed};
-/// # use core::convert::TryFrom;
 ///
 /// # fn main() -> anyhow::Result<()> {
 /// let alg = Renamed::new(Hs256, "HS2");
-/// let key = Hs256Key::from(b"super_secret_key_donut_steel" as &[_]);
+/// let key = Hs256Key::new(b"super_secret_key_donut_steel");
 /// let token_string = alg.token(Header::default(), &Claims::empty(), &key)?;
 ///
-/// let token = UntrustedToken::try_from(token_string.as_str())?;
+/// let token = UntrustedToken::new(&token_string)?;
 /// assert_eq!(token.algorithm(), "HS2");
 /// // Note that the created token cannot be verified against the original algorithm
 /// // since the algorithm name recorded in the token header doesn't match.
@@ -481,7 +478,7 @@ impl<A: Algorithm> AlgorithmExt for A {
 /// JWT header.
 ///
 /// See [RFC 7515](https://tools.ietf.org/html/rfc7515#section-4.1) for the description
-/// of the fields. The purpose of all fields except `signature_type` is to determine
+/// of the fields. The purpose of all fields except `token_type` is to determine
 /// the verifying key. Since these values will be provided by the adversary in the case of
 /// an attack, they require additional verification (e.g., a provided certificate might
 /// be checked against the list of "acceptable" certificate authorities).
@@ -518,31 +515,33 @@ pub struct Header {
     #[serde(rename = "x5t", default, skip_serializing_if = "Option::is_none")]
     pub certificate_thumbprint: Option<String>,
 
-    /// Application-specific signature type. This field is renamed to `typ` for serialization.
+    /// Application-specific [token type]. This field is renamed to `typ` for serialization.
+    ///
+    /// [token type]: https://tools.ietf.org/html/rfc7519#section-5.1
     #[serde(rename = "typ", default, skip_serializing_if = "Option::is_none")]
-    pub signature_type: Option<String>,
+    pub token_type: Option<String>,
 }
 
 impl Header {
-    /// Sets the `key_set_url` field for this instance.
+    /// Sets the `key_set_url` field for this header.
     pub fn with_key_set_url(mut self, key_set_url: impl Into<String>) -> Self {
         self.key_set_url = Some(key_set_url.into());
         self
     }
 
-    /// Sets the `key_id` field for this instance.
+    /// Sets the `key_id` field for this header.
     pub fn with_key_id(mut self, key_id: impl Into<String>) -> Self {
         self.key_id = Some(key_id.into());
         self
     }
 
-    /// Sets the `certificate_url` field for this instance.
+    /// Sets the `certificate_url` field for this header.
     pub fn with_certificate_url(mut self, certificate_url: impl Into<String>) -> Self {
         self.certificate_url = Some(certificate_url.into());
         self
     }
 
-    /// Sets the `certificate_thumbprint` field for this instance.
+    /// Sets the `certificate_thumbprint` field for this header.
     pub fn with_certificate_thumbprint(
         mut self,
         certificate_thumbprint: impl Into<String>,
@@ -551,9 +550,9 @@ impl Header {
         self
     }
 
-    /// Sets the `signature_type` field for this instance.
-    pub fn with_signature_type(mut self, signature_type: impl Into<String>) -> Self {
-        self.signature_type = Some(signature_type.into());
+    /// Sets the `token_type` field for this header.
+    pub fn with_token_type(mut self, token_type: impl Into<String>) -> Self {
+        self.token_type = Some(token_type.into());
         self
     }
 }
@@ -562,10 +561,8 @@ impl Header {
 struct CompleteHeader<'a> {
     #[serde(rename = "alg")]
     algorithm: Cow<'a, str>,
-
     #[serde(rename = "cty", default, skip_serializing_if = "Option::is_none")]
     content_type: Option<String>,
-
     #[serde(flatten)]
     inner: Header,
 }
@@ -614,11 +611,10 @@ impl<T> Token<T> {
 /// # Examples
 ///
 /// ```
-/// # use jwt_compact::{alg::{Hs256, Hs256Key}, prelude::*};
+/// # use jwt_compact::{alg::{Hs256, Hs256Key, Hs256Signature}, prelude::*};
 /// # use chrono::Duration;
 /// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
 /// # use serde::{Deserialize, Serialize};
-/// # use core::convert::TryFrom;
 /// #
 /// #[derive(Serialize, Deserialize)]
 /// struct MyClaims {
@@ -626,16 +622,16 @@ impl<T> Token<T> {
 /// }
 ///
 /// # fn main() -> anyhow::Result<()> {
-/// # let key = Hs256Key::from(b"super_secret_key" as &[_]);
+/// # let key = Hs256Key::new(b"super_secret_key");
 /// # let claims = Claims::new(MyClaims {})
 /// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
 /// #   Hs256.token(Header::default(), &claims, &key)?;
-/// let token = UntrustedToken::try_from(token_string.as_str())?;
+/// let token = UntrustedToken::new(&token_string)?;
 /// let signed = Hs256.validate_for_signed_token::<MyClaims>(&token, &key)?;
 ///
 /// // `signature` is strongly typed.
-/// let array: GenericArray<u8, typenum::U32> = signed.signature.into_bytes();
+/// let signature: Hs256Signature = signed.signature;
 /// // Token itself is available via `token` field.
 /// let claims = signed.token.claims();
 /// claims.validate_expiration(&TimeOptions::default())?;
@@ -721,6 +717,12 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
 }
 
 impl<'a> UntrustedToken<'a> {
+    /// Creates an untrusted token from a string. This is a shortcut for calling the [`TryFrom`]
+    /// conversion.
+    pub fn new<S: AsRef<str> + ?Sized>(s: &'a S) -> Result<Self, ParseError> {
+        Self::try_from(s.as_ref())
+    }
+
     /// Gets the token header.
     pub fn header(&self) -> &Header {
         &self.header
@@ -758,7 +760,7 @@ mod tests {
     fn invalid_token_structure() {
         let mangled_str = HS256_TOKEN.replace('.', "");
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidTokenStructure
         );
 
@@ -766,14 +768,14 @@ mod tests {
         let signature_start = mangled_str.rfind('.').unwrap();
         mangled_str.truncate(signature_start);
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidTokenStructure
         );
 
         let mut mangled_str = HS256_TOKEN.to_owned();
         mangled_str.push('.');
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidTokenStructure
         );
     }
@@ -782,14 +784,14 @@ mod tests {
     fn base64_error_during_parsing() {
         let mangled_str = HS256_TOKEN.replace('0', "+");
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::Base64(_)
         );
 
         let mut mangled_str = HS256_TOKEN.to_owned();
         mangled_str.truncate(mangled_str.len() - 1);
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::Base64(_)
         );
     }
@@ -814,7 +816,7 @@ mod tests {
             let mut mangled_str = HS256_TOKEN.to_owned();
             mangled_str.replace_range(..mangled_str.find('.').unwrap(), &mangled_header);
             assert_matches!(
-                UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+                UntrustedToken::new(&mangled_str).unwrap_err(),
                 ParseError::MalformedHeader(_)
             );
         }
@@ -827,7 +829,7 @@ mod tests {
         let mut mangled_str = HS256_TOKEN.to_owned();
         mangled_str.replace_range(..mangled_str.find('.').unwrap(), &mangled_header);
         assert_matches!(
-            UntrustedToken::try_from(mangled_str.as_str()).unwrap_err(),
+            UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::UnsupportedContentType(ref s) if s == "txt"
         );
     }
@@ -849,13 +851,13 @@ mod tests {
         let claims_start = HS256_TOKEN.find('.').unwrap() + 1;
         let claims_end = HS256_TOKEN.rfind('.').unwrap();
         let key = base64::decode_config(HS256_KEY, base64::URL_SAFE_NO_PAD).unwrap();
-        let key = Hs256Key::from(&*key);
+        let key = Hs256Key::new(&key);
 
         for claims in &malformed_claims {
             let encoded_claims = base64::encode_config(claims.as_bytes(), base64::URL_SAFE_NO_PAD);
             let mut mangled_str = HS256_TOKEN.to_owned();
             mangled_str.replace_range(claims_start..claims_end, &encoded_claims);
-            let token = UntrustedToken::try_from(mangled_str.as_str()).unwrap();
+            let token = UntrustedToken::new(&mangled_str).unwrap();
             assert_matches!(
                 Hs256.validate_integrity::<Obj>(&token, &key).unwrap_err(),
                 ValidationError::MalformedClaims(_),

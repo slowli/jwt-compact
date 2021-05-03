@@ -83,21 +83,25 @@ jobs:
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
+          name: default, es256k, rsa
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --features es256k,rsa --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
+          name: ed25519-dalek
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
         uses: actions-rs/clippy-check@v1
         with:
+          name: ed25519-compact
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
       - name: Clippy WASM crate
         uses: actions-rs/clippy-check@v1
         with:
+          name: WASM
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact-wasm --all-targets -- -D warnings
 

@@ -488,32 +488,61 @@ impl<A: Algorithm> AlgorithmExt for A {
 ///
 /// ```
 /// # use jwt_compact::Header;
+/// use sha2::{digest::Digest, Sha256};
+///
+/// let my_key_cert = // DER-encoded key certificate
+/// #   b"Hello, world!";
 /// let header = Header::default()
 ///     .with_key_id("my-key-id")
-///     .with_certificate_thumbprint("thumbprint");
+///     .with_certificate_thumbprint(Sha256::digest(my_key_cert).into());
 /// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct Header {
     /// URL of the JSON Web Key Set containing the key that has signed the token.
-    /// This field is renamed to `jku` for serialization.
+    /// This field is renamed to [`jku`] for serialization.
+    ///
+    /// [`jku`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.2
     #[serde(rename = "jku", default, skip_serializing_if = "Option::is_none")]
     pub key_set_url: Option<String>,
 
-    /// Identifier of the key that has signed the token. This field is renamed to `kid`
+    /// Identifier of the key that has signed the token. This field is renamed to [`kid`]
     /// for serialization.
+    ///
+    /// [`kid`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.4
     #[serde(rename = "kid", default, skip_serializing_if = "Option::is_none")]
     pub key_id: Option<String>,
 
-    /// URL of the X.509 certificate for the signing key. This field is renamed to `x5u`
+    /// URL of the X.509 certificate for the signing key. This field is renamed to [`x5u`]
     /// for serialization.
+    ///
+    /// [`x5u`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.5
     #[serde(rename = "x5u", default, skip_serializing_if = "Option::is_none")]
     pub certificate_url: Option<String>,
 
-    /// Thumbprint of the X.509 certificate for the signing key. This field is renamed to `x5t`
-    /// for serialization.
-    #[serde(rename = "x5t", default, skip_serializing_if = "Option::is_none")]
-    pub certificate_thumbprint: Option<String>,
+    /// SHA-1 thumbprint of the X.509 certificate for the signing key.
+    /// This field is renamed to [`x5t`] for serialization.
+    ///
+    /// [`x5t`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.7
+    #[serde(
+        rename = "x5t",
+        with = "base64url",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub certificate_sha1_thumbprint: Option<[u8; 20]>,
+
+    /// SHA-256 thumbprint of the X.509 certificate for the signing key.
+    /// This field is renamed to [`x5t#S256`] for serialization.
+    ///
+    /// [`x5t#S256`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.8
+    #[serde(
+        rename = "x5t#S256",
+        with = "base64url",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub certificate_thumbprint: Option<[u8; 32]>,
 
     /// Application-specific [token type]. This field is renamed to `typ` for serialization.
     ///
@@ -541,12 +570,15 @@ impl Header {
         self
     }
 
+    /// Sets the `certificate_sha1_thumbprint` field for this header.
+    pub fn with_certificate_sha1_thumbprint(mut self, certificate_thumbprint: [u8; 20]) -> Self {
+        self.certificate_sha1_thumbprint = Some(certificate_thumbprint);
+        self
+    }
+
     /// Sets the `certificate_thumbprint` field for this header.
-    pub fn with_certificate_thumbprint(
-        mut self,
-        certificate_thumbprint: impl Into<String>,
-    ) -> Self {
-        self.certificate_thumbprint = Some(certificate_thumbprint.into());
+    pub fn with_certificate_thumbprint(mut self, certificate_thumbprint: [u8; 32]) -> Self {
+        self.certificate_thumbprint = Some(certificate_thumbprint);
         self
     }
 
@@ -740,6 +772,71 @@ impl<'a> UntrustedToken<'a> {
     }
 }
 
+mod base64url {
+    use base64::decode_config_slice;
+    use serde::{
+        de::{Error as DeError, Visitor},
+        Deserializer, Serializer,
+    };
+
+    use core::{fmt, marker::PhantomData};
+
+    #[allow(clippy::option_if_let_else)] // false positive; `serializer` is moved into both clauses
+    pub fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: AsRef<[u8]>,
+        S: Serializer,
+    {
+        if let Some(value) = value {
+            let bytes = value.as_ref();
+            serializer.serialize_str(&base64::encode_config(bytes, base64::URL_SAFE_NO_PAD))
+        } else {
+            serializer.serialize_none()
+        }
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+    where
+        T: Default + AsMut<[u8]>,
+        D: Deserializer<'de>,
+    {
+        struct Base64Visitor<V>(PhantomData<V>);
+
+        impl<V> Visitor<'_> for Base64Visitor<V>
+        where
+            V: Default + AsMut<[u8]>,
+        {
+            type Value = V;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(formatter, "base64url-encoded digest")
+            }
+
+            fn visit_str<E: DeError>(self, value: &str) -> Result<Self::Value, E> {
+                let mut bytes = V::default();
+                let expected_len = bytes.as_mut().len();
+
+                let decoded_len = value.len() * 3 / 4;
+                if decoded_len != expected_len {
+                    return Err(E::invalid_length(decoded_len, &self));
+                }
+
+                let len = decode_config_slice(value, base64::URL_SAFE_NO_PAD, bytes.as_mut())
+                    .map_err(E::custom)?;
+                if len != expected_len {
+                    return Err(E::invalid_length(len, &self));
+                }
+
+                Ok(bytes)
+            }
+        }
+
+        deserializer
+            .deserialize_str(Base64Visitor(PhantomData))
+            .map(Some)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -797,6 +894,51 @@ mod tests {
     }
 
     #[test]
+    fn header_fields_are_not_serialized_if_not_present() {
+        let header = Header::default();
+        let json = serde_json::to_string(&header).unwrap();
+        assert_eq!(json, "{}");
+    }
+
+    #[test]
+    fn header_with_x5t_field() {
+        let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
+        let header: CompleteHeader = serde_json::from_str(header).unwrap();
+        let thumbprint = header.inner.certificate_sha1_thumbprint.unwrap();
+
+        assert_eq!(thumbprint[0], 0x94);
+        assert_eq!(thumbprint[19], 0x99);
+
+        let json = serde_json::to_value(header).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "alg": "HS256",
+                "x5t": "lDpwLQbzRZmu4fjajvn3KWAx1pk",
+            })
+        );
+    }
+
+    #[test]
+    fn header_with_x5t_sha256_field() {
+        let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
+        let header: CompleteHeader = serde_json::from_str(header).unwrap();
+        let thumbprint = header.inner.certificate_thumbprint.unwrap();
+
+        assert_eq!(thumbprint[0], 0x31);
+        assert_eq!(thumbprint[31], 0xd3);
+
+        let json = serde_json::to_value(header).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "alg": "HS256",
+                "x5t#S256": "MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM",
+            })
+        );
+    }
+
+    #[test]
     fn malformed_header() {
         let mangled_headers = [
             // Missing closing brace
@@ -809,6 +951,14 @@ mod tests {
             r#"{"alg":false}"#,
             // Duplicate `alg` field
             r#"{"alg":"HS256","alg":"none"}"#,
+            // Invalid thumbprint fields
+            r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1p"}"#,
+            r#"{"alg":"HS256","x5t":["lDpwLQbzRZmu4fjajvn3KWAx1pk"]}"#,
+            r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1 k"}"#,
+            r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk==="}"#,
+            r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pkk"}"#,
+            r#"{"alg":"HS256","x5t":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#,
+            r#"{"alg":"HS256","x5t#S256":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#,
         ];
 
         for mangled_header in &mangled_headers {

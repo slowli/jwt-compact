@@ -87,7 +87,7 @@ impl ToJsonWebKey for PublicKey {
     fn to_jwk(&self) -> JsonWebKey<'_> {
         JsonWebKey::builder("OKP")
             .with_str_field("crv", "Ed25519")
-            .with_bytes_field("x", self.as_bytes())
+            .with_bytes_field("x", &self.as_bytes()[..])
             .build()
     }
 }

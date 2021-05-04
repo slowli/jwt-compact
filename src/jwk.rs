@@ -1,15 +1,15 @@
 //! Basic support of JSON Web Keys (JWK).
 
+use serde::{ser::SerializeMap, Serialize, Serializer};
 use sha2::digest::{Digest, Output};
 
 use core::fmt;
 
-use crate::alloc::Cow;
+use crate::alloc::{Cow, ToString, Vec};
 
 /// Conversion to [`JsonWebKey`]. This trait is implemented for all verifying keys in the crate.
 pub trait ToJsonWebKey {
-    /// Returns mandatory fields of the JWK presentation of this key, i.e., the fields used
-    /// to compute the thumbprint of the key.
+    /// Converts this key to a JWK presentation.
     fn to_jwk(&self) -> JsonWebKey<'_>;
 }
 
@@ -17,7 +17,7 @@ pub trait ToJsonWebKey {
 ///
 /// The internal format of the key is not exposed, but its fields can be indirectly accessed via
 /// [`Self::thumbprint()`] method and [`Display`](fmt::Display) implementation. The latter returns
-/// the hashed presentation of the key.
+/// the presentation of the key used for hashing.
 ///
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
 pub struct JsonWebKey<'a> {
@@ -53,7 +53,7 @@ impl fmt::Display for JsonWebKey<'_> {
 }
 
 impl<'a> JsonWebKey<'a> {
-    /// Instantiates a builder for the fields.
+    /// Instantiates a key builder.
     pub fn builder(key_type: &'static str) -> JsonWebKeyBuilder<'a> {
         let mut fields = Vec::with_capacity(4);
         fields.push(("kty", JwkField::Str(key_type)));
@@ -62,11 +62,21 @@ impl<'a> JsonWebKey<'a> {
         }
     }
 
-    /// Computes a thumbprint of these fields as per [RFC 7638].
+    /// Computes a thumbprint of this JWK as per [RFC 7638].
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
     pub fn thumbprint<D: Digest>(&self) -> Output<D> {
         D::digest(self.to_string().as_bytes())
+    }
+}
+
+impl Serialize for JsonWebKey<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(self.fields.len()))?;
+        for (name, value) in &self.fields {
+            map.serialize_entry(*name, &value.to_string())?;
+        }
+        map.end()
     }
 }
 
@@ -143,5 +153,26 @@ impl fmt::Display for JwkField<'_> {
                 formatter.write_str(&encoded)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serializing_jwk() {
+        let jwk = JsonWebKey {
+            fields: vec![
+                ("crv", JwkField::Str("Ed25519")),
+                ("kty", JwkField::Str("OKP")),
+                ("x", JwkField::Bytes(Cow::Borrowed(b"test"))),
+            ],
+        };
+        let json = serde_json::to_value(&jwk).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({ "crv": "Ed25519", "kty": "OKP", "x": "dGVzdA" })
+        );
     }
 }

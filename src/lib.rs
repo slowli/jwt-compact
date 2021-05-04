@@ -171,6 +171,7 @@
 pub mod alg;
 mod claims;
 mod error;
+pub mod jwk;
 mod token;
 mod traits;
 
@@ -183,14 +184,14 @@ mod alloc {
     pub use alloc::{
         borrow::{Cow, ToOwned},
         boxed::Box,
-        string::String,
+        string::{String, ToString},
         vec::Vec,
     };
     #[cfg(feature = "std")]
     pub use std::{
         borrow::{Cow, ToOwned},
         boxed::Box,
-        string::String,
+        string::{String, ToString},
         vec::Vec,
     };
 }

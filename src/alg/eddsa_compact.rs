@@ -2,8 +2,9 @@ use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
+    alg::{SigningKey, VerifyingKey},
     alloc::Cow,
+    jwk::{JsonWebKey, ToJsonWebKey},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -94,10 +95,11 @@ impl SigningKey<Ed25519> for SecretKey {
     }
 }
 
-impl ThumbprintKey for PublicKey {
-    fn key_fields(&self) -> KeyFields<'_> {
-        KeyFields::new("OKP")
+impl ToJsonWebKey for PublicKey {
+    fn to_jwk(&self) -> JsonWebKey<'_> {
+        JsonWebKey::builder("OKP")
             .with_str_field("crv", "Ed25519")
             .with_bytes_field("x", self.as_ref())
+            .build()
     }
 }

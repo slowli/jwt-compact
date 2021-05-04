@@ -3,8 +3,9 @@ use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
 use core::convert::TryFrom;
 
 use crate::{
-    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
+    alg::{SigningKey, VerifyingKey},
     alloc::Cow,
+    jwk::{JsonWebKey, ToJsonWebKey},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -82,10 +83,11 @@ impl SigningKey<Ed25519> for Keypair {
     }
 }
 
-impl ThumbprintKey for PublicKey {
-    fn key_fields(&self) -> KeyFields<'_> {
-        KeyFields::new("OKP")
+impl ToJsonWebKey for PublicKey {
+    fn to_jwk(&self) -> JsonWebKey<'_> {
+        JsonWebKey::builder("OKP")
             .with_str_field("crv", "Ed25519")
             .with_bytes_field("x", self.as_bytes())
+            .build()
     }
 }

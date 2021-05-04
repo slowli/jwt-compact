@@ -8,7 +8,8 @@ use sha2::{
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{
-    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
+    alg::{SigningKey, VerifyingKey},
+    jwk::{JsonWebKey, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -130,12 +131,13 @@ impl VerifyingKey<Es256k> for PublicKey {
     }
 }
 
-impl ThumbprintKey for PublicKey {
-    fn key_fields(&self) -> KeyFields<'_> {
+impl ToJsonWebKey for PublicKey {
+    fn to_jwk(&self) -> JsonWebKey<'_> {
         let uncompressed = self.serialize_uncompressed();
-        KeyFields::new("EC")
+        JsonWebKey::builder("EC")
             .with_str_field("crv", "secp256k1")
             .with_bytes_field("x", uncompressed[1..33].to_vec())
             .with_bytes_field("y", uncompressed[33..].to_vec())
+            .build()
     }
 }

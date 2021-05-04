@@ -14,8 +14,9 @@ use zeroize::Zeroize;
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{KeyFields, SigningKey, StrongKey, ThumbprintKey, VerifyingKey, WeakKeyError},
+    alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
+    jwk::{JsonWebKey, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -264,9 +265,11 @@ macro_rules! impl_key_traits {
             }
         }
 
-        impl ThumbprintKey for $key {
-            fn key_fields(&self) -> KeyFields<'_> {
-                KeyFields::new("oct").with_bytes_field("k", self.as_ref())
+        impl ToJsonWebKey for $key {
+            fn to_jwk(&self) -> JsonWebKey<'_> {
+                JsonWebKey::builder("oct")
+                    .with_bytes_field("k", self.as_ref())
+                    .build()
             }
         }
     };

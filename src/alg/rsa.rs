@@ -9,8 +9,9 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{KeyFields, StrongKey, ThumbprintKey, WeakKeyError},
+    alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
+    jwk::{JsonWebKey, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -336,10 +337,11 @@ impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
     }
 }
 
-impl ThumbprintKey for RSAPublicKey {
-    fn key_fields(&self) -> KeyFields<'_> {
-        KeyFields::new("RSA")
+impl ToJsonWebKey for RSAPublicKey {
+    fn to_jwk(&self) -> JsonWebKey<'_> {
+        JsonWebKey::builder("RSA")
             .with_bytes_field("e", self.e().to_bytes_be())
             .with_bytes_field("n", self.n().to_bytes_be())
+            .build()
     }
 }

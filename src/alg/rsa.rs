@@ -3,7 +3,7 @@
 pub use rsa::{RSAPrivateKey, RSAPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
-use rsa::{hash::Hash, PaddingScheme, PublicKey, PublicKeyParts};
+use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use core::{convert::TryFrom, fmt};
@@ -11,7 +11,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
-    jwk::{JsonWebKey, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -343,5 +343,16 @@ impl ToJsonWebKey for RSAPublicKey {
             .with_bytes_field("e", self.e().to_bytes_be())
             .with_bytes_field("n", self.n().to_bytes_be())
             .build()
+    }
+}
+
+impl TryFrom<JsonWebKey<'_>> for RSAPublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        jwk.ensure_str_field("kty", "RSA")?;
+        let e = BigUint::from_bytes_be(jwk.bytes_field("e", None)?);
+        let n = BigUint::from_bytes_be(jwk.bytes_field("n", None)?);
+        Self::new(n, e).map_err(JwkError::custom)
     }
 }

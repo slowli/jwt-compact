@@ -5,7 +5,7 @@ use core::convert::TryFrom;
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, ToJsonWebKey},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -89,5 +89,16 @@ impl ToJsonWebKey for PublicKey {
             .with_str_field("crv", "Ed25519")
             .with_bytes_field("x", &self.as_bytes()[..])
             .build()
+    }
+}
+
+impl TryFrom<JsonWebKey<'_>> for PublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        jwk.ensure_str_field("kty", "OKP")?;
+        jwk.ensure_str_field("crv", "Ed25519")?;
+        let x = jwk.bytes_field("x", 32)?;
+        PublicKey::from_slice(x).map_err(JwkError::custom)
     }
 }

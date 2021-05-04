@@ -1,10 +1,12 @@
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
+use core::convert::TryFrom;
+
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, ToJsonWebKey},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -101,5 +103,17 @@ impl ToJsonWebKey for PublicKey {
             .with_str_field("crv", "Ed25519")
             .with_bytes_field("x", self.as_ref())
             .build()
+    }
+}
+
+impl TryFrom<JsonWebKey<'_>> for PublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        jwk.ensure_str_field("kty", "OKP")?;
+        jwk.ensure_str_field("crv", "Ed25519")?;
+        let x = jwk.bytes_field("x", 32)?;
+        Ok(PublicKey::from_slice(x).unwrap())
+        // ^ unlike some other impls, public key validity is not checked on creation
     }
 }

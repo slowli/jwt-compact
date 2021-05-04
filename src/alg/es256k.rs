@@ -5,11 +5,12 @@ use sha2::{
     Sha256,
 };
 
-use std::{borrow::Cow, marker::PhantomData};
+use core::{convert::TryFrom, marker::PhantomData};
 
 use crate::{
     alg::{SigningKey, VerifyingKey},
-    jwk::{JsonWebKey, ToJsonWebKey},
+    alloc::Cow,
+    jwk::{JsonWebKey, JwkError, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -139,5 +140,22 @@ impl ToJsonWebKey for PublicKey {
             .with_bytes_field("x", uncompressed[1..33].to_vec())
             .with_bytes_field("y", uncompressed[33..].to_vec())
             .build()
+    }
+}
+
+impl TryFrom<JsonWebKey<'_>> for PublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        jwk.ensure_str_field("kty", "EC")?;
+        jwk.ensure_str_field("crv", "secp256k1")?;
+        let x = jwk.bytes_field("x", 32)?;
+        let y = jwk.bytes_field("y", 32)?;
+
+        let mut key_bytes = [0_u8; 65];
+        key_bytes[0] = 4; // uncompressed key marker
+        key_bytes[1..33].copy_from_slice(x);
+        key_bytes[33..].copy_from_slice(y);
+        PublicKey::from_slice(&key_bytes[..]).map_err(JwkError::custom)
     }
 }

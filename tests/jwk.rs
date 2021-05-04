@@ -5,6 +5,8 @@
 use const_decoder::Decoder::Hex;
 use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
+use std::convert::TryFrom;
+
 use jwt_compact::{alg::Hs256Key, jwk::ToJsonWebKey};
 
 fn key_thumbprint<D: Digest, K: ToJsonWebKey>(key: &K) -> String {
@@ -19,12 +21,14 @@ fn hs256_key_thumbprint() {
     let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
     let key = Hs256Key::new(&key);
 
+    let jwk = key.to_jwk();
     assert_eq!(
-        key.to_jwk().to_string(),
+        jwk.to_string(),
         r#"{"k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuT
            wjAzZr1Z9CAow","kty":"oct"}"#
             .replace(|c: char| c.is_ascii_whitespace(), "")
     );
+    assert_eq!(Hs256Key::try_from(jwk).unwrap().as_ref(), key.as_ref());
 
     assert_eq!(
         key_thumbprint::<Sha256, _>(&key),
@@ -62,6 +66,10 @@ fn rsa_key_thumbprint() {
         key_thumbprint::<Sha256, _>(&public_key),
         "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
     );
+    assert_eq!(
+        RSAPublicKey::try_from(public_key.to_jwk()).unwrap(),
+        public_key
+    );
 }
 
 #[cfg(feature = "es256k")]
@@ -76,12 +84,14 @@ fn es256k_key_thumbprint() {
     );
     let public_key = PublicKey::from_slice(&KEY_BYTES[..]).unwrap();
 
+    let jwk = public_key.to_jwk();
     assert_eq!(
-        public_key.to_jwk().to_string(),
+        jwk.to_string(),
         r#"{"crv":"secp256k1","kty":"EC","x":"IMZEVh0rQx-QkffNRvdOtM0eUmlWEs6n9RXLUwd4KTQ",
            "y":"TAWfWF5I1G8CKS0JN0RO2hgPPlzboRsjVIuCfjfYmeI"}"#
             .replace(|c: char| c.is_ascii_whitespace(), "")
     );
+    assert_eq!(PublicKey::try_from(jwk).unwrap(), public_key);
 
     assert_eq!(
         key_thumbprint::<Sha256, _>(&public_key),
@@ -115,9 +125,14 @@ fn ed25519_key_thumbprint() {
         Hex.decode(b"b7e6ddbf8d4c2571315e7a6ab8706e0e7ee7d581b25fb80b41c8551c0a0dbb9d");
     let public_key = <PubKey as VerifyingKey<Ed25519>>::from_slice(&KEY_BYTES).unwrap();
 
+    let jwk = public_key.to_jwk();
     assert_eq!(
-        public_key.to_jwk().to_string(),
+        jwk.to_string(),
         r#"{"crv":"Ed25519","kty":"OKP","x":"t-bdv41MJXExXnpquHBuDn7n1YGyX7gLQchVHAoNu50"}"#
+    );
+    assert_eq!(
+        PubKey::try_from(jwk).unwrap().as_bytes(),
+        public_key.as_bytes()
     );
 
     assert_eq!(

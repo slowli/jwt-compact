@@ -8,7 +8,7 @@ use sha2::{
 use std::{borrow::Cow, marker::PhantomData};
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -127,5 +127,15 @@ impl VerifyingKey<Es256k> for PublicKey {
     /// Serializes the key as a 33-byte compressed form, as per [`Self::serialize()`].
     fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.serialize().to_vec())
+    }
+}
+
+impl ThumbprintKey for PublicKey {
+    fn key_fields(&self) -> KeyFields<'_> {
+        let uncompressed = self.serialize_uncompressed();
+        KeyFields::new("EC")
+            .with_str_field("crv", "secp256k1")
+            .with_bytes_field("x", uncompressed[1..33].to_vec())
+            .with_bytes_field("y", uncompressed[33..].to_vec())
     }
 }

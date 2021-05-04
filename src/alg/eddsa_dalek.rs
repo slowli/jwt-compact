@@ -3,7 +3,7 @@ use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
 use core::convert::TryFrom;
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
     alloc::Cow,
     Algorithm, AlgorithmSignature, Renamed,
 };
@@ -79,5 +79,13 @@ impl SigningKey<Ed25519> for Keypair {
 
     fn as_bytes(&self) -> Cow<[u8]> {
         Cow::Owned(self.to_bytes().to_vec())
+    }
+}
+
+impl ThumbprintKey for PublicKey {
+    fn key_fields(&self) -> KeyFields<'_> {
+        KeyFields::new("OKP")
+            .with_str_field("crv", "Ed25519")
+            .with_bytes_field("x", self.as_bytes())
     }
 }

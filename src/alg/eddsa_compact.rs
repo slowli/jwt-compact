@@ -2,7 +2,7 @@ use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
     alloc::Cow,
     Algorithm, AlgorithmSignature, Renamed,
 };
@@ -91,5 +91,13 @@ impl SigningKey<Ed25519> for SecretKey {
 
     fn as_bytes(&self) -> Cow<[u8]> {
         Cow::Borrowed(self.as_ref())
+    }
+}
+
+impl ThumbprintKey for PublicKey {
+    fn key_fields(&self) -> KeyFields<'_> {
+        KeyFields::new("OKP")
+            .with_str_field("crv", "Ed25519")
+            .with_bytes_field("x", self.as_ref())
     }
 }

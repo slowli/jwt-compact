@@ -14,7 +14,7 @@ use zeroize::Zeroize;
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
+    alg::{KeyFields, SigningKey, StrongKey, ThumbprintKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
     Algorithm, AlgorithmSignature,
 };
@@ -261,6 +261,12 @@ macro_rules! impl_key_traits {
 
             fn as_bytes(&self) -> Cow<'_, [u8]> {
                 Cow::Borrowed(self.as_ref())
+            }
+        }
+
+        impl ThumbprintKey for $key {
+            fn key_fields(&self) -> KeyFields<'_> {
+                KeyFields::new("oct").with_bytes_field("k", self.as_ref())
             }
         }
     };

@@ -4,7 +4,7 @@ use exonum_crypto::{sign, verify, PublicKey, SecretKey, Signature, SEED_LENGTH};
 use std::borrow::Cow;
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{KeyFields, SigningKey, ThumbprintKey, VerifyingKey},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -90,5 +90,13 @@ impl SigningKey<Ed25519> for SecretKey {
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(&self[..])
+    }
+}
+
+impl ThumbprintKey for PublicKey {
+    fn key_fields(&self) -> KeyFields<'_> {
+        KeyFields::new("OKP")
+            .with_str_field("crv", "Ed25519")
+            .with_bytes_field("x", self.as_ref())
     }
 }

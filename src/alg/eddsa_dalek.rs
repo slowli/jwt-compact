@@ -1,4 +1,4 @@
-use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
+use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier, PUBLIC_KEY_LENGTH};
 
 use core::convert::TryFrom;
 
@@ -98,7 +98,7 @@ impl TryFrom<JsonWebKey<'_>> for PublicKey {
     fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
         jwk.ensure_str_field(&JwkFieldName::KeyType, "OKP")?;
         jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "Ed25519")?;
-        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, 32)?;
+        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, PUBLIC_KEY_LENGTH)?;
         PublicKey::from_slice(x).map_err(JwkError::custom)
     }
 }

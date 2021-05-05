@@ -1,5 +1,8 @@
 use lazy_static::lazy_static;
-use secp256k1::{All, Message, PublicKey, Secp256k1, SecretKey, Signature};
+use secp256k1::{
+    constants::{FIELD_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE},
+    All, Message, PublicKey, Secp256k1, SecretKey, Signature,
+};
 use sha2::{
     digest::{generic_array::typenum::U32, Digest},
     Sha256,
@@ -13,6 +16,9 @@ use crate::{
     jwk::{JsonWebKey, JwkError, JwkFieldName, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
+
+/// Byte size of a serialized EC coordinate.
+const COORDINATE_SIZE: usize = FIELD_SIZE.len();
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
@@ -137,8 +143,8 @@ impl ToJsonWebKey for PublicKey {
         let uncompressed = self.serialize_uncompressed();
         JsonWebKey::builder("EC")
             .with_str_field("crv", "secp256k1")
-            .with_bytes_field("x", uncompressed[1..33].to_vec())
-            .with_bytes_field("y", uncompressed[33..].to_vec())
+            .with_bytes_field("x", uncompressed[1..=COORDINATE_SIZE].to_vec())
+            .with_bytes_field("y", uncompressed[(1 + COORDINATE_SIZE)..].to_vec())
             .build()
     }
 }
@@ -149,13 +155,13 @@ impl TryFrom<JsonWebKey<'_>> for PublicKey {
     fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
         jwk.ensure_str_field(&JwkFieldName::KeyType, "EC")?;
         jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "secp256k1")?;
-        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, 32)?;
-        let y = jwk.bytes_field(&JwkFieldName::EllipticCurveY, 32)?;
+        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, COORDINATE_SIZE)?;
+        let y = jwk.bytes_field(&JwkFieldName::EllipticCurveY, COORDINATE_SIZE)?;
 
-        let mut key_bytes = [0_u8; 65];
+        let mut key_bytes = [0_u8; UNCOMPRESSED_PUBLIC_KEY_SIZE];
         key_bytes[0] = 4; // uncompressed key marker
-        key_bytes[1..33].copy_from_slice(x);
-        key_bytes[33..].copy_from_slice(y);
+        key_bytes[1..=COORDINATE_SIZE].copy_from_slice(x);
+        key_bytes[(1 + COORDINATE_SIZE)..].copy_from_slice(y);
         PublicKey::from_slice(&key_bytes[..]).map_err(JwkError::custom)
     }
 }

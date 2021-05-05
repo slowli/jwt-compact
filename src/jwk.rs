@@ -45,14 +45,46 @@ use crate::{
     Algorithm,
 };
 
+/// Type of a [`JsonWebKey`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum KeyType {
+    /// Public or private RSA key. Maps to the `RSA` value of the `kty` field for JWKs.
+    Rsa,
+    /// Public or private key in an ECDSA crypto system. Maps to the `EC` value
+    /// of the `kty` field for JWKs.
+    EllipticCurve,
+    /// Symmetric key. Maps to the `oct` value of the `kty` field for JWKs.
+    Symmetric,
+    /// Generic asymmetric key. Maps to the `OKP` value of the `kty` field for JWKs.
+    KeyPair,
+}
+
+impl fmt::Display for KeyType {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Rsa => "RSA",
+            Self::EllipticCurve => "EC",
+            Self::Symmetric => "oct",
+            Self::KeyPair => "OKP",
+        })
+    }
+}
+
 /// Errors that can occur when transforming a [`JsonWebKey`] into the presentation specific for
 /// a crypto backend, via [`TryFrom`](core::convert::TryFrom) trait.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum JwkError {
     /// Required field is absent from JWK.
     NoField(String),
-    /// FIXME
-    UnexpectedKeyType,
+    /// Key type (the `kty` field) is not as expected.
+    UnexpectedKeyType {
+        /// Expected key type.
+        expected: KeyType,
+        /// Actual key type.
+        actual: KeyType,
+    },
     /// JWK field has an unexpected value.
     UnexpectedValue {
         /// Field name.
@@ -80,7 +112,13 @@ pub enum JwkError {
 impl fmt::Display for JwkError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnexpectedKeyType => formatter.write_str("Unexpected key type"),
+            Self::UnexpectedKeyType { expected, actual } => {
+                write!(
+                    formatter,
+                    "Unexpected key type: {} (expected {})",
+                    actual, expected
+                )
+            }
             Self::NoField(field) => write!(formatter, "field `{}` is absent from JWK", field),
             Self::UnexpectedValue {
                 field,
@@ -127,6 +165,12 @@ impl JwkError {
     pub fn custom(err: impl Into<anyhow::Error>) -> Self {
         Self::Custom(err.into())
     }
+
+    pub(crate) fn key_type(jwk: &JsonWebKey<'_>, expected: KeyType) -> Self {
+        let actual = jwk.key_type();
+        debug_assert_ne!(actual, expected);
+        Self::UnexpectedKeyType { actual, expected }
+    }
 }
 
 /// Basic [JWK] functionality: (de)serialization and creating thumbprints.
@@ -137,23 +181,33 @@ impl JwkError {
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kty")]
-#[allow(missing_docs)]
+#[non_exhaustive]
 pub enum JsonWebKey<'a> {
+    /// Public or private RSA key. Has `kty` field set to `RSA`.
     #[serde(rename = "RSA")]
     Rsa {
+        /// Key modulus (`n`). Serialized in the base64-url encoding using
+        /// the big endian presentation with the minimum necessary number of bytes.
         #[serde(rename = "n", with = "base64url")]
         modulus: Cow<'a, [u8]>,
+        /// Public exponent (`e`). Serialized in the base64-url encoding using
+        /// the big endian presentation with the minimum necessary number of bytes.
         #[serde(rename = "e", with = "base64url")]
         public_exponent: Cow<'a, [u8]>,
     },
+    /// Public or private key in an ECDSA crypto system. Has `kty` field set to `EC`.
     #[serde(rename = "EC")]
     EllipticCurve {
+        /// Curve name (`crv`), such as `secp256k1`.
         #[serde(rename = "crv")]
         curve: Cow<'a, str>,
+        /// `x` coordinate of the curve point. Serialized in the base64-url encoding.
         #[serde(with = "base64url")]
         x: Cow<'a, [u8]>,
+        /// `y` coordinate of the curve point. Serialized in the base64-url encoding.
         #[serde(with = "base64url")]
         y: Cow<'a, [u8]>,
+        /// Secret scalar (not present for public keys). Serialized in the base64-url encoding.
         #[serde(
             rename = "d",
             default,
@@ -162,17 +216,24 @@ pub enum JsonWebKey<'a> {
         )]
         secret: Option<Cow<'a, [u8]>>,
     },
+    /// Generic symmetric key, e.g. for `HS256` algorithm. Has `kty` field set to `oct`.
     #[serde(rename = "oct")]
     Symmetric {
+        /// Bytes representing this key. Serialized in the base64-url encoding.
         #[serde(rename = "k", with = "base64url")]
         secret: Cow<'a, [u8]>,
     },
+    /// Generic asymmetric key. This key type is used, for example for Ed25519 keys.
     #[serde(rename = "OKP")]
     KeyPair {
+        /// Curve name (`crv`), such as `Ed25519`.
         #[serde(rename = "crv")]
         curve: Cow<'a, str>,
+        /// `x` coordinate of the curve point. Serialized in the base64-url encoding.
         #[serde(with = "base64url")]
         x: Cow<'a, [u8]>,
+        /// Secret key (not present for public keys). Serialized in the base64-url encoding.
+        /// For Ed25519, this is the *seed*.
         #[serde(
             rename = "d",
             default,
@@ -225,6 +286,16 @@ impl<'a> JsonWebKey<'a> {
             Ok(signing_key)
         } else {
             Err(JwkError::MismatchedKeys)
+        }
+    }
+
+    /// Gets the type of this key.
+    pub fn key_type(&self) -> KeyType {
+        match self {
+            Self::Rsa { .. } => KeyType::Rsa,
+            Self::EllipticCurve { .. } => KeyType::EllipticCurve,
+            Self::Symmetric { .. } => KeyType::Symmetric,
+            Self::KeyPair { .. } => KeyType::KeyPair,
         }
     }
 

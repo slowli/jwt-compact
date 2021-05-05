@@ -6,7 +6,7 @@ use core::convert::TryFrom;
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -114,7 +114,7 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
         let (curve, x) = if let JsonWebKey::KeyPair { curve, x, .. } = jwk {
             (curve, x)
         } else {
-            return Err(JwkError::UnexpectedKeyType);
+            return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
         JsonWebKey::ensure_curve(curve, "Ed25519")?;
         JsonWebKey::ensure_len("x", x, PublicKey::BYTES)?;
@@ -140,7 +140,7 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
         let seed_bytes = if let JsonWebKey::KeyPair { secret, .. } = jwk {
             secret.as_deref()
         } else {
-            return Err(JwkError::UnexpectedKeyType);
+            return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
         let seed_bytes = seed_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
         JsonWebKey::ensure_len("d", seed_bytes, Seed::BYTES)?;

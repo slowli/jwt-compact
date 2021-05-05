@@ -16,7 +16,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature,
 };
 
@@ -279,7 +279,7 @@ macro_rules! impl_key_traits {
             fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
                 match jwk {
                     JsonWebKey::Symmetric { secret } => Ok(Self::new(secret)),
-                    _ => Err(JwkError::UnexpectedKeyType),
+                    _ => Err(JwkError::key_type(jwk, KeyType::Symmetric)),
                 }
             }
         }

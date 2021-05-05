@@ -11,7 +11,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
-    jwk::{JsonWebKey, JwkError},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature,
 };
 
@@ -357,7 +357,7 @@ impl TryFrom<&JsonWebKey<'_>> for RSAPublicKey {
         {
             (modulus, public_exponent)
         } else {
-            return Err(JwkError::UnexpectedKeyType);
+            return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 
         let e = BigUint::from_bytes_be(e);

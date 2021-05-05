@@ -329,9 +329,8 @@ impl<'a> JsonWebKey<'a> {
         }
     }
 
-    /// Computes a thumbprint of this JWK. If the key contains only mandatory fields
-    /// (which is the case for keys created using [`From`] trait),
-    /// the result complies to key thumbprint defined in [RFC 7638].
+    /// Computes a thumbprint of this JWK. The result complies to key thumbprint defined
+    /// in [RFC 7638].
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
     pub fn thumbprint<D: Digest>(&self) -> Output<D> {

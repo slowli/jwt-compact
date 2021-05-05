@@ -6,7 +6,7 @@ use core::convert::TryFrom;
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, JwkFieldName, ToJsonWebKey},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -108,9 +108,9 @@ impl TryFrom<JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        jwk.ensure_str_field("kty", "OKP")?;
-        jwk.ensure_str_field("crv", "Ed25519")?;
-        let x = jwk.bytes_field("x", 32)?;
+        jwk.ensure_str_field(&JwkFieldName::KeyType, "OKP")?;
+        jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "Ed25519")?;
+        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, 32)?;
         Ok(PublicKey::from_slice(x).unwrap())
         // ^ unlike some other impls, libsodium does not check public key validity on creation
     }

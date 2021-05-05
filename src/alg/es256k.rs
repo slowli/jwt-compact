@@ -10,7 +10,7 @@ use core::{convert::TryFrom, marker::PhantomData};
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, JwkFieldName, ToJsonWebKey},
     Algorithm, AlgorithmSignature,
 };
 
@@ -147,10 +147,10 @@ impl TryFrom<JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        jwk.ensure_str_field("kty", "EC")?;
-        jwk.ensure_str_field("crv", "secp256k1")?;
-        let x = jwk.bytes_field("x", 32)?;
-        let y = jwk.bytes_field("y", 32)?;
+        jwk.ensure_str_field(&JwkFieldName::KeyType, "EC")?;
+        jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "secp256k1")?;
+        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, 32)?;
+        let y = jwk.bytes_field(&JwkFieldName::EllipticCurveY, 32)?;
 
         let mut key_bytes = [0_u8; 65];
         key_bytes[0] = 4; // uncompressed key marker

@@ -11,7 +11,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
-    jwk::{JsonWebKey, JwkError, JwkFieldName, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, JwkFieldName},
     Algorithm, AlgorithmSignature,
 };
 
@@ -337,11 +337,11 @@ impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
     }
 }
 
-impl ToJsonWebKey for RSAPublicKey {
-    fn to_jwk(&self) -> JsonWebKey<'_> {
+impl<'a> From<&'a RSAPublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a RSAPublicKey) -> JsonWebKey<'a> {
         JsonWebKey::builder("RSA")
-            .with_bytes_field("e", self.e().to_bytes_be())
-            .with_bytes_field("n", self.n().to_bytes_be())
+            .with_bytes_field("e", key.e().to_bytes_be())
+            .with_bytes_field("n", key.n().to_bytes_be())
             .build()
     }
 }

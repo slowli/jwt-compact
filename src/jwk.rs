@@ -11,7 +11,7 @@
 //! # Examples
 //!
 //! ```
-//! use jwt_compact::{alg::Hs256Key, jwk::{JsonWebKey, ToJsonWebKey}};
+//! use jwt_compact::{alg::Hs256Key, jwk::JsonWebKey};
 //! use sha2::Sha256;
 //! # use std::convert::TryFrom;
 //!
@@ -24,7 +24,7 @@
 //! let key = Hs256Key::try_from(jwk.clone())?;
 //!
 //! // Convert `key` back to JWK.
-//! let jwk_from_key: JsonWebKey<'_> = key.to_jwk();
+//! let jwk_from_key = JsonWebKey::from(&key);
 //! assert_eq!(jwk_from_key, jwk);
 //! println!("{}", serde_json::to_string(&jwk)?);
 //!
@@ -44,12 +44,6 @@ use sha2::digest::{Digest, Output};
 use core::{cmp, fmt};
 
 use crate::alloc::{Cow, String, ToOwned, ToString, Vec};
-
-/// Conversion to [`JsonWebKey`]. This trait is implemented for all verifying keys in the crate.
-pub trait ToJsonWebKey {
-    /// Converts this key to a JWK presentation.
-    fn to_jwk(&self) -> JsonWebKey<'_>;
-}
 
 /// Errors that can occur when transforming a [`JsonWebKey`] into the presentation specific for
 /// a crypto backend, via [`TryFrom`](core::convert::TryFrom) trait.
@@ -360,7 +354,7 @@ impl<'a> JsonWebKey<'a> {
     }
 
     /// Computes a thumbprint of this JWK. If the key contains only mandatory fields
-    /// (which is the case for keys created using [`ToJsonWebKey`] trait),
+    /// (which is the case for keys created using [`From`] trait),
     /// the result complies to key thumbprint defined in [RFC 7638].
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
@@ -616,7 +610,7 @@ mod tests {
             .unwrap();
 
         let key = Hs256Key::try_from(jwk).unwrap();
-        let jwk_from_key = key.to_jwk();
+        let jwk_from_key = JsonWebKey::from(&key);
 
         assert_eq!(jwk_from_key.fields.len(), 2);
         assert!(jwk_from_key

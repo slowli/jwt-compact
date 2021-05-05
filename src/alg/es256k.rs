@@ -13,7 +13,7 @@ use core::{convert::TryFrom, marker::PhantomData};
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, JwkFieldName, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, JwkFieldName},
     Algorithm, AlgorithmSignature,
 };
 
@@ -138,9 +138,9 @@ impl VerifyingKey<Es256k> for PublicKey {
     }
 }
 
-impl ToJsonWebKey for PublicKey {
-    fn to_jwk(&self) -> JsonWebKey<'_> {
-        let uncompressed = self.serialize_uncompressed();
+impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
+        let uncompressed = key.serialize_uncompressed();
         JsonWebKey::builder("EC")
             .with_str_field("crv", "secp256k1")
             .with_bytes_field("x", uncompressed[1..=COORDINATE_SIZE].to_vec())

@@ -6,7 +6,7 @@ use core::convert::TryFrom;
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, JwkFieldName, ToJsonWebKey},
+    jwk::{JsonWebKey, JwkError, JwkFieldName},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -97,11 +97,11 @@ impl SigningKey<Ed25519> for SecretKey {
     }
 }
 
-impl ToJsonWebKey for PublicKey {
-    fn to_jwk(&self) -> JsonWebKey<'_> {
+impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
         JsonWebKey::builder("OKP")
             .with_str_field("crv", "Ed25519")
-            .with_bytes_field("x", self.as_ref())
+            .with_bytes_field("x", key.as_ref())
             .build()
     }
 }

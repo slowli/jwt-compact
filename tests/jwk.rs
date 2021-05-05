@@ -7,13 +7,17 @@ use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
 use std::convert::TryFrom;
 
-use jwt_compact::{
-    alg::Hs256Key,
-    jwk::{JsonWebKey, ToJsonWebKey},
-};
+use jwt_compact::{alg::Hs256Key, jwk::JsonWebKey};
 
-fn key_thumbprint<D: Digest, K: ToJsonWebKey>(key: &K) -> String {
-    base64::encode_config(key.to_jwk().thumbprint::<D>(), base64::URL_SAFE_NO_PAD)
+fn key_thumbprint<'a, D, K>(key: &'a K) -> String
+where
+    D: Digest,
+    JsonWebKey<'a>: From<&'a K>,
+{
+    base64::encode_config(
+        JsonWebKey::from(key).thumbprint::<D>(),
+        base64::URL_SAFE_NO_PAD,
+    )
 }
 
 fn assert_jwk_roundtrip(jwk: &JsonWebKey) {
@@ -34,7 +38,7 @@ fn hs256_key_thumbprint() {
     let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
     let key = Hs256Key::new(&key);
 
-    let jwk = key.to_jwk();
+    let jwk = JsonWebKey::from(&key);
     assert_eq!(
         jwk.to_string(),
         r#"{"k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuT
@@ -81,7 +85,7 @@ fn rsa_key_thumbprint() {
         "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
     );
 
-    let jwk = public_key.to_jwk();
+    let jwk = JsonWebKey::from(&public_key);
     assert_jwk_roundtrip(&jwk);
     assert_eq!(RSAPublicKey::try_from(jwk).unwrap(), public_key);
 }
@@ -98,7 +102,7 @@ fn es256k_key_thumbprint() {
     );
     let public_key = PublicKey::from_slice(&KEY_BYTES[..]).unwrap();
 
-    let jwk = public_key.to_jwk();
+    let jwk = JsonWebKey::from(&public_key);
     assert_jwk_roundtrip(&jwk);
     assert_eq!(
         jwk.to_string(),
@@ -140,7 +144,7 @@ fn ed25519_key_thumbprint() {
         Hex.decode(b"b7e6ddbf8d4c2571315e7a6ab8706e0e7ee7d581b25fb80b41c8551c0a0dbb9d");
     let public_key = <PubKey as VerifyingKey<Ed25519>>::from_slice(&KEY_BYTES).unwrap();
 
-    let jwk = public_key.to_jwk();
+    let jwk = JsonWebKey::from(&public_key);
     assert_jwk_roundtrip(&jwk);
     assert_eq!(
         jwk.to_string(),

@@ -1,6 +1,10 @@
 //! Basic support of JSON Web Keys (JWK).
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{
+    de::{Error as DeError, MapAccess, Unexpected, Visitor},
+    ser::SerializeMap,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use sha2::digest::{Digest, Output};
 
 use core::fmt;
@@ -103,15 +107,16 @@ impl JwkError {
 /// the presentation of the key used for hashing.
 ///
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
+#[derive(PartialEq)]
 pub struct JsonWebKey<'a> {
-    fields: Vec<(&'static str, JwkField<'a>)>,
+    fields: Vec<(String, JwkField<'a>)>,
 }
 
 impl fmt::Debug for JsonWebKey<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_map()
-            .entries(self.fields.iter().map(|(name, field)| (*name, field)))
+            .entries(self.fields.iter().map(|(name, field)| (name, field)))
             .finish()
     }
 }
@@ -136,10 +141,12 @@ impl fmt::Display for JsonWebKey<'_> {
 }
 
 impl<'a> JsonWebKey<'a> {
+    const CAPACITY: usize = 4;
+
     /// Instantiates a key builder.
     pub fn builder(key_type: &'static str) -> JsonWebKeyBuilder<'a> {
-        let mut fields = Vec::with_capacity(4);
-        fields.push(("kty", JwkField::Str(key_type)));
+        let mut fields = Vec::with_capacity(Self::CAPACITY);
+        fields.push(("kty".to_owned(), JwkField::str(key_type)));
         JsonWebKeyBuilder {
             inner: Self { fields },
         }
@@ -167,7 +174,7 @@ impl<'a> JsonWebKey<'a> {
                 Err(JwkError::UnexpectedValue {
                     field: field_name.to_owned(),
                     expected: expected_value.to_owned(),
-                    actual: (*val).to_owned(),
+                    actual: val.clone().into_owned(),
                 })
             }
         } else {
@@ -214,9 +221,55 @@ impl Serialize for JsonWebKey<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = serializer.serialize_map(Some(self.fields.len()))?;
         for (name, value) in &self.fields {
-            map.serialize_entry(*name, &value.to_string())?;
+            map.serialize_entry(name.as_str(), &value.to_string())?;
         }
         map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for JsonWebKey<'static> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct MapVisitor;
+
+        const BYTE_FIELDS: &[&str] = &["x", "y", "k", "e", "n"];
+
+        impl<'v> Visitor<'v> for MapVisitor {
+            type Value = JsonWebKey<'static>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("JSON web key")
+            }
+
+            fn visit_map<A: MapAccess<'v>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+                let mut fields: Vec<(String, JwkField<'static>)> =
+                    Vec::with_capacity(map.size_hint().unwrap_or(JsonWebKey::CAPACITY));
+
+                while let Some((field_name, value)) = map.next_entry::<String, String>()? {
+                    if fields.iter().any(|(name, _)| *name == field_name) {
+                        return Err(A::Error::custom("duplicate field"));
+                    }
+
+                    let value = if BYTE_FIELDS.contains(&field_name.as_str()) {
+                        let bytes = base64::decode_config(&*value, base64::URL_SAFE_NO_PAD)
+                            .map_err(|_| {
+                                A::Error::invalid_value(
+                                    Unexpected::Str(&*value),
+                                    &"base64url-encoded data",
+                                )
+                            })?;
+                        JwkField::Bytes(bytes.into())
+                    } else {
+                        JwkField::Str(value.into())
+                    };
+                    fields.push((field_name, value));
+                }
+
+                fields.sort_unstable_by(|(x, _), (y, _)| x.cmp(y));
+                Ok(JsonWebKey { fields })
+            }
+        }
+
+        deserializer.deserialize_map(MapVisitor)
     }
 }
 
@@ -227,12 +280,7 @@ pub struct JsonWebKeyBuilder<'a> {
 }
 
 impl<'a> JsonWebKeyBuilder<'a> {
-    /// Adds a string field with the specified name.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the field with this name is already present.
-    pub fn with_str_field(mut self, field_name: &'static str, value: &'static str) -> Self {
+    fn assert_no_field(&self, field_name: &str) {
         let existing_field = self
             .inner
             .fields
@@ -241,7 +289,18 @@ impl<'a> JsonWebKeyBuilder<'a> {
         if let Some((_, old_value)) = existing_field {
             panic!("Field `{}` is already defined: {:?}", field_name, old_value);
         }
-        self.inner.fields.push((field_name, JwkField::Str(value)));
+    }
+
+    /// Adds a string field with the specified name.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the field with this name is already present.
+    pub fn with_str_field(mut self, field_name: &'static str, value: &'static str) -> Self {
+        self.assert_no_field(field_name);
+        self.inner
+            .fields
+            .push((field_name.to_owned(), JwkField::str(value)));
         self
     }
 
@@ -256,31 +315,24 @@ impl<'a> JsonWebKeyBuilder<'a> {
         field_name: &'static str,
         value: impl Into<Cow<'a, [u8]>>,
     ) -> Self {
-        let existing_field = self
-            .inner
-            .fields
-            .iter()
-            .find(|(name, _)| *name == field_name);
-        if let Some((_, old_value)) = existing_field {
-            panic!("Field `{}` is already defined: {:?}", field_name, old_value);
-        }
+        self.assert_no_field(field_name);
         self.inner
             .fields
-            .push((field_name, JwkField::Bytes(value.into())));
+            .push((field_name.to_owned(), JwkField::Bytes(value.into())));
         self
     }
 
     /// Consumes this builder creating [`JsonWebKey`].
     pub fn build(self) -> JsonWebKey<'a> {
         let mut inner = self.inner;
-        inner.fields.sort_unstable_by_key(|(name, _)| *name);
+        inner.fields.sort_unstable_by(|(x, _), (y, _)| x.cmp(y));
         inner
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum JwkField<'a> {
-    Str(&'static str),
+    Str(Cow<'static, str>),
     Bytes(Cow<'a, [u8]>),
 }
 
@@ -296,37 +348,73 @@ impl fmt::Display for JwkField<'_> {
     }
 }
 
+impl JwkField<'_> {
+    fn str(s: &'static str) -> Self {
+        Self::Str(Cow::Borrowed(s))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use assert_matches::assert_matches;
 
+    fn create_jwk() -> JsonWebKey<'static> {
+        JsonWebKey {
+            fields: vec![
+                ("crv".to_owned(), JwkField::str("Ed25519")),
+                ("kty".to_owned(), JwkField::str("OKP")),
+                ("x".to_owned(), JwkField::Bytes(Cow::Borrowed(b"test"))),
+            ],
+        }
+    }
+
     #[test]
     fn serializing_jwk() {
-        let jwk = JsonWebKey {
-            fields: vec![
-                ("crv", JwkField::Str("Ed25519")),
-                ("kty", JwkField::Str("OKP")),
-                ("x", JwkField::Bytes(Cow::Borrowed(b"test"))),
-            ],
-        };
+        let jwk = create_jwk();
+
         let json = serde_json::to_value(&jwk).unwrap();
         assert_eq!(
             json,
             serde_json::json!({ "crv": "Ed25519", "kty": "OKP", "x": "dGVzdA" })
         );
+
+        let restored: JsonWebKey<'_> = serde_json::from_value(json).unwrap();
+        assert_eq!(restored, jwk);
+    }
+
+    #[test]
+    fn jwk_deserialization_errors() {
+        let duplicate_field_json = r#"{"crv":"Ed25519","crv":"secp256k1"}"#;
+        let duplicate_field_err = serde_json::from_str::<JsonWebKey<'_>>(duplicate_field_json)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            duplicate_field_err.contains("duplicate field"),
+            "{}",
+            duplicate_field_err
+        );
+
+        let base64_json = r#"{"crv":"Ed25519","kty":"OKP","x":"??"}"#;
+        let base64_err = serde_json::from_str::<JsonWebKey<'_>>(base64_json)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            base64_err.contains("invalid value: string \"??\""),
+            "{}",
+            base64_err
+        );
+        assert!(
+            base64_err.contains("base64url-encoded data"),
+            "{}",
+            base64_err
+        );
     }
 
     #[test]
     fn converting_jwk_errors() {
-        let jwk = JsonWebKey {
-            fields: vec![
-                ("crv", JwkField::Str("Ed25519")),
-                ("kty", JwkField::Str("OKP")),
-                ("x", JwkField::Bytes(Cow::Borrowed(b"test"))),
-            ],
-        };
+        let jwk = create_jwk();
 
         let absent_err = jwk.ensure_str_field("y", "?").unwrap_err();
         assert_matches!(absent_err, JwkError::NoField(field) if field == "y");

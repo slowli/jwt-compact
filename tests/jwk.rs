@@ -7,10 +7,23 @@ use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
 use std::convert::TryFrom;
 
-use jwt_compact::{alg::Hs256Key, jwk::ToJsonWebKey};
+use jwt_compact::{
+    alg::Hs256Key,
+    jwk::{JsonWebKey, ToJsonWebKey},
+};
 
 fn key_thumbprint<D: Digest, K: ToJsonWebKey>(key: &K) -> String {
     base64::encode_config(key.to_jwk().thumbprint::<D>(), base64::URL_SAFE_NO_PAD)
+}
+
+fn assert_jwk_roundtrip(jwk: &JsonWebKey) {
+    let jwk_string = jwk.to_string();
+    let restored: JsonWebKey<'_> = serde_json::from_str(&jwk_string).unwrap();
+    assert_eq!(restored, *jwk);
+
+    let json = serde_json::to_value(jwk).unwrap();
+    let restored_from_json: JsonWebKey<'_> = serde_json::from_value(json).unwrap();
+    assert_eq!(restored_from_json, *jwk);
 }
 
 #[test]
@@ -28,6 +41,7 @@ fn hs256_key_thumbprint() {
            wjAzZr1Z9CAow","kty":"oct"}"#
             .replace(|c: char| c.is_ascii_whitespace(), "")
     );
+    assert_jwk_roundtrip(&jwk);
     assert_eq!(Hs256Key::try_from(jwk).unwrap().as_ref(), key.as_ref());
 
     assert_eq!(
@@ -66,10 +80,10 @@ fn rsa_key_thumbprint() {
         key_thumbprint::<Sha256, _>(&public_key),
         "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
     );
-    assert_eq!(
-        RSAPublicKey::try_from(public_key.to_jwk()).unwrap(),
-        public_key
-    );
+
+    let jwk = public_key.to_jwk();
+    assert_jwk_roundtrip(&jwk);
+    assert_eq!(RSAPublicKey::try_from(jwk).unwrap(), public_key);
 }
 
 #[cfg(feature = "es256k")]
@@ -85,6 +99,7 @@ fn es256k_key_thumbprint() {
     let public_key = PublicKey::from_slice(&KEY_BYTES[..]).unwrap();
 
     let jwk = public_key.to_jwk();
+    assert_jwk_roundtrip(&jwk);
     assert_eq!(
         jwk.to_string(),
         r#"{"crv":"secp256k1","kty":"EC","x":"IMZEVh0rQx-QkffNRvdOtM0eUmlWEs6n9RXLUwd4KTQ",
@@ -126,6 +141,7 @@ fn ed25519_key_thumbprint() {
     let public_key = <PubKey as VerifyingKey<Ed25519>>::from_slice(&KEY_BYTES).unwrap();
 
     let jwk = public_key.to_jwk();
+    assert_jwk_roundtrip(&jwk);
     assert_eq!(
         jwk.to_string(),
         r#"{"crv":"Ed25519","kty":"OKP","x":"t-bdv41MJXExXnpquHBuDn7n1YGyX7gLQchVHAoNu50"}"#

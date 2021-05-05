@@ -2,7 +2,6 @@
 //!
 //! [`jose`]: https://www.npmjs.com/package/jose
 
-use const_decoder::Decoder::Hex;
 use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
 use std::convert::TryFrom;
@@ -93,6 +92,7 @@ fn rsa_jwk() {
 #[cfg(feature = "es256k")]
 #[test]
 fn es256k_jwk() {
+    use const_decoder::Decoder::Hex;
     use secp256k1::PublicKey;
 
     // Randomly generated
@@ -156,6 +156,7 @@ fn es256k_signing_jwk() {
 ))]
 #[test]
 fn ed25519_jwk() {
+    use const_decoder::Decoder::Hex;
     use jwt_compact::{
         alg::{Ed25519, VerifyingKey},
         Algorithm,

@@ -18,6 +18,9 @@
 //!   have [`cty` field] (content type) in their header set to `"CBOR"`.
 //! - The crate supports `EdDSA` algorithm with the Ed25519 elliptic curve, and `ES256K` algorithm
 //!   with the secp256k1 elliptic curve.
+//! - Supports basic [JSON Web Key](https://tools.ietf.org/html/rfc7517.html) functionality,
+//!   e.g., for converting keys to / from JSON or computing
+//!   [a key thumbprint](https://tools.ietf.org/html/rfc7638).
 //!
 //! ## Supported algorithms
 //!

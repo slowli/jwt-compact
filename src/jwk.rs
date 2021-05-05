@@ -1,4 +1,38 @@
-//! Basic support of JSON Web Keys (JWK).
+//! Basic support of [JSON Web Keys](https://tools.ietf.org/html/rfc7517.html) (JWK).
+//!
+//! The functionality defined in this module allows converting between
+//! the [generic JWK format](JsonWebKey) and key presentation specific for the crypto backend.
+//! [`JsonWebKey`]s can be (de)serialized using [`serde`] infrastructure, and can be used
+//! to compute key thumbprint as per [RFC 7638].
+//!
+//! [`serde`]: https://crates.io/crates/serde
+//! [RFC 7638]: https://tools.ietf.org/html/rfc7638
+//!
+//! # Examples
+//!
+//! ```
+//! use jwt_compact::{alg::Hs256Key, jwk::{JsonWebKey, ToJsonWebKey}};
+//! use sha2::Sha256;
+//! # use std::convert::TryFrom;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! // Load a key from the JWK presentation.
+//! let json_str = r#"
+//!     { "kty": "oct", "k": "t-bdv41MJXExXnpquHBuDn7n1YGyX7gLQchVHAoNu50" }
+//! "#;
+//! let jwk: JsonWebKey<'_> = serde_json::from_str(json_str)?;
+//! let key = Hs256Key::try_from(jwk.clone())?;
+//!
+//! // Convert `key` back to JWK.
+//! let jwk_from_key: JsonWebKey<'_> = key.to_jwk();
+//! assert_eq!(jwk_from_key, jwk);
+//! println!("{}", serde_json::to_string(&jwk)?);
+//!
+//! // Compute the key thumbprint.
+//! let thumbprint = jwk_from_key.thumbprint::<Sha256>();
+//! # Ok(())
+//! # }
+//! ```
 
 use serde::{
     de::{Error as DeError, MapAccess, Unexpected, Visitor},
@@ -101,6 +135,8 @@ impl JwkError {
 }
 
 /// JWK field.
+///
+/// A field can be converted from a borrowed or owned string.
 #[derive(Debug, Clone, Eq)]
 #[non_exhaustive]
 pub enum JwkFieldName {
@@ -204,11 +240,13 @@ impl fmt::Display for JwkFieldName {
     }
 }
 
-/// Basic [JWK] functionality: serialization and creating thumbprints.
+/// Basic [JWK] functionality: (de)serialization and creating thumbprints.
 ///
-/// The internal format of the key is not exposed, but its fields can be indirectly accessed via
-/// [`Self::thumbprint()`] method and [`Display`](fmt::Display) implementation. The latter returns
-/// the presentation of the key used for hashing.
+/// The internal format of the key is not exposed, but its fields can be accessed via
+/// [`Self::ensure_str_field()`] and [`Self::bytes_field()`] when performing conversion from
+/// JWK to a backend-specific key type.
+/// Besides that, [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
+/// allow to get the overall presentation of the key.
 ///
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
 #[derive(PartialEq, Clone)]
@@ -237,7 +275,7 @@ impl fmt::Display for JsonWebKey<'_> {
             write!(
                 formatter,
                 "\"{name}\":\"{value}\"",
-                name = name.as_ref(),
+                name = name,
                 value = value
             )?;
             if i + 1 < field_len {
@@ -321,9 +359,12 @@ impl<'a> JsonWebKey<'a> {
         }
     }
 
-    /// Computes a thumbprint of this JWK as per [RFC 7638].
+    /// Computes a thumbprint of this JWK. If the key contains only mandatory fields
+    /// (which is the case for keys created using [`ToJsonWebKey`] trait),
+    /// the result complies to key thumbprint defined in [RFC 7638].
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
+    // FIXME: have notion of mandatory fields depending on `kty`?
     pub fn thumbprint<D: Digest>(&self) -> Output<D> {
         D::digest(self.to_string().as_bytes())
     }

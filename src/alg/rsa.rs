@@ -346,10 +346,10 @@ impl<'a> From<&'a RSAPublicKey> for JsonWebKey<'a> {
     }
 }
 
-impl TryFrom<JsonWebKey<'_>> for RSAPublicKey {
+impl TryFrom<&JsonWebKey<'_>> for RSAPublicKey {
     type Error = JwkError;
 
-    fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
         jwk.ensure_str_field(&JwkFieldName::KeyType, "RSA")?;
         let e = BigUint::from_bytes_be(jwk.bytes_field(&JwkFieldName::RsaPubExponent, None)?);
         let n = BigUint::from_bytes_be(jwk.bytes_field(&JwkFieldName::RsaModulus, None)?);

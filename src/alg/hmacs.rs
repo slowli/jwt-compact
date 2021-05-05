@@ -273,10 +273,10 @@ macro_rules! impl_key_traits {
             }
         }
 
-        impl TryFrom<JsonWebKey<'_>> for $key {
+        impl TryFrom<&JsonWebKey<'_>> for $key {
             type Error = JwkError;
 
-            fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+            fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
                 jwk.ensure_str_field(&JwkFieldName::KeyType, "oct")?;
                 jwk.bytes_field(&JwkFieldName::SecretBytes, None)
                     .map(Self::from)

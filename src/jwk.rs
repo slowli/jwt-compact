@@ -21,7 +21,7 @@
 //!     { "kty": "oct", "k": "t-bdv41MJXExXnpquHBuDn7n1YGyX7gLQchVHAoNu50" }
 //! "#;
 //! let jwk: JsonWebKey<'_> = serde_json::from_str(json_str)?;
-//! let key = Hs256Key::try_from(jwk.clone())?;
+//! let key = Hs256Key::try_from(&jwk)?;
 //!
 //! // Convert `key` back to JWK.
 //! let jwk_from_key = JsonWebKey::from(&key);
@@ -41,9 +41,13 @@ use serde::{
 };
 use sha2::digest::{Digest, Output};
 
-use core::{cmp, fmt};
+use core::{cmp, convert::TryFrom, fmt};
 
-use crate::alloc::{Cow, String, ToOwned, ToString, Vec};
+use crate::{
+    alg::SigningKey,
+    alloc::{Cow, String, ToOwned, ToString, Vec},
+    Algorithm,
+};
 
 /// Errors that can occur when transforming a [`JsonWebKey`] into the presentation specific for
 /// a crypto backend, via [`TryFrom`](core::convert::TryFrom) trait.
@@ -71,6 +75,8 @@ pub enum JwkError {
         /// Actual byte length of the field.
         actual: usize,
     },
+    /// Signing and verifying keys do not match.
+    MismatchedKeys,
     /// Custom error specific to a crypto backend.
     Custom(anyhow::Error),
 }
@@ -106,6 +112,9 @@ impl fmt::Display for JwkError {
                     field, expected, actual
                 )
             }
+            Self::MismatchedKeys => {
+                formatter.write_str("Private and public keys encoded in JWK do not match")
+            }
             Self::Custom(err) => fmt::Display::fmt(err, formatter),
         }
     }
@@ -136,12 +145,14 @@ impl JwkError {
 pub enum JwkFieldName {
     /// Key type (`kty`).
     KeyType,
-    /// Secret bytes (`k`).
+    /// Secret bytes for a symmetric key (`k`).
     SecretBytes,
     /// RSA modulus (`n`).
     RsaModulus,
     /// RSA public exponent (`e`).
     RsaPubExponent,
+    /// Private exponent for RSA or private scalar for EC algorithms (`d`).
+    PrivateBytes,
     /// Elliptic curve name (`crv`).
     EllipticCurveName,
     /// `x` coordinate on an elliptic curve (`x`).
@@ -161,6 +172,7 @@ impl JwkFieldName {
                 | Self::RsaPubExponent
                 | Self::EllipticCurveX
                 | Self::EllipticCurveY
+                | Self::PrivateBytes
         )
     }
 }
@@ -172,6 +184,7 @@ impl AsRef<str> for JwkFieldName {
             Self::SecretBytes => "k",
             Self::RsaModulus => "n",
             Self::RsaPubExponent => "e",
+            Self::PrivateBytes => "d",
             Self::EllipticCurveName => "crv",
             Self::EllipticCurveX => "x",
             Self::EllipticCurveY => "y",
@@ -187,6 +200,7 @@ impl From<String> for JwkFieldName {
             "k" => Self::SecretBytes,
             "n" => Self::RsaModulus,
             "e" => Self::RsaPubExponent,
+            "d" => Self::PrivateBytes,
             "crv" => Self::EllipticCurveName,
             "x" => Self::EllipticCurveX,
             "y" => Self::EllipticCurveY,
@@ -202,6 +216,7 @@ impl From<&str> for JwkFieldName {
             "k" => Self::SecretBytes,
             "n" => Self::RsaModulus,
             "e" => Self::RsaPubExponent,
+            "d" => Self::PrivateBytes,
             "crv" => Self::EllipticCurveName,
             "x" => Self::EllipticCurveX,
             "y" => Self::EllipticCurveY,
@@ -350,6 +365,22 @@ impl<'a> JsonWebKey<'a> {
             Ok(&*val)
         } else {
             Err(JwkError::IncorrectFieldType(field_name.to_owned()))
+        }
+    }
+
+    /// Ensures that the provided signing key matches the verifying key restored from the same JWK.
+    /// This is useful when implementing [`TryFrom`] conversion from `JsonWebKey` for private keys.
+    pub fn ensure_key_match<Alg, K>(&self, signing_key: K) -> Result<K, JwkError>
+    where
+        Alg: Algorithm<SigningKey = K>,
+        K: SigningKey<Alg>,
+        Alg::VerifyingKey: for<'jwk> TryFrom<&'jwk Self, Error = JwkError> + PartialEq,
+    {
+        let verifying_key = <Alg::VerifyingKey>::try_from(self)?;
+        if verifying_key == signing_key.to_verifying_key() {
+            Ok(signing_key)
+        } else {
+            Err(JwkError::MismatchedKeys)
         }
     }
 
@@ -609,7 +640,7 @@ mod tests {
         jwk.ensure_str_field(&"kid".into(), "my-unique-key")
             .unwrap();
 
-        let key = Hs256Key::try_from(jwk).unwrap();
+        let key = Hs256Key::try_from(&jwk).unwrap();
         let jwk_from_key = JsonWebKey::from(&key);
 
         assert_eq!(jwk_from_key.fields.len(), 2);

@@ -1,6 +1,7 @@
 use anyhow::format_err;
 use exonum_crypto::{
-    sign, verify, PublicKey, SecretKey, Signature, PUBLIC_KEY_LENGTH, SEED_LENGTH,
+    gen_keypair_from_seed, sign, verify, PublicKey, SecretKey, Seed, Signature, PUBLIC_KEY_LENGTH,
+    SEED_LENGTH,
 };
 
 use core::convert::TryFrom;
@@ -106,14 +107,35 @@ impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
     }
 }
 
-impl TryFrom<JsonWebKey<'_>> for PublicKey {
+impl TryFrom<&JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
-    fn try_from(jwk: JsonWebKey<'_>) -> Result<Self, Self::Error> {
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
         jwk.ensure_str_field(&JwkFieldName::KeyType, "OKP")?;
         jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "Ed25519")?;
         let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, PUBLIC_KEY_LENGTH)?;
         Ok(PublicKey::from_slice(x).unwrap())
         // ^ unlike some other impls, libsodium does not check public key validity on creation
+    }
+}
+
+impl<'a> From<&'a SecretKey> for JsonWebKey<'a> {
+    fn from(key: &'a SecretKey) -> JsonWebKey<'a> {
+        JsonWebKey::builder("OKP")
+            .with_str_field(JwkFieldName::EllipticCurveName, "Ed25519")
+            .with_bytes_field(JwkFieldName::EllipticCurveX, &key[SEED_LENGTH..])
+            .with_bytes_field(JwkFieldName::PrivateBytes, &key[..SEED_LENGTH])
+            .build()
+    }
+}
+
+impl TryFrom<&JsonWebKey<'_>> for SecretKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let seed_bytes = jwk.bytes_field(&JwkFieldName::PrivateBytes, SEED_LENGTH)?;
+        let seed_bytes = *<&[u8; 32]>::try_from(seed_bytes).unwrap();
+        let (_, sk) = gen_keypair_from_seed(&Seed::new(seed_bytes));
+        jwk.ensure_key_match(sk)
     }
 }

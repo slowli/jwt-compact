@@ -46,7 +46,7 @@ fn hs256_key_thumbprint() {
             .replace(|c: char| c.is_ascii_whitespace(), "")
     );
     assert_jwk_roundtrip(&jwk);
-    assert_eq!(Hs256Key::try_from(jwk).unwrap().as_ref(), key.as_ref());
+    assert_eq!(Hs256Key::try_from(&jwk).unwrap().as_ref(), key.as_ref());
 
     assert_eq!(
         key_thumbprint::<Sha256, _>(&key),
@@ -64,7 +64,7 @@ fn hs256_key_thumbprint() {
 
 #[cfg(feature = "rsa")]
 #[test]
-fn rsa_key_thumbprint() {
+fn rsa_jwk() {
     //! Taken from https://tools.ietf.org/html/rfc7638#section-3.1.
 
     use rsa::{BigUint, RSAPublicKey};
@@ -87,15 +87,15 @@ fn rsa_key_thumbprint() {
 
     let jwk = JsonWebKey::from(&public_key);
     assert_jwk_roundtrip(&jwk);
-    assert_eq!(RSAPublicKey::try_from(jwk).unwrap(), public_key);
+    assert_eq!(RSAPublicKey::try_from(&jwk).unwrap(), public_key);
 }
 
 #[cfg(feature = "es256k")]
 #[test]
-fn es256k_key_thumbprint() {
+fn es256k_jwk() {
     use secp256k1::PublicKey;
 
-    // Randomly generated.
+    // Randomly generated
     const KEY_BYTES: [u8; 65] = Hex.decode(
         b"0420c644561d2b431f9091f7cd46f74eb4cd1e52695612cea7f515cb5307782934\
          4c059f585e48d46f02292d0937444eda180f3e5cdba11b23548b827e37d899e2",
@@ -110,7 +110,7 @@ fn es256k_key_thumbprint() {
            "y":"TAWfWF5I1G8CKS0JN0RO2hgPPlzboRsjVIuCfjfYmeI"}"#
             .replace(|c: char| c.is_ascii_whitespace(), "")
     );
-    assert_eq!(PublicKey::try_from(jwk).unwrap(), public_key);
+    assert_eq!(PublicKey::try_from(&jwk).unwrap(), public_key);
 
     assert_eq!(
         key_thumbprint::<Sha256, _>(&public_key),
@@ -126,23 +126,46 @@ fn es256k_key_thumbprint() {
     );
 }
 
+#[cfg(feature = "es256k")]
+#[test]
+fn es256k_signing_jwk() {
+    use jwt_compact::alg::SigningKey;
+    use secp256k1::{PublicKey, SecretKey};
+
+    // Randomly generated
+    let jwk = serde_json::json!({
+        "kty": "EC",
+        "crv": "secp256k1",
+        "x": "_axQlhVy0Fy_slQfh5DvSC_foMd4390JbniILOmbiK8",
+        "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
+        "d": "d3N3gPucle_VNEjYVNHfULzQqUYhAjkOG7HwVCT9Wos"
+    });
+    let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+
+    let secret_key = SecretKey::try_from(&jwk).unwrap();
+    let public_key = PublicKey::try_from(&jwk).unwrap();
+    assert_eq!(public_key, secret_key.to_verifying_key());
+
+    assert_eq!(JsonWebKey::from(&secret_key), jwk);
+}
+
 #[cfg(any(
     feature = "exonum-crypto",
     feature = "ed25519-dalek",
     feature = "ed25519-compact"
 ))]
 #[test]
-fn ed25519_key_thumbprint() {
+fn ed25519_jwk() {
     use jwt_compact::{
         alg::{Ed25519, VerifyingKey},
         Algorithm,
     };
 
-    type PubKey = <Ed25519 as Algorithm>::VerifyingKey;
+    type PublicKey = <Ed25519 as Algorithm>::VerifyingKey;
 
     const KEY_BYTES: [u8; 32] =
         Hex.decode(b"b7e6ddbf8d4c2571315e7a6ab8706e0e7ee7d581b25fb80b41c8551c0a0dbb9d");
-    let public_key = <PubKey as VerifyingKey<Ed25519>>::from_slice(&KEY_BYTES).unwrap();
+    let public_key = <PublicKey as VerifyingKey<Ed25519>>::from_slice(&KEY_BYTES).unwrap();
 
     let jwk = JsonWebKey::from(&public_key);
     assert_jwk_roundtrip(&jwk);
@@ -151,7 +174,7 @@ fn ed25519_key_thumbprint() {
         r#"{"crv":"Ed25519","kty":"OKP","x":"t-bdv41MJXExXnpquHBuDn7n1YGyX7gLQchVHAoNu50"}"#
     );
     assert_eq!(
-        PubKey::try_from(jwk).unwrap().as_bytes(),
+        PublicKey::try_from(&jwk).unwrap().as_bytes(),
         public_key.as_bytes()
     );
 
@@ -167,4 +190,35 @@ fn ed25519_key_thumbprint() {
         key_thumbprint::<Sha512, _>(&public_key),
         "WqIaoagn_JL_tfn1G7a4CbWyXYObfOXyTRfl03ARFojwYyTxX0OavuDAAipIfHpZSq-i3WzexF1Qb1X3P8JzEA"
     );
+}
+
+#[cfg(any(
+    feature = "exonum-crypto",
+    feature = "ed25519-dalek",
+    feature = "ed25519-compact"
+))]
+#[test]
+fn ed25519_signing_jwk() {
+    use jwt_compact::{
+        alg::{Ed25519, SigningKey},
+        Algorithm,
+    };
+
+    type SecretKey = <Ed25519 as Algorithm>::SigningKey;
+    type PublicKey = <Ed25519 as Algorithm>::VerifyingKey;
+
+    // Randomly generated
+    let jwk = serde_json::json!({
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
+        "d": "8fyd_fcp8v4cR2pj74QMiTxo7hcYz1jZ1FeyTgWnsGI"
+    });
+    let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+
+    let secret_key = SecretKey::try_from(&jwk).unwrap();
+    let public_key = PublicKey::try_from(&jwk).unwrap();
+    assert_eq!(public_key, secret_key.to_verifying_key());
+
+    assert_eq!(JsonWebKey::from(&secret_key), jwk);
 }

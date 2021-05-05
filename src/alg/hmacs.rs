@@ -16,7 +16,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, JwkFieldName},
+    jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmSignature,
 };
 
@@ -267,9 +267,9 @@ macro_rules! impl_key_traits {
 
         impl<'a> From<&'a $key> for JsonWebKey<'a> {
             fn from(key: &'a $key) -> JsonWebKey<'a> {
-                JsonWebKey::builder("oct")
-                    .with_bytes_field("k", key.as_ref())
-                    .build()
+                JsonWebKey::Symmetric {
+                    secret: Cow::Borrowed(key.as_ref()),
+                }
             }
         }
 
@@ -277,9 +277,10 @@ macro_rules! impl_key_traits {
             type Error = JwkError;
 
             fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-                jwk.ensure_str_field(&JwkFieldName::KeyType, "oct")?;
-                jwk.bytes_field(&JwkFieldName::SecretBytes, None)
-                    .map(Self::from)
+                match jwk {
+                    JsonWebKey::Symmetric { secret } => Ok(Self::new(secret)),
+                    _ => Err(JwkError::UnexpectedKeyType),
+                }
             }
         }
     };

@@ -8,7 +8,7 @@ use core::convert::TryFrom;
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JsonWebKeyBuilder, JwkError, JwkFieldName},
+    jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -86,15 +86,13 @@ impl SigningKey<Ed25519> for Keypair {
     }
 }
 
-fn jwk_from_public_key(key: &PublicKey) -> JsonWebKeyBuilder<'_> {
-    JsonWebKey::builder("OKP")
-        .with_str_field(JwkFieldName::EllipticCurveName, "Ed25519")
-        .with_bytes_field(JwkFieldName::EllipticCurveX, key.as_ref())
-}
-
 impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
     fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
-        jwk_from_public_key(key).build()
+        JsonWebKey::KeyPair {
+            curve: Cow::Borrowed("Ed25519"),
+            x: Cow::Borrowed(key.as_ref()),
+            secret: None,
+        }
     }
 }
 
@@ -102,18 +100,25 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        jwk.ensure_str_field(&JwkFieldName::KeyType, "OKP")?;
-        jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "Ed25519")?;
-        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, PUBLIC_KEY_LENGTH)?;
+        let (curve, x) = if let JsonWebKey::KeyPair { curve, x, .. } = jwk {
+            (curve, x)
+        } else {
+            return Err(JwkError::UnexpectedKeyType);
+        };
+
+        JsonWebKey::ensure_curve(curve, "Ed25519")?;
+        JsonWebKey::ensure_len("x", x, PUBLIC_KEY_LENGTH)?;
         PublicKey::from_slice(x).map_err(JwkError::custom)
     }
 }
 
 impl<'a> From<&'a Keypair> for JsonWebKey<'a> {
     fn from(keypair: &'a Keypair) -> JsonWebKey<'a> {
-        jwk_from_public_key(&keypair.public)
-            .with_bytes_field(JwkFieldName::PrivateBytes, keypair.secret.as_ref())
-            .build()
+        JsonWebKey::KeyPair {
+            curve: Cow::Borrowed("Ed25519"),
+            x: Cow::Borrowed(keypair.public.as_ref()),
+            secret: Some(Cow::Borrowed(keypair.secret.as_ref())),
+        }
     }
 }
 
@@ -121,8 +126,14 @@ impl TryFrom<&JsonWebKey<'_>> for Keypair {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let sk_bytes = jwk.bytes_field(&JwkFieldName::PrivateBytes, SECRET_KEY_LENGTH)?;
-        let sk_bytes = *<&[u8; SECRET_KEY_LENGTH]>::try_from(sk_bytes).unwrap();
+        let sk_bytes = if let JsonWebKey::KeyPair { secret, .. } = jwk {
+            secret.as_deref()
+        } else {
+            return Err(JwkError::UnexpectedKeyType);
+        };
+        let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
+        JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_LENGTH)?;
+
         let secret = SecretKey::from_bytes(sk_bytes).unwrap();
         let keypair = Keypair {
             public: PublicKey::from(&secret),

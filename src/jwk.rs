@@ -34,14 +34,10 @@
 //! # }
 //! ```
 
-use serde::{
-    de::{Error as DeError, MapAccess, Unexpected, Visitor},
-    ser::SerializeMap,
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use serde::{Deserialize, Serialize};
 use sha2::digest::{Digest, Output};
 
-use core::{cmp, convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt};
 
 use crate::{
     alg::SigningKey,
@@ -54,13 +50,13 @@ use crate::{
 #[derive(Debug)]
 pub enum JwkError {
     /// Required field is absent from JWK.
-    NoField(JwkFieldName),
-    /// JWK field type is incorrect (e.g., a string instead of bytes).
-    IncorrectFieldType(JwkFieldName),
+    NoField(String),
+    /// FIXME
+    UnexpectedKeyType,
     /// JWK field has an unexpected value.
     UnexpectedValue {
         /// Field name.
-        field: JwkFieldName,
+        field: String,
         /// Expected value of the field.
         expected: String,
         /// Actual value of the field.
@@ -69,7 +65,7 @@ pub enum JwkError {
     /// JWK field has an unexpected byte length.
     UnexpectedLen {
         /// Field name.
-        field: JwkFieldName,
+        field: String,
         /// Expected byte length of the field.
         expected: usize,
         /// Actual byte length of the field.
@@ -84,12 +80,8 @@ pub enum JwkError {
 impl fmt::Display for JwkError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoField(field) => {
-                write!(formatter, "field `{}` is absent from JWK", field)
-            }
-            Self::IncorrectFieldType(field) => {
-                write!(formatter, "field `{}` has incorrect type", field)
-            }
+            Self::UnexpectedKeyType => formatter.write_str("Unexpected key type"),
+            Self::NoField(field) => write!(formatter, "field `{}` is absent from JWK", field),
             Self::UnexpectedValue {
                 field,
                 expected,
@@ -137,240 +129,92 @@ impl JwkError {
     }
 }
 
-/// JWK field.
-///
-/// A field can be converted from a borrowed or owned string.
-#[derive(Debug, Clone, Eq)]
-#[non_exhaustive]
-pub enum JwkFieldName {
-    /// Key type (`kty`).
-    KeyType,
-    /// Secret bytes for a symmetric key (`k`).
-    SecretBytes,
-    /// RSA modulus (`n`).
-    RsaModulus,
-    /// RSA public exponent (`e`).
-    RsaPubExponent,
-    /// Private exponent for RSA or private scalar for EC algorithms (`d`).
-    PrivateBytes,
-    /// Elliptic curve name (`crv`).
-    EllipticCurveName,
-    /// `x` coordinate on an elliptic curve (`x`).
-    EllipticCurveX,
-    /// `y` coordinate on an elliptic curve (`y`).
-    EllipticCurveY,
-    /// Other field.
-    Other(String),
-}
-
-impl JwkFieldName {
-    fn is_bytes(&self) -> bool {
-        matches!(
-            self,
-            Self::SecretBytes
-                | Self::RsaModulus
-                | Self::RsaPubExponent
-                | Self::EllipticCurveX
-                | Self::EllipticCurveY
-                | Self::PrivateBytes
-        )
-    }
-}
-
-impl AsRef<str> for JwkFieldName {
-    fn as_ref(&self) -> &str {
-        match self {
-            Self::KeyType => "kty",
-            Self::SecretBytes => "k",
-            Self::RsaModulus => "n",
-            Self::RsaPubExponent => "e",
-            Self::PrivateBytes => "d",
-            Self::EllipticCurveName => "crv",
-            Self::EllipticCurveX => "x",
-            Self::EllipticCurveY => "y",
-            Self::Other(other) => other,
-        }
-    }
-}
-
-impl From<String> for JwkFieldName {
-    fn from(s: String) -> Self {
-        match s.as_str() {
-            "kty" => Self::KeyType,
-            "k" => Self::SecretBytes,
-            "n" => Self::RsaModulus,
-            "e" => Self::RsaPubExponent,
-            "d" => Self::PrivateBytes,
-            "crv" => Self::EllipticCurveName,
-            "x" => Self::EllipticCurveX,
-            "y" => Self::EllipticCurveY,
-            _ => Self::Other(s),
-        }
-    }
-}
-
-impl From<&str> for JwkFieldName {
-    fn from(s: &str) -> Self {
-        match s {
-            "kty" => Self::KeyType,
-            "k" => Self::SecretBytes,
-            "n" => Self::RsaModulus,
-            "e" => Self::RsaPubExponent,
-            "d" => Self::PrivateBytes,
-            "crv" => Self::EllipticCurveName,
-            "x" => Self::EllipticCurveX,
-            "y" => Self::EllipticCurveY,
-            other => Self::Other(other.to_owned()),
-        }
-    }
-}
-
-impl PartialEq for JwkFieldName {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-
-impl PartialOrd for JwkFieldName {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for JwkFieldName {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl fmt::Display for JwkFieldName {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self.as_ref(), formatter)
-    }
-}
-
 /// Basic [JWK] functionality: (de)serialization and creating thumbprints.
 ///
-/// The internal format of the key is not exposed, but its fields can be accessed via
-/// [`Self::ensure_str_field()`] and [`Self::bytes_field()`] when performing conversion from
-/// JWK to a backend-specific key type.
-/// Besides that, [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
+/// [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
 /// allow to get the overall presentation of the key.
 ///
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
-#[derive(PartialEq, Clone)]
-pub struct JsonWebKey<'a> {
-    fields: Vec<(JwkFieldName, JwkField<'a>)>,
-}
-
-impl fmt::Debug for JsonWebKey<'_> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_map()
-            .entries(
-                self.fields
-                    .iter()
-                    .map(|(name, field)| (name.as_ref(), field)),
-            )
-            .finish()
-    }
-}
-
-impl fmt::Display for JsonWebKey<'_> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("{")?;
-        let field_len = self.fields.len();
-        for (i, (name, value)) in self.fields.iter().enumerate() {
-            write!(
-                formatter,
-                "\"{name}\":\"{value}\"",
-                name = name,
-                value = value
-            )?;
-            if i + 1 < field_len {
-                formatter.write_str(",")?;
-            }
-        }
-        formatter.write_str("}")
-    }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kty")]
+#[allow(missing_docs)]
+pub enum JsonWebKey<'a> {
+    #[serde(rename = "RSA")]
+    Rsa {
+        #[serde(rename = "n", with = "base64url")]
+        modulus: Cow<'a, [u8]>,
+        #[serde(rename = "e", with = "base64url")]
+        public_exponent: Cow<'a, [u8]>,
+    },
+    #[serde(rename = "EC")]
+    EllipticCurve {
+        #[serde(rename = "crv")]
+        curve: Cow<'a, str>,
+        #[serde(with = "base64url")]
+        x: Cow<'a, [u8]>,
+        #[serde(with = "base64url")]
+        y: Cow<'a, [u8]>,
+        #[serde(
+            rename = "d",
+            default,
+            skip_serializing_if = "Option::is_none",
+            with = "base64url_opt"
+        )]
+        secret: Option<Cow<'a, [u8]>>,
+    },
+    #[serde(rename = "oct")]
+    Symmetric {
+        #[serde(rename = "k", with = "base64url")]
+        secret: Cow<'a, [u8]>,
+    },
+    #[serde(rename = "OKP")]
+    KeyPair {
+        #[serde(rename = "crv")]
+        curve: Cow<'a, str>,
+        #[serde(with = "base64url")]
+        x: Cow<'a, [u8]>,
+        #[serde(
+            rename = "d",
+            default,
+            skip_serializing_if = "Option::is_none",
+            with = "base64url_opt"
+        )]
+        secret: Option<Cow<'a, [u8]>>,
+    },
 }
 
 impl<'a> JsonWebKey<'a> {
-    const CAPACITY: usize = 4;
-
-    /// Instantiates a key builder.
-    pub fn builder(key_type: &'static str) -> JsonWebKeyBuilder<'a> {
-        let mut fields = Vec::with_capacity(Self::CAPACITY);
-        fields.push((JwkFieldName::KeyType, JwkField::str(key_type)));
-        JsonWebKeyBuilder {
-            inner: Self { fields },
+    pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
+        if curve == expected {
+            Ok(())
+        } else {
+            Err(JwkError::UnexpectedValue {
+                field: "crv".to_owned(),
+                expected: expected.to_owned(),
+                actual: curve.to_owned(),
+            })
         }
     }
 
-    fn field(&self, field_name: &JwkFieldName) -> Result<&JwkField<'a>, JwkError> {
-        self.fields
-            .iter()
-            .find(|(name, _)| name == field_name)
-            .map(|(_, value)| value)
-            .ok_or_else(|| JwkError::NoField(field_name.to_owned()))
-    }
-
-    /// Ensures that a string field has an expected value.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the field is not present, does not have a string type or has
-    /// an unexpected value.
-    pub fn ensure_str_field(
-        &self,
-        field_name: &JwkFieldName,
-        expected_value: &str,
+    pub(crate) fn ensure_len(
+        field: &str,
+        bytes: &[u8],
+        expected_len: usize,
     ) -> Result<(), JwkError> {
-        if let JwkField::Str(val) = self.field(field_name)? {
-            if *val == expected_value {
-                Ok(())
-            } else {
-                Err(JwkError::UnexpectedValue {
-                    field: field_name.to_owned(),
-                    expected: expected_value.to_owned(),
-                    actual: val.clone().into_owned(),
-                })
-            }
+        if bytes.len() == expected_len {
+            Ok(())
         } else {
-            Err(JwkError::IncorrectFieldType(field_name.to_owned()))
-        }
-    }
-
-    /// Obtains a bytes field with the specified name from this JWK.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the field is not present or does not have the bytes type.
-    pub fn bytes_field(
-        &self,
-        field_name: &JwkFieldName,
-        expected_len: impl Into<Option<usize>>,
-    ) -> Result<&[u8], JwkError> {
-        let expected_len = expected_len.into();
-        if let JwkField::Bytes(val) = self.field(field_name)? {
-            if let Some(expected) = expected_len {
-                if expected != val.len() {
-                    return Err(JwkError::UnexpectedLen {
-                        field: field_name.to_owned(),
-                        expected,
-                        actual: val.len(),
-                    });
-                }
-            }
-            Ok(&*val)
-        } else {
-            Err(JwkError::IncorrectFieldType(field_name.to_owned()))
+            Err(JwkError::UnexpectedLen {
+                field: field.to_owned(),
+                expected: expected_len,
+                actual: bytes.len(),
+            })
         }
     }
 
     /// Ensures that the provided signing key matches the verifying key restored from the same JWK.
     /// This is useful when implementing [`TryFrom`] conversion from `JsonWebKey` for private keys.
-    pub fn ensure_key_match<Alg, K>(&self, signing_key: K) -> Result<K, JwkError>
+    pub(crate) fn ensure_key_match<Alg, K>(&self, signing_key: K) -> Result<K, JwkError>
     where
         Alg: Algorithm<SigningKey = K>,
         K: SigningKey<Alg>,
@@ -384,156 +228,148 @@ impl<'a> JsonWebKey<'a> {
         }
     }
 
+    /// Returns a copy of this key with parts not necessary for signature verification removed.
+    pub fn to_verifying_key(&self) -> Self {
+        match self {
+            Self::Rsa {
+                modulus,
+                public_exponent,
+            } => Self::Rsa {
+                modulus: modulus.clone(),
+                public_exponent: public_exponent.clone(),
+            },
+
+            Self::EllipticCurve { curve, x, y, .. } => Self::EllipticCurve {
+                curve: curve.clone(),
+                x: x.clone(),
+                y: y.clone(),
+                secret: None,
+            },
+
+            Self::Symmetric { secret } => Self::Symmetric {
+                secret: secret.clone(),
+            },
+
+            Self::KeyPair { curve, x, .. } => Self::KeyPair {
+                curve: curve.clone(),
+                x: x.clone(),
+                secret: None,
+            },
+        }
+    }
+
     /// Computes a thumbprint of this JWK. If the key contains only mandatory fields
     /// (which is the case for keys created using [`From`] trait),
     /// the result complies to key thumbprint defined in [RFC 7638].
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
-    // FIXME: have notion of mandatory fields depending on `kty`?
     pub fn thumbprint<D: Digest>(&self) -> Output<D> {
-        D::digest(self.to_string().as_bytes())
+        D::digest(self.to_verifying_key().to_string().as_bytes())
     }
 }
 
-impl Serialize for JsonWebKey<'_> {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(self.fields.len()))?;
-        for (name, value) in &self.fields {
-            map.serialize_entry(name.as_ref(), &value.to_string())?;
+impl fmt::Display for JsonWebKey<'_> {
+    // TODO: Not the most efficient approach
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let json_value = serde_json::to_value(self).expect("Cannot convert JsonWebKey to JSON");
+        let json_value = json_value.as_object().unwrap();
+        // ^ unwrap() is safe: `JsonWebKey` serialization is always an object.
+
+        let mut json_entries: Vec<_> = json_value.iter().collect();
+        json_entries.sort_unstable_by(|(x, _), (y, _)| x.cmp(y));
+
+        formatter.write_str("{")?;
+        let field_count = json_entries.len();
+        for (i, (name, value)) in json_entries.into_iter().enumerate() {
+            write!(formatter, "\"{name}\":{value}", name = name, value = value)?;
+            if i + 1 < field_count {
+                formatter.write_str(",")?;
+            }
         }
-        map.end()
+        formatter.write_str("}")
     }
 }
 
-impl<'de> Deserialize<'de> for JsonWebKey<'static> {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        struct MapVisitor;
+/// [`JsonWebKey`] together with user-defined info, such as key ID (`kid`).
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ExtendedJsonWebKey<'a, T = ()> {
+    /// Standard fields.
+    #[serde(flatten)]
+    pub base: JsonWebKey<'a>,
+    /// User-defined fields.
+    #[serde(flatten)]
+    pub extra: T,
+}
 
-        impl<'v> Visitor<'v> for MapVisitor {
-            type Value = JsonWebKey<'static>;
+impl<'a> From<JsonWebKey<'a>> for ExtendedJsonWebKey<'a> {
+    fn from(base: JsonWebKey<'a>) -> Self {
+        Self { base, extra: () }
+    }
+}
+
+mod base64url {
+    use serde::{
+        de::{Error as DeError, Unexpected, Visitor},
+        Deserializer, Serializer,
+    };
+
+    use core::fmt;
+
+    use crate::alloc::{Cow, Vec};
+
+    pub fn serialize<S>(value: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&base64::encode_config(value, base64::URL_SAFE_NO_PAD))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Cow<'static, [u8]>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Base64Visitor;
+
+        impl Visitor<'_> for Base64Visitor {
+            type Value = Vec<u8>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("JSON web key")
+                write!(formatter, "base64url-encoded data")
             }
 
-            fn visit_map<A: MapAccess<'v>>(self, mut map: A) -> Result<Self::Value, A::Error> {
-                let mut fields: Vec<(JwkFieldName, JwkField<'static>)> =
-                    Vec::with_capacity(map.size_hint().unwrap_or(JsonWebKey::CAPACITY));
-
-                while let Some((field_name, value)) = map.next_entry::<String, String>()? {
-                    let field_name = JwkFieldName::from(field_name);
-                    if fields.iter().any(|(name, _)| *name == field_name) {
-                        let mut msg = String::from("duplicate field: ");
-                        msg.push_str(field_name.as_ref());
-                        return Err(A::Error::custom(msg));
-                    }
-
-                    let value = if field_name.is_bytes() {
-                        let bytes = base64::decode_config(&*value, base64::URL_SAFE_NO_PAD)
-                            .map_err(|_| {
-                                A::Error::invalid_value(
-                                    Unexpected::Str(&*value),
-                                    &"base64url-encoded data",
-                                )
-                            })?;
-                        JwkField::Bytes(bytes.into())
-                    } else {
-                        JwkField::Str(value.into())
-                    };
-                    fields.push((field_name, value));
-                }
-
-                fields.sort_unstable_by(|(x, _), (y, _)| x.cmp(y));
-                Ok(JsonWebKey { fields })
+            fn visit_str<E: DeError>(self, value: &str) -> Result<Self::Value, E> {
+                base64::decode_config(value, base64::URL_SAFE_NO_PAD)
+                    .map_err(|_| E::invalid_value(Unexpected::Str(value), &self))
             }
         }
 
-        deserializer.deserialize_map(MapVisitor)
+        deserializer.deserialize_str(Base64Visitor).map(Cow::Owned)
     }
 }
 
-/// Builder for [`JsonWebKey`].
-#[derive(Debug)]
-pub struct JsonWebKeyBuilder<'a> {
-    inner: JsonWebKey<'a>,
-}
+mod base64url_opt {
+    use serde::{Deserializer, Serializer};
 
-impl<'a> JsonWebKeyBuilder<'a> {
-    fn assert_no_field(&self, field_name: &JwkFieldName) {
-        let existing_field = self
-            .inner
-            .fields
-            .iter()
-            .find(|(name, _)| name == field_name);
-        if let Some((_, old_value)) = existing_field {
-            panic!("Field `{}` is already defined: {:?}", field_name, old_value);
+    use super::base64url;
+    use crate::alloc::Cow;
+
+    #[allow(clippy::option_if_let_else)] // false positive; `serializer` is moved into both clauses
+    pub fn serialize<S>(value: &Option<Cow<'_, [u8]>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if let Some(value) = value {
+            base64url::serialize(value, serializer)
+        } else {
+            serializer.serialize_none()
         }
     }
 
-    /// Adds a string field with the specified name.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the field with this name is already present.
-    pub fn with_str_field(
-        mut self,
-        field_name: impl Into<JwkFieldName>,
-        value: &'static str,
-    ) -> Self {
-        let field_name = field_name.into();
-        self.assert_no_field(&field_name);
-        self.inner.fields.push((field_name, JwkField::str(value)));
-        self
-    }
-
-    /// Adds a byte field with the specified name. Bytes can be borrowed from the key, or
-    /// can be instantiated for this method.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the field with this name is already present.
-    pub fn with_bytes_field(
-        mut self,
-        field_name: impl Into<JwkFieldName>,
-        value: impl Into<Cow<'a, [u8]>>,
-    ) -> Self {
-        let field_name = field_name.into();
-        self.assert_no_field(&field_name);
-        self.inner
-            .fields
-            .push((field_name, JwkField::Bytes(value.into())));
-        self
-    }
-
-    /// Consumes this builder creating [`JsonWebKey`].
-    pub fn build(self) -> JsonWebKey<'a> {
-        let mut inner = self.inner;
-        inner.fields.sort_unstable_by(|(x, _), (y, _)| x.cmp(y));
-        inner
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum JwkField<'a> {
-    Str(Cow<'static, str>),
-    Bytes(Cow<'a, [u8]>),
-}
-
-impl fmt::Display for JwkField<'_> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Str(s) => formatter.write_str(s),
-            Self::Bytes(bytes) => {
-                let encoded = base64::encode_config(bytes, base64::URL_SAFE_NO_PAD);
-                formatter.write_str(&encoded)
-            }
-        }
-    }
-}
-
-impl JwkField<'_> {
-    fn str(s: &'static str) -> Self {
-        Self::Str(Cow::Borrowed(s))
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Cow<'static, [u8]>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        base64url::deserialize(deserializer).map(Some)
     }
 }
 
@@ -546,12 +382,10 @@ mod tests {
     use core::convert::TryFrom;
 
     fn create_jwk() -> JsonWebKey<'static> {
-        JsonWebKey {
-            fields: vec![
-                ("crv".into(), JwkField::str("Ed25519")),
-                ("kty".into(), JwkField::str("OKP")),
-                ("x".into(), JwkField::Bytes(Cow::Borrowed(b"test"))),
-            ],
+        JsonWebKey::KeyPair {
+            curve: Cow::Borrowed("Ed25519"),
+            x: Cow::Borrowed(b"test"),
+            secret: None,
         }
     }
 
@@ -571,14 +405,14 @@ mod tests {
 
     #[test]
     fn jwk_deserialization_errors() {
-        let duplicate_field_json = r#"{"crv":"Ed25519","crv":"secp256k1"}"#;
-        let duplicate_field_err = serde_json::from_str::<JsonWebKey<'_>>(duplicate_field_json)
+        let missing_field_json = r#"{"crv":"Ed25519"}"#;
+        let missing_field_err = serde_json::from_str::<JsonWebKey<'_>>(missing_field_json)
             .unwrap_err()
             .to_string();
         assert!(
-            duplicate_field_err.contains("duplicate field"),
+            missing_field_err.contains("missing field `kty`"),
             "{}",
-            duplicate_field_err
+            missing_field_err
         );
 
         let base64_json = r#"{"crv":"Ed25519","kty":"OKP","x":"??"}"#;
@@ -598,55 +432,38 @@ mod tests {
     }
 
     #[test]
-    fn converting_jwk_errors() {
-        let jwk = create_jwk();
-
-        let absent_err = jwk
-            .ensure_str_field(&JwkFieldName::EllipticCurveY, "?")
-            .unwrap_err();
-        assert_matches!(absent_err, JwkError::NoField(field) if field.as_ref() == "y");
-
-        let type_err = jwk
-            .ensure_str_field(&JwkFieldName::EllipticCurveX, "OKP")
-            .unwrap_err();
-        assert_matches!(type_err, JwkError::IncorrectFieldType(field) if field.as_ref() == "x");
-
-        let val_err = jwk
-            .ensure_str_field(&JwkFieldName::KeyType, "EC")
-            .unwrap_err();
-        assert_matches!(
-            val_err,
-            JwkError::UnexpectedValue { field, actual, .. }
-                if field.as_ref() == "kty" && actual == "OKP"
-        );
-
-        let len_err = jwk
-            .bytes_field(&JwkFieldName::EllipticCurveX, 16)
-            .unwrap_err();
-        assert_matches!(
-            len_err,
-            JwkError::UnexpectedLen { field, actual, .. } if field.as_ref() == "x" && actual == 4
-        );
-    }
-
-    #[test]
     fn extra_jwk_fields() {
+        #[derive(Debug, Deserialize)]
+        struct Extra {
+            #[serde(rename = "kid")]
+            key_id: String,
+            #[serde(rename = "use")]
+            key_use: KeyUse,
+        }
+
+        #[derive(Debug, Deserialize, PartialEq)]
+        enum KeyUse {
+            #[serde(rename = "sig")]
+            Signature,
+            #[serde(rename = "enc")]
+            Encryption,
+        }
+
         let json_str = r#"
-            { "kty": "oct", "k": "dGVzdA", "kid": "my-unique-key" }
+            { "kty": "oct", "kid": "my-unique-key", "k": "dGVzdA", "use": "sig" }
         "#;
-        let jwk: JsonWebKey<'_> = serde_json::from_str(json_str).unwrap();
+        let jwk: ExtendedJsonWebKey<'_, Extra> = serde_json::from_str(json_str).unwrap();
 
-        assert_eq!(jwk.fields.len(), 3);
-        jwk.ensure_str_field(&"kid".into(), "my-unique-key")
-            .unwrap();
+        assert_matches!(&jwk.base, JsonWebKey::Symmetric { secret } if secret.as_ref() == b"test");
+        assert_eq!(jwk.extra.key_id, "my-unique-key");
+        assert_eq!(jwk.extra.key_use, KeyUse::Signature);
 
-        let key = Hs256Key::try_from(&jwk).unwrap();
+        let key = Hs256Key::try_from(&jwk.base).unwrap();
         let jwk_from_key = JsonWebKey::from(&key);
 
-        assert_eq!(jwk_from_key.fields.len(), 2);
-        assert!(jwk_from_key
-            .fields
-            .iter()
-            .all(|(name, _)| name.as_ref() != "kid"));
+        assert_matches!(
+            jwk_from_key,
+            JsonWebKey::Symmetric { secret } if secret.as_ref() == b"test"
+        );
     }
 }

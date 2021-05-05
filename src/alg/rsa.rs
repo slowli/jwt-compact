@@ -11,7 +11,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
-    jwk::{JsonWebKey, JwkError, JwkFieldName},
+    jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmSignature,
 };
 
@@ -339,10 +339,10 @@ impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
 
 impl<'a> From<&'a RSAPublicKey> for JsonWebKey<'a> {
     fn from(key: &'a RSAPublicKey) -> JsonWebKey<'a> {
-        JsonWebKey::builder("RSA")
-            .with_bytes_field("e", key.e().to_bytes_be())
-            .with_bytes_field("n", key.n().to_bytes_be())
-            .build()
+        JsonWebKey::Rsa {
+            modulus: Cow::Owned(key.n().to_bytes_be()),
+            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+        }
     }
 }
 
@@ -350,9 +350,18 @@ impl TryFrom<&JsonWebKey<'_>> for RSAPublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        jwk.ensure_str_field(&JwkFieldName::KeyType, "RSA")?;
-        let e = BigUint::from_bytes_be(jwk.bytes_field(&JwkFieldName::RsaPubExponent, None)?);
-        let n = BigUint::from_bytes_be(jwk.bytes_field(&JwkFieldName::RsaModulus, None)?);
-        Self::new(n, e).map_err(JwkError::custom)
+        let (n, e) = if let JsonWebKey::Rsa {
+            modulus,
+            public_exponent,
+        } = jwk
+        {
+            (modulus, public_exponent)
+        } else {
+            return Err(JwkError::UnexpectedKeyType);
+        };
+
+        let e = BigUint::from_bytes_be(e);
+        let n = BigUint::from_bytes_be(n);
+        Self::new(n, e).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
     }
 }

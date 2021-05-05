@@ -13,7 +13,7 @@ use core::{convert::TryFrom, marker::PhantomData};
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JsonWebKeyBuilder, JwkError, JwkFieldName},
+    jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmSignature,
 };
 
@@ -138,17 +138,19 @@ impl VerifyingKey<Es256k> for PublicKey {
     }
 }
 
-fn jwk_from_public_key(key: &PublicKey) -> JsonWebKeyBuilder<'static> {
-    let uncompressed = key.serialize_uncompressed();
-    JsonWebKey::builder("EC")
-        .with_str_field("crv", "secp256k1")
-        .with_bytes_field("x", uncompressed[1..=COORDINATE_SIZE].to_vec())
-        .with_bytes_field("y", uncompressed[(1 + COORDINATE_SIZE)..].to_vec())
+fn create_jwk<'a>(pk: &PublicKey, sk: Option<&'a SecretKey>) -> JsonWebKey<'a> {
+    let uncompressed = pk.serialize_uncompressed();
+    JsonWebKey::EllipticCurve {
+        curve: "secp256k1".into(),
+        x: Cow::Owned(uncompressed[1..=COORDINATE_SIZE].to_vec()),
+        y: Cow::Owned(uncompressed[(1 + COORDINATE_SIZE)..].to_vec()),
+        secret: sk.map(|sk| Cow::Borrowed(&sk.as_ref()[..])),
+    }
 }
 
 impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
     fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
-        jwk_from_public_key(key).build()
+        create_jwk(key, None)
     }
 }
 
@@ -156,10 +158,20 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        jwk.ensure_str_field(&JwkFieldName::KeyType, "EC")?;
-        jwk.ensure_str_field(&JwkFieldName::EllipticCurveName, "secp256k1")?;
-        let x = jwk.bytes_field(&JwkFieldName::EllipticCurveX, COORDINATE_SIZE)?;
-        let y = jwk.bytes_field(&JwkFieldName::EllipticCurveY, COORDINATE_SIZE)?;
+        let (x, y) = if let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk {
+            if curve != "secp256k1" {
+                return Err(JwkError::UnexpectedValue {
+                    field: "crv".to_owned(),
+                    expected: "secp256k1".to_owned(),
+                    actual: curve.to_string(),
+                });
+            }
+            (x.as_ref(), y.as_ref())
+        } else {
+            return Err(JwkError::UnexpectedKeyType);
+        };
+        JsonWebKey::ensure_len("x", x, COORDINATE_SIZE)?;
+        JsonWebKey::ensure_len("y", y, COORDINATE_SIZE)?;
 
         let mut key_bytes = [0_u8; UNCOMPRESSED_PUBLIC_KEY_SIZE];
         key_bytes[0] = 4; // uncompressed key marker
@@ -171,9 +183,7 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
 
 impl<'a> From<&'a SecretKey> for JsonWebKey<'a> {
     fn from(key: &'a SecretKey) -> JsonWebKey<'a> {
-        jwk_from_public_key(&key.to_verifying_key())
-            .with_bytes_field(JwkFieldName::PrivateBytes, &key.as_ref()[..])
-            .build()
+        create_jwk(&key.to_verifying_key(), Some(key))
     }
 }
 
@@ -181,8 +191,15 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let secret_key_bytes = jwk.bytes_field(&JwkFieldName::PrivateBytes, SECRET_KEY_SIZE)?;
-        let secret_key = SecretKey::from_slice(secret_key_bytes).map_err(JwkError::custom)?;
-        jwk.ensure_key_match(secret_key)
+        let sk_bytes = if let JsonWebKey::EllipticCurve { secret, .. } = jwk {
+            secret.as_deref()
+        } else {
+            return Err(JwkError::UnexpectedKeyType);
+        };
+        let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".to_owned()))?;
+        JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_SIZE)?;
+
+        let sk = SecretKey::from_slice(sk_bytes).map_err(JwkError::custom)?;
+        jwk.ensure_key_match(sk)
     }
 }

@@ -396,6 +396,7 @@ mod tests {
     use super::*;
     use crate::{
         alg::{Hs256, Hs256Key},
+        alloc::ToOwned,
         AlgorithmExt,
     };
 

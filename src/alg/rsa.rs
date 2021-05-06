@@ -1,9 +1,9 @@
 //! RSA-based JWT schemes: `RS*` and `PS*`.
 
-pub use rsa::{RSAPrivateKey, RSAPublicKey};
+pub use rsa::{errors::Error as RsaError, RSAPrivateKey, RSAPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
-use rsa::{hash::Hash, PaddingScheme, PublicKey, PublicKeyParts};
+use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use core::{convert::TryFrom, fmt};
@@ -11,6 +11,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
+    jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts, SecretBytes},
     Algorithm, AlgorithmSignature,
 };
 
@@ -333,5 +334,118 @@ impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
         } else {
             Err(WeakKeyError(key))
         }
+    }
+}
+
+impl<'a> From<&'a RSAPublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a RSAPublicKey) -> JsonWebKey<'a> {
+        JsonWebKey::Rsa {
+            modulus: Cow::Owned(key.n().to_bytes_be()),
+            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+            private_parts: None,
+        }
+    }
+}
+
+impl TryFrom<&JsonWebKey<'_>> for RSAPublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let (n, e) = if let JsonWebKey::Rsa {
+            modulus,
+            public_exponent,
+            ..
+        } = jwk
+        {
+            (modulus, public_exponent)
+        } else {
+            return Err(JwkError::key_type(jwk, KeyType::Rsa));
+        };
+
+        let e = BigUint::from_bytes_be(e);
+        let n = BigUint::from_bytes_be(n);
+        Self::new(n, e).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
+    }
+}
+
+/// ⚠ **Warning.** Contrary to [RFC 7518], this implementation does not set `dp`, `dq`, and `qi`
+/// fields in the JWK root object, as well as `d` and `t` fields for additional factors
+/// (i.e., in the `oth` array).
+///
+/// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-6.3.2
+impl<'a> From<&'a RSAPrivateKey> for JsonWebKey<'a> {
+    fn from(key: &'a RSAPrivateKey) -> JsonWebKey<'a> {
+        const MSG: &str = "RSAPrivateKey must have at least 2 prime factors";
+
+        let p = key.primes().get(0).expect(MSG);
+        let q = key.primes().get(1).expect(MSG);
+
+        let private_parts = RsaPrivateParts {
+            private_exponent: SecretBytes::owned(key.d().to_bytes_be()),
+            prime_factor_p: SecretBytes::owned(p.to_bytes_be()),
+            prime_factor_q: SecretBytes::owned(q.to_bytes_be()),
+            p_crt_exponent: None,
+            q_crt_exponent: None,
+            q_crt_coefficient: None,
+            other_prime_factors: key.primes()[2..]
+                .iter()
+                .map(|factor| RsaPrimeFactor {
+                    factor: SecretBytes::owned(factor.to_bytes_be()),
+                    crt_exponent: None,
+                    crt_coefficient: None,
+                })
+                .collect(),
+        };
+
+        JsonWebKey::Rsa {
+            modulus: Cow::Owned(key.n().to_bytes_be()),
+            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+            private_parts: Some(private_parts),
+        }
+    }
+}
+
+/// ⚠ **Warning.** Contrary to [RFC 7518] (at least, in spirit), this conversion ignores
+/// `dp`, `dq`, and `qi` fields from JWK, as well as `d` and `t` fields for additional factors.
+impl TryFrom<&JsonWebKey<'_>> for RSAPrivateKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let (n, e, private_parts) = if let JsonWebKey::Rsa {
+            modulus,
+            public_exponent,
+            private_parts,
+        } = jwk
+        {
+            (modulus, public_exponent, private_parts.as_ref())
+        } else {
+            return Err(JwkError::key_type(jwk, KeyType::Rsa));
+        };
+
+        let RsaPrivateParts {
+            private_exponent: d,
+            prime_factor_p,
+            prime_factor_q,
+            other_prime_factors,
+            ..
+        } = private_parts.ok_or_else(|| JwkError::NoField("d".into()))?;
+
+        let e = BigUint::from_bytes_be(e);
+        let n = BigUint::from_bytes_be(n);
+        let d = BigUint::from_bytes_be(d);
+
+        let mut factors = Vec::with_capacity(2 + other_prime_factors.len());
+        factors.push(BigUint::from_bytes_be(prime_factor_p));
+        factors.push(BigUint::from_bytes_be(prime_factor_q));
+        factors.extend(
+            other_prime_factors
+                .iter()
+                .map(|prime| BigUint::from_bytes_be(&prime.factor)),
+        );
+
+        let key = Self::from_components(n, e, d, factors);
+        key.validate()
+            .map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;
+        Ok(key)
     }
 }

@@ -11,7 +11,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
   `AsRef<[u8]>`. This simplifies key loading.
 
 - Add `new()` constructor for `UntrustedToken` that accepts any type implementing
-  `AsRef<str>`. This simplifies token processing. 
+  `AsRef<str>`. This simplifies token processing.
+
+- Add basic JSON Web Key (JWK) support. This allows (de)serializing keys from / into
+  a uniform format and computing key thumbprints.
 
 ### Changed
 
@@ -23,6 +26,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Encapsulate `hmac` and `sha2` dependencies by introducing signature types 
   for `HS*` algorithms.
+
+- `exonum-crypto` feature is no longer enabled by default.
 
 ## 0.3.0 - 2020-11-30
 

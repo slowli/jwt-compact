@@ -18,13 +18,16 @@
 //!   have [`cty` field] (content type) in their header set to `"CBOR"`.
 //! - The crate supports `EdDSA` algorithm with the Ed25519 elliptic curve, and `ES256K` algorithm
 //!   with the secp256k1 elliptic curve.
+//! - Supports basic [JSON Web Key](https://tools.ietf.org/html/rfc7517.html) functionality,
+//!   e.g., for converting keys to / from JSON or computing
+//!   [a key thumbprint](https://tools.ietf.org/html/rfc7638).
 //!
 //! ## Supported algorithms
 //!
 //! | Algorithm(s) | Feature | Description |
 //! |--------------|---------|-------------|
 //! | `HS256`, `HS384`, `HS512` | - | Uses pure Rust [`sha2`] crate |
-//! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding. Enabled by default |
+//! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding |
 //! | `EdDSA` (Ed25519) | [`ed25519-dalek`] | Pure Rust implementation |
 //! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
 //! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |
@@ -171,6 +174,7 @@
 pub mod alg;
 mod claims;
 mod error;
+pub mod jwk;
 mod token;
 mod traits;
 
@@ -183,14 +187,14 @@ mod alloc {
     pub use alloc::{
         borrow::{Cow, ToOwned},
         boxed::Box,
-        string::String,
+        string::{String, ToString},
         vec::Vec,
     };
     #[cfg(feature = "std")]
     pub use std::{
         borrow::{Cow, ToOwned},
         boxed::Box,
-        string::String,
+        string::{String, ToString},
         vec::Vec,
     };
 }

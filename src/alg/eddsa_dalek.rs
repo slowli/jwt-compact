@@ -1,10 +1,14 @@
-use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
+use ed25519_dalek::{
+    Keypair, PublicKey, SecretKey, Signature, Signer, Verifier, PUBLIC_KEY_LENGTH,
+    SECRET_KEY_LENGTH,
+};
 
 use core::convert::TryFrom;
 
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
+    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -79,5 +83,62 @@ impl SigningKey<Ed25519> for Keypair {
 
     fn as_bytes(&self) -> Cow<[u8]> {
         Cow::Owned(self.to_bytes().to_vec())
+    }
+}
+
+impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
+        JsonWebKey::KeyPair {
+            curve: Cow::Borrowed("Ed25519"),
+            x: Cow::Borrowed(key.as_ref()),
+            secret: None,
+        }
+    }
+}
+
+impl TryFrom<&JsonWebKey<'_>> for PublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let (curve, x) = if let JsonWebKey::KeyPair { curve, x, .. } = jwk {
+            (curve, x)
+        } else {
+            return Err(JwkError::key_type(jwk, KeyType::KeyPair));
+        };
+
+        JsonWebKey::ensure_curve(curve, "Ed25519")?;
+        JsonWebKey::ensure_len("x", x, PUBLIC_KEY_LENGTH)?;
+        PublicKey::from_slice(x).map_err(JwkError::custom)
+    }
+}
+
+impl<'a> From<&'a Keypair> for JsonWebKey<'a> {
+    fn from(keypair: &'a Keypair) -> JsonWebKey<'a> {
+        JsonWebKey::KeyPair {
+            curve: Cow::Borrowed("Ed25519"),
+            x: Cow::Borrowed(keypair.public.as_ref()),
+            secret: Some(SecretBytes::borrowed(keypair.secret.as_ref())),
+        }
+    }
+}
+
+impl TryFrom<&JsonWebKey<'_>> for Keypair {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let sk_bytes = if let JsonWebKey::KeyPair { secret, .. } = jwk {
+            secret.as_deref()
+        } else {
+            return Err(JwkError::key_type(jwk, KeyType::KeyPair));
+        };
+        let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
+        JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_LENGTH)?;
+
+        let secret = SecretKey::from_bytes(sk_bytes).unwrap();
+        let keypair = Keypair {
+            public: PublicKey::from(&secret),
+            secret,
+        };
+        jwk.ensure_key_match(keypair)
     }
 }

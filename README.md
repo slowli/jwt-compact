@@ -25,9 +25,11 @@ See the crate docs for the examples of usage.
 ## Features
 
 - Algorithm-specific signing and verifying keys (i.e., type safety).
-- Key strength requirements from [RFC 7518] are expressed with wrapper types, as well.
+- Key strength requirements from [RFC 7518] are expressed with wrapper types.
 - Easy to extend to support new signing algorithms.
 - The crate supports more compact [CBOR] encoding of the claims.
+- Basic [JWK] functionality for key conversion from human-readable formats (JSON / YAML / TOML)
+  and computing [key thumbprints].
 - `HS256`, `HS384` and `HS512` algorithms are implemented via pure Rust [`sha2`] crate.
 - The crate supports `EdDSA` algorithm with the Ed25519 elliptic curve, and `ES256K` algorithm
   with the secp256k1 elliptic curve. Both curves are widely used in crypto community
@@ -54,6 +56,8 @@ See the crate docs for the examples of usage.
 Licensed under the [Apache-2.0 license](LICENSE).
 
 [JWT]: https://jwt.io/
+[JWK]: https://tools.ietf.org/html/rfc7517.html
+[key thumbprints]: https://tools.ietf.org/html/rfc7638
 [CBOR]: https://tools.ietf.org/html/rfc7049
 [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
 [`sha2`]: https://crates.io/crates/sha2

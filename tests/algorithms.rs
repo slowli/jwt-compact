@@ -1,6 +1,5 @@
 use assert_matches::assert_matches;
 use chrono::{Duration, TimeZone, Utc};
-use const_decoder::Decoder;
 use hex_buffer_serde::{Hex as _, HexForm};
 use rand::{seq::index::sample as sample_indexes, thread_rng};
 use serde::{Deserialize, Serialize};
@@ -129,6 +128,7 @@ fn es256k_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
     //! in the repository.
 
+    use const_decoder::Decoder::Hex;
     use secp256k1::{constants::UNCOMPRESSED_PUBLIC_KEY_SIZE, PublicKey};
 
     const TOKEN: &str =
@@ -137,7 +137,7 @@ fn es256k_reference() {
          PKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
 
     /// Uncompressed secp256k1 public key.
-    const KEY: [u8; UNCOMPRESSED_PUBLIC_KEY_SIZE] = Decoder::Hex.decode(
+    const KEY: [u8; UNCOMPRESSED_PUBLIC_KEY_SIZE] = Hex.decode(
         b"04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847\
           946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7",
     );
@@ -158,9 +158,17 @@ fn es256k_reference() {
     assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
 }
 
-fn test_ed25519_reference() {
+#[cfg(any(
+    feature = "exonum-crypto",
+    feature = "ed25519-dalek",
+    feature = "ed25519-compact"
+))]
+#[test]
+fn ed25519_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
     //! in the repository.
+
+    use const_decoder::Decoder::Hex;
 
     type EdSigningKey = <Ed25519 as Algorithm>::SigningKey;
     type EdVerifyingKey = <Ed25519 as Algorithm>::VerifyingKey;
@@ -170,8 +178,8 @@ fn test_ed25519_reference() {
          yI6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.Du1gZvmrmykgWnqtB\
          FvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgruJ3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
     const KEY: [u8; 32] =
-        Decoder::Hex.decode(b"06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075");
-    const SIGNING_KEY: [u8; 64] = Decoder::Hex.decode(
+        Hex.decode(b"06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075");
+    const SIGNING_KEY: [u8; 64] = Hex.decode(
         b"9e55d1e1aa1f455b8baad9fdf975503655f8b359d542fa7e4ce84106d625b352\
           06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075",
     );
@@ -205,16 +213,6 @@ fn test_ed25519_reference() {
         "iss": "did:uport:2nQtiQG6Cgm1GYTBaaKAgr76uY7iSexUkqX",
     });
     assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
-}
-
-#[cfg(any(
-    feature = "exonum-crypto",
-    feature = "ed25519-dalek",
-    feature = "ed25519-compact"
-))]
-#[test]
-fn ed25519_reference() {
-    test_ed25519_reference();
 }
 
 fn test_algorithm<A: Algorithm>(

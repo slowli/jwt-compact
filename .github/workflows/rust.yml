@@ -39,7 +39,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: -p jwt-compact --lib --features es256k,rsa
+          args: -p jwt-compact --lib --features exonum-crypto,es256k,rsa
       - name: Build with dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -83,25 +83,25 @@ jobs:
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
-          name: default, es256k, rsa
+          name: "Clippy: exonum-crypto, es256k, rsa"
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features es256k,rsa --all-targets -- -D warnings
+          args: -p jwt-compact --features exonum-crypto,es256k,rsa --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
-          name: ed25519-dalek
+          name: "Clippy: ed25519-dalek"
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
         uses: actions-rs/clippy-check@v1
         with:
-          name: ed25519-compact
+          name: "Clippy: ed25519-compact"
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
       - name: Clippy WASM crate
         uses: actions-rs/clippy-check@v1
         with:
-          name: WASM
+          name: "Clippy: WASM"
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact-wasm --all-targets -- -D warnings
 
@@ -109,7 +109,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --features es256k,rsa
+          args: -p jwt-compact --features exonum-crypto,es256k,rsa
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -235,7 +235,7 @@ jobs:
       - name: Build docs
         run: |
           cargo clean --doc && \
-          cargo rustdoc -p jwt-compact --features es256k,rsa -- \
+          cargo rustdoc -p jwt-compact --features exonum-crypto,es256k,rsa -- \
             --cfg docsrs -Z unstable-options \
             --extern-html-root-url base64=https://docs.rs/base64/~0.13 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \

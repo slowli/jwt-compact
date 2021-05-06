@@ -1,16 +1,24 @@
 use lazy_static::lazy_static;
-use secp256k1::{All, Message, PublicKey, Secp256k1, SecretKey, Signature};
+use secp256k1::{
+    constants::{FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE},
+    All, Message, PublicKey, Secp256k1, SecretKey, Signature,
+};
 use sha2::{
     digest::{generic_array::typenum::U32, Digest},
     Sha256,
 };
 
-use std::{borrow::Cow, marker::PhantomData};
+use core::{convert::TryFrom, marker::PhantomData};
 
 use crate::{
     alg::{SigningKey, VerifyingKey},
+    alloc::Cow,
+    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
     Algorithm, AlgorithmSignature,
 };
+
+/// Byte size of a serialized EC coordinate.
+const COORDINATE_SIZE: usize = FIELD_SIZE.len();
 
 impl AlgorithmSignature for Signature {
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
@@ -127,5 +135,65 @@ impl VerifyingKey<Es256k> for PublicKey {
     /// Serializes the key as a 33-byte compressed form, as per [`Self::serialize()`].
     fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.serialize().to_vec())
+    }
+}
+
+fn create_jwk<'a>(pk: &PublicKey, sk: Option<&'a SecretKey>) -> JsonWebKey<'a> {
+    let uncompressed = pk.serialize_uncompressed();
+    JsonWebKey::EllipticCurve {
+        curve: "secp256k1".into(),
+        x: Cow::Owned(uncompressed[1..=COORDINATE_SIZE].to_vec()),
+        y: Cow::Owned(uncompressed[(1 + COORDINATE_SIZE)..].to_vec()),
+        secret: sk.map(|sk| SecretBytes::borrowed(&sk.as_ref()[..])),
+    }
+}
+
+impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
+        create_jwk(key, None)
+    }
+}
+
+impl TryFrom<&JsonWebKey<'_>> for PublicKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let (x, y) = if let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk {
+            JsonWebKey::ensure_curve(curve, "secp256k1")?;
+            (x.as_ref(), y.as_ref())
+        } else {
+            return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
+        };
+        JsonWebKey::ensure_len("x", x, COORDINATE_SIZE)?;
+        JsonWebKey::ensure_len("y", y, COORDINATE_SIZE)?;
+
+        let mut key_bytes = [0_u8; UNCOMPRESSED_PUBLIC_KEY_SIZE];
+        key_bytes[0] = 4; // uncompressed key marker
+        key_bytes[1..=COORDINATE_SIZE].copy_from_slice(x);
+        key_bytes[(1 + COORDINATE_SIZE)..].copy_from_slice(y);
+        PublicKey::from_slice(&key_bytes[..]).map_err(JwkError::custom)
+    }
+}
+
+impl<'a> From<&'a SecretKey> for JsonWebKey<'a> {
+    fn from(key: &'a SecretKey) -> JsonWebKey<'a> {
+        create_jwk(&key.to_verifying_key(), Some(key))
+    }
+}
+
+impl TryFrom<&JsonWebKey<'_>> for SecretKey {
+    type Error = JwkError;
+
+    fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
+        let sk_bytes = if let JsonWebKey::EllipticCurve { secret, .. } = jwk {
+            secret.as_deref()
+        } else {
+            return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
+        };
+        let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
+        JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_SIZE)?;
+
+        let sk = SecretKey::from_slice(sk_bytes).map_err(JwkError::custom)?;
+        jwk.ensure_key_match(sk)
     }
 }

@@ -257,7 +257,7 @@ impl<A: Algorithm> AlgorithmExt for A {
 
         Ok(SignedToken {
             signature,
-            token: Token::new(token.header().to_owned(), claims),
+            token: Token::new(token.header().clone(), claims),
         })
     }
 }

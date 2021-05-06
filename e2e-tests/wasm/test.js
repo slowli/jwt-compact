@@ -36,11 +36,11 @@ async function assertRoundTrip({
     .setSubject('john.doe@example.com')
     .sign(privateKey);
 
-  const claims = await verifier(token, publicKey);
+  const claims = verifier(token, await fromKeyLike(publicKey));
   assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
 
   console.log(`Verifying ${algorithm} (WASM -> JS)...`);
-  const wasmToken = await signer(claims, privateKey);
+  const wasmToken = signer(claims, await fromKeyLike(privateKey));
   const { payload: wasmClaims } = await jwtVerify(wasmToken, publicKey);
   assert.equal(typeof wasmClaims.exp, 'number');
   delete wasmClaims.exp;
@@ -53,15 +53,8 @@ async function main() {
     await assertRoundTrip({
       algorithm,
       keyGenerator: () => generateKeyPair(algorithm, { modulusLength: 2048 }),
-      signer: (claims, key) => createRsaToken(
-        claims,
-        key.export({ type: 'pkcs8', format: 'pem' }),
-        algorithm,
-      ),
-      verifier: (token, key) => verifyRsaToken(
-        token,
-        key.export({ type: 'spki', format: 'pem' }),
-      ),
+      signer: (claims, jwk) => createRsaToken(claims, jwk, algorithm),
+      verifier: verifyRsaToken,
     });
   }
 
@@ -73,12 +66,8 @@ async function main() {
         const secret = await generateSecret(algorithm);
         return { privateKey: secret, publicKey: secret };
       },
-      signer: async (claims, key) => createHashToken(
-        claims,
-        await fromKeyLike(key),
-        algorithm,
-      ),
-      verifier: async (token, key) => verifyHashToken(token, await fromKeyLike(key)),
+      signer: (claims, jwk) => createHashToken(claims, jwk, algorithm),
+      verifier: verifyHashToken,
     });
   }
 
@@ -86,14 +75,8 @@ async function main() {
   await assertRoundTrip({
     algorithm: 'EdDSA',
     keyGenerator: () => generateKeyPair('EdDSA', { crv: 'Ed25519' }),
-
-    signer: async (claims, key) => {
-      return createEdToken(claims, await fromKeyLike(key));
-    },
-
-    verifier: async (token, key) => {
-      return verifyEdToken(token, await fromKeyLike(key));
-    },
+    signer: createEdToken,
+    verifier: verifyEdToken,
   });
 }
 

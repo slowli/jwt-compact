@@ -37,13 +37,9 @@
 use serde::{Deserialize, Serialize};
 use sha2::digest::{Digest, Output};
 
-use core::{convert::TryFrom, fmt};
+use core::fmt;
 
-use crate::{
-    alg::SigningKey,
-    alloc::{Cow, String, ToOwned, ToString, Vec},
-    Algorithm,
-};
+use crate::alloc::{Cow, String, ToString, Vec};
 
 /// Type of a [`JsonWebKey`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -176,7 +172,9 @@ impl JwkError {
 /// Basic [JWK] functionality: (de)serialization and creating thumbprints.
 ///
 /// [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
-/// allow to get the overall presentation of the key.
+/// allow to get the overall presentation of the key. The latter returns JSON serialization
+/// of the key with fields ordered alphabetically. That is, this output for verifying keys
+/// can be used to compute key thumbprints.
 ///
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -244,51 +242,7 @@ pub enum JsonWebKey<'a> {
     },
 }
 
-impl<'a> JsonWebKey<'a> {
-    pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
-        if curve == expected {
-            Ok(())
-        } else {
-            Err(JwkError::UnexpectedValue {
-                field: "crv".to_owned(),
-                expected: expected.to_owned(),
-                actual: curve.to_owned(),
-            })
-        }
-    }
-
-    pub(crate) fn ensure_len(
-        field: &str,
-        bytes: &[u8],
-        expected_len: usize,
-    ) -> Result<(), JwkError> {
-        if bytes.len() == expected_len {
-            Ok(())
-        } else {
-            Err(JwkError::UnexpectedLen {
-                field: field.to_owned(),
-                expected: expected_len,
-                actual: bytes.len(),
-            })
-        }
-    }
-
-    /// Ensures that the provided signing key matches the verifying key restored from the same JWK.
-    /// This is useful when implementing [`TryFrom`] conversion from `JsonWebKey` for private keys.
-    pub(crate) fn ensure_key_match<Alg, K>(&self, signing_key: K) -> Result<K, JwkError>
-    where
-        Alg: Algorithm<SigningKey = K>,
-        K: SigningKey<Alg>,
-        Alg::VerifyingKey: for<'jwk> TryFrom<&'jwk Self, Error = JwkError> + PartialEq,
-    {
-        let verifying_key = <Alg::VerifyingKey>::try_from(self)?;
-        if verifying_key == signing_key.to_verifying_key() {
-            Ok(signing_key)
-        } else {
-            Err(JwkError::MismatchedKeys)
-        }
-    }
-
+impl JsonWebKey<'_> {
     /// Gets the type of this key.
     pub fn key_type(&self) -> KeyType {
         match self {
@@ -374,6 +328,65 @@ pub struct ExtendedJsonWebKey<'a, T = ()> {
 impl<'a> From<JsonWebKey<'a>> for ExtendedJsonWebKey<'a> {
     fn from(base: JsonWebKey<'a>) -> Self {
         Self { base, extra: () }
+    }
+}
+
+#[cfg(any(
+    feature = "es256k",
+    feature = "exonum-crypto",
+    feature = "ed25519-dalek",
+    feature = "ed25519-compact"
+))]
+mod helpers {
+    use super::{JsonWebKey, JwkError};
+    use crate::{alg::SigningKey, alloc::ToOwned, Algorithm};
+
+    use core::convert::TryFrom;
+
+    impl JsonWebKey<'_> {
+        pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
+            if curve == expected {
+                Ok(())
+            } else {
+                Err(JwkError::UnexpectedValue {
+                    field: "crv".to_owned(),
+                    expected: expected.to_owned(),
+                    actual: curve.to_owned(),
+                })
+            }
+        }
+
+        pub(crate) fn ensure_len(
+            field: &str,
+            bytes: &[u8],
+            expected_len: usize,
+        ) -> Result<(), JwkError> {
+            if bytes.len() == expected_len {
+                Ok(())
+            } else {
+                Err(JwkError::UnexpectedLen {
+                    field: field.to_owned(),
+                    expected: expected_len,
+                    actual: bytes.len(),
+                })
+            }
+        }
+
+        /// Ensures that the provided signing key matches the verifying key restored from the same JWK.
+        /// This is useful when implementing [`TryFrom`] conversion from `JsonWebKey` for private keys.
+        pub(crate) fn ensure_key_match<Alg, K>(&self, signing_key: K) -> Result<K, JwkError>
+        where
+            Alg: Algorithm<SigningKey = K>,
+            K: SigningKey<Alg>,
+            Alg::VerifyingKey: for<'jwk> TryFrom<&'jwk Self, Error = JwkError> + PartialEq,
+        {
+            let verifying_key = <Alg::VerifyingKey>::try_from(self)?;
+            if verifying_key == signing_key.to_verifying_key() {
+                Ok(signing_key)
+            } else {
+                Err(JwkError::MismatchedKeys)
+            }
+        }
     }
 }
 

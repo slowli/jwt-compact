@@ -73,12 +73,12 @@ async function main() {
         const secret = await generateSecret(algorithm);
         return { privateKey: secret, publicKey: secret };
       },
-      signer: (claims, key) => createHashToken(
+      signer: async (claims, key) => createHashToken(
         claims,
-        key.export({ format: 'buffer' }),
+        await fromKeyLike(key),
         algorithm,
       ),
-      verifier: (token, key) => verifyHashToken(token, key.export({ format: 'buffer' })),
+      verifier: async (token, key) => verifyHashToken(token, await fromKeyLike(key)),
     });
   }
 
@@ -88,19 +88,11 @@ async function main() {
     keyGenerator: () => generateKeyPair('EdDSA', { crv: 'Ed25519' }),
 
     signer: async (claims, key) => {
-      const jwk = await fromKeyLike(key);
-      const privateKeyBytes = Buffer.alloc(64);
-      // Create a conventional binary presentation of the key (first, the secret scalar,
-      // then the public key).
-      Buffer.from(jwk.d, 'base64').copy(privateKeyBytes, 0);
-      Buffer.from(jwk.x, 'base64').copy(privateKeyBytes, 32);
-
-      return createEdToken(claims, privateKeyBytes);
+      return createEdToken(claims, await fromKeyLike(key));
     },
 
     verifier: async (token, key) => {
-      const jwk = await fromKeyLike(key);
-      return verifyEdToken(token, Buffer.from(jwk.x, 'base64'));
+      return verifyEdToken(token, await fromKeyLike(key));
     },
   });
 }

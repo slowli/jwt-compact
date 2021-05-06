@@ -9,11 +9,11 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use alloc::string::{String, ToString};
-use core::fmt;
+use core::{convert::TryFrom, fmt};
 
-use jwt_compact::alg::RSAPrivateKey;
 use jwt_compact::{
-    alg::{Ed25519, Hs256, Hs384, Hs512, RSAPublicKey, Rsa, SigningKey, VerifyingKey},
+    alg::{Ed25519, Hs256, Hs384, Hs512, RSAPrivateKey, RSAPublicKey, Rsa},
+    jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
 };
 
@@ -48,26 +48,26 @@ fn extract_claims(token: &Token<SampleClaims>) -> Result<&SampleClaims, JsValue>
         .custom)
 }
 
-fn do_verify_token<T>(token: &UntrustedToken, verifying_key: &[u8]) -> Result<JsValue, JsValue>
+fn do_verify_token<T, J>(token: &UntrustedToken, jwk: J) -> Result<JsValue, JsValue>
 where
     T: Algorithm + Default,
-    T::VerifyingKey: VerifyingKey<T>,
+    T::VerifyingKey: TryFrom<J, Error = JwkError>,
 {
-    let secret_key = <T::VerifyingKey>::from_slice(verifying_key).map_err(to_js_error)?;
+    let verifying_key = <T::VerifyingKey>::try_from(jwk).map_err(to_js_error)?;
 
     let token = T::default()
-        .validate_integrity::<SampleClaims>(token, &secret_key)
+        .validate_integrity::<SampleClaims>(token, &verifying_key)
         .map_err(to_js_error)?;
     let claims = extract_claims(&token)?;
     Ok(JsValue::from_serde(claims).expect("Cannot serialize claims"))
 }
 
-fn do_create_token<T>(claims: SampleClaims, secret_key: &[u8]) -> Result<String, JsValue>
+fn do_create_token<T, J>(claims: SampleClaims, jwk: J) -> Result<String, JsValue>
 where
     T: Algorithm + Default,
-    T::SigningKey: SigningKey<T>,
+    T::SigningKey: TryFrom<J, Error = JwkError>,
 {
-    let secret_key = <T::SigningKey>::from_slice(secret_key).map_err(to_js_error)?;
+    let secret_key = <T::SigningKey>::try_from(jwk).map_err(to_js_error)?;
     let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
 
     let token = T::default()
@@ -77,12 +77,14 @@ where
 }
 
 #[wasm_bindgen(js_name = "verifyHashToken")]
-pub fn verify_hash_token(token: &str, secret_key: &[u8]) -> Result<JsValue, JsValue> {
+pub fn verify_hash_token(token: &str, secret_key: &JsValue) -> Result<JsValue, JsValue> {
     let token = UntrustedToken::new(token).map_err(to_js_error)?;
+    let jwk: JsonWebKey<'_> = secret_key.into_serde().map_err(to_js_error)?;
+
     match token.algorithm() {
-        "HS256" => do_verify_token::<Hs256>(&token, secret_key),
-        "HS384" => do_verify_token::<Hs384>(&token, secret_key),
-        "HS512" => do_verify_token::<Hs512>(&token, secret_key),
+        "HS256" => do_verify_token::<Hs256, _>(&token, &jwk),
+        "HS384" => do_verify_token::<Hs384, _>(&token, &jwk),
+        "HS512" => do_verify_token::<Hs512, _>(&token, &jwk),
         _ => Err(to_js_error("Invalid algorithm").into()),
     }
 }
@@ -90,14 +92,15 @@ pub fn verify_hash_token(token: &str, secret_key: &[u8]) -> Result<JsValue, JsVa
 #[wasm_bindgen(js_name = "createHashToken")]
 pub fn create_hash_token(
     claims: &JsValue,
-    secret_key: &[u8],
+    secret_key: &JsValue,
     alg: &str,
 ) -> Result<String, JsValue> {
+    let jwk: JsonWebKey<'_> = secret_key.into_serde().map_err(to_js_error)?;
     let claims: SampleClaims = claims.into_serde().map_err(to_js_error)?;
     match alg {
-        "HS256" => do_create_token::<Hs256>(claims, secret_key),
-        "HS384" => do_create_token::<Hs384>(claims, secret_key),
-        "HS512" => do_create_token::<Hs512>(claims, secret_key),
+        "HS256" => do_create_token::<Hs256, _>(claims, &jwk),
+        "HS384" => do_create_token::<Hs384, _>(claims, &jwk),
+        "HS512" => do_create_token::<Hs512, _>(claims, &jwk),
         _ => Err(to_js_error("Invalid algorithm").into()),
     }
 }
@@ -135,13 +138,15 @@ pub fn create_rsa_token(
 }
 
 #[wasm_bindgen(js_name = "verifyEdToken")]
-pub fn verify_ed_token(token: &str, public_key: &[u8]) -> Result<JsValue, JsValue> {
+pub fn verify_ed_token(token: &str, public_key: &JsValue) -> Result<JsValue, JsValue> {
+    let jwk: JsonWebKey<'_> = public_key.into_serde().map_err(to_js_error)?;
     let token = UntrustedToken::new(token).map_err(to_js_error)?;
-    do_verify_token::<Ed25519>(&token, public_key)
+    do_verify_token::<Ed25519, _>(&token, &jwk)
 }
 
 #[wasm_bindgen(js_name = "createEdToken")]
-pub fn create_ed_token(claims: &JsValue, private_key: &[u8]) -> Result<String, JsValue> {
+pub fn create_ed_token(claims: &JsValue, private_key: &JsValue) -> Result<String, JsValue> {
+    let jwk: JsonWebKey<'_> = private_key.into_serde().map_err(to_js_error)?;
     let claims: SampleClaims = claims.into_serde().map_err(to_js_error)?;
-    do_create_token::<Ed25519>(claims, private_key)
+    do_create_token::<Ed25519, _>(claims, &jwk)
 }

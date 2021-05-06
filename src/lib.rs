@@ -27,7 +27,7 @@
 //! | Algorithm(s) | Feature | Description |
 //! |--------------|---------|-------------|
 //! | `HS256`, `HS384`, `HS512` | - | Uses pure Rust [`sha2`] crate |
-//! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding. Enabled by default |
+//! | `EdDSA` (Ed25519) | [`exonum-crypto`] | [`libsodium`] binding |
 //! | `EdDSA` (Ed25519) | [`ed25519-dalek`] | Pure Rust implementation |
 //! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
 //! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |

@@ -18,7 +18,7 @@ exclude = ["e2e-tests"]
 
 [package.metadata.docs.rs]
 # Enable non-conflicting additional algorithms in documentation on `docs.rs`.
-features = ["es256k", "rsa"]
+features = ["exonum-crypto", "es256k", "rsa"]
 # Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
 rustdoc-args = ["--cfg", "docsrs"]
 
@@ -77,8 +77,7 @@ uuid = { version = "0.8.2", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]
-# TODO: remove `exonum-crypto` from default features
-default = ["std", "clock", "exonum-crypto"]
+default = ["std", "clock"]
 # `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
 es256k = ["secp256k1", "lazy_static"]
 # Enables `std`-specific functionality (such as error types implementing

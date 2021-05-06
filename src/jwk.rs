@@ -301,10 +301,12 @@ pub enum JsonWebKey<'a> {
         /// Curve name (`crv`), such as `Ed25519`.
         #[serde(rename = "crv")]
         curve: Cow<'a, str>,
-        /// `x` coordinate of the curve point. Serialized in the base64-url encoding.
+        /// Public key. Serialized in the base64-url encoding.
+        /// For Ed25519, this is the standard 32-byte public key presentation (`x` coordinate
+        /// of a point on the curve + sign).
         #[serde(with = "base64url")]
         x: Cow<'a, [u8]>,
-        /// Secret key (not present for public keys). Serialized in the base64-url encoding.
+        /// Secret key. Serialized in the base64-url encoding.
         /// For Ed25519, this is the *seed*.
         #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
         secret: Option<SecretBytes<'a>>,
@@ -319,6 +321,15 @@ impl JsonWebKey<'_> {
             Self::EllipticCurve { .. } => KeyType::EllipticCurve,
             Self::Symmetric { .. } => KeyType::Symmetric,
             Self::KeyPair { .. } => KeyType::KeyPair,
+        }
+    }
+
+    /// Returns `true` if this key can be used for signing (has [`SecretBytes`] fields).
+    pub fn is_signing_key(&self) -> bool {
+        match self {
+            Self::Rsa { private_parts, .. } => private_parts.is_some(),
+            Self::EllipticCurve { secret, .. } | Self::KeyPair { secret, .. } => secret.is_some(),
+            Self::Symmetric { .. } => true,
         }
     }
 

@@ -72,7 +72,7 @@ fn hs256_incorrect_key_type() {
         "crv": "Ed25519",
         "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
     });
-    let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+    let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
     let err = Hs256Key::try_from(&jwk).unwrap_err();
 
     assert_matches!(
@@ -145,6 +145,7 @@ mod rsa_jwk {
         );
 
         let jwk = JsonWebKey::from(&public_key);
+        assert!(!jwk.is_signing_key());
         assert_jwk_roundtrip(&jwk);
         assert_eq!(RSAPublicKey::try_from(&jwk).unwrap(), public_key);
     }
@@ -153,6 +154,7 @@ mod rsa_jwk {
     fn signing_jwk() {
         let jwk = create_signing_jwk();
         let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        assert!(jwk.is_signing_key());
 
         let private_key = RSAPrivateKey::try_from(&jwk).unwrap();
         let public_key = RSAPublicKey::try_from(&jwk).unwrap();
@@ -183,7 +185,7 @@ mod rsa_jwk {
             "crv": "Ed25519",
             "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = RSAPublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -199,7 +201,7 @@ mod rsa_jwk {
     fn key_mismatch() {
         let mut jwk = create_signing_jwk();
         jwk.as_object_mut().unwrap()["n"] = String::from(RSA_N).into();
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = RSAPrivateKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(err, JwkError::Custom(err) if err.is::<RsaError>());
@@ -224,6 +226,7 @@ mod es256k {
         let public_key = PublicKey::from_slice(&KEY_BYTES[..]).unwrap();
 
         let jwk = JsonWebKey::from(&public_key);
+        assert!(!jwk.is_signing_key());
         assert_jwk_roundtrip(&jwk);
         assert_eq!(
             jwk.to_string(),
@@ -257,7 +260,8 @@ mod es256k {
             "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
             "d": "d3N3gPucle_VNEjYVNHfULzQqUYhAjkOG7HwVCT9Wos",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        assert!(jwk.is_signing_key());
 
         let secret_key = SecretKey::try_from(&jwk).unwrap();
         let public_key = PublicKey::try_from(&jwk).unwrap();
@@ -283,7 +287,7 @@ mod es256k {
             "crv": "Ed25519",
             "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -303,7 +307,7 @@ mod es256k {
             "x": "_axQlhVy0Fy_slQfh5DvSC_foMd4390JbniILOmbiK8",
             "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -321,7 +325,7 @@ mod es256k {
             "x": "AQAB",
             "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -342,7 +346,7 @@ mod es256k {
             "x": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
             "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -360,7 +364,7 @@ mod es256k {
             "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
             "d": "AQAB",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = SecretKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -382,7 +386,7 @@ mod es256k {
             "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
             "d": "c3N3gPucle_VNEjYVNHfULzQqUYhAjkOG7HwVCT9Wos",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = SecretKey::try_from(&jwk).map(drop).unwrap_err();
 
         assert_matches!(err, JwkError::MismatchedKeys);
@@ -413,6 +417,7 @@ mod ed25519 {
         let public_key = <PublicKey as VerifyingKey<Ed25519>>::from_slice(&KEY_BYTES).unwrap();
 
         let jwk = JsonWebKey::from(&public_key);
+        assert!(!jwk.is_signing_key());
         assert_jwk_roundtrip(&jwk);
         assert_eq!(
             jwk.to_string(),
@@ -446,7 +451,8 @@ mod ed25519 {
             "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
             "d": "8fyd_fcp8v4cR2pj74QMiTxo7hcYz1jZ1FeyTgWnsGI"
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        assert!(jwk.is_signing_key());
 
         let secret_key = SecretKey::try_from(&jwk).unwrap();
         let public_key = PublicKey::try_from(&jwk).unwrap();
@@ -471,7 +477,7 @@ mod ed25519 {
             "kty": "oct",
             "k": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -490,7 +496,7 @@ mod ed25519 {
             "crv": "Ed448",
             "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -507,7 +513,7 @@ mod ed25519 {
             "crv": "Ed25519",
             "x": "AQAB",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = PublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
@@ -528,7 +534,7 @@ mod ed25519 {
             "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
             "d": "AQAB",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = SecretKey::try_from(&jwk).map(drop).unwrap_err();
 
         assert_matches!(
@@ -549,7 +555,7 @@ mod ed25519 {
             "x": "t-bdv41MJXExXnpquHBuDn7n1YGyX7gLQchVHAoNu50",
             "d": "8fyd_fcp8v4cR2pj74QMiTxo7hcYz1jZ1FeyTgWnsGI",
         });
-        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         let err = SecretKey::try_from(&jwk).map(drop).unwrap_err();
 
         assert_matches!(err, JwkError::MismatchedKeys);

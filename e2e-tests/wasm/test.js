@@ -47,7 +47,7 @@ async function assertRoundTrip({
   assert.deepEqual(wasmClaims, claims);
 }
 
-async function main() {
+async function iteration() {
   // RSA algorithms.
   for (const algorithm of ['RS256', 'RS384', 'RS512', 'PS256', 'PS384', 'PS512']) {
     await assertRoundTrip({
@@ -78,6 +78,13 @@ async function main() {
     signer: createEdToken,
     verifier: verifyEdToken,
   });
+}
+
+async function main(iterations = 10) {
+  for (let i = 1; i <= iterations; i++) {
+    console.log(`Iteration ${i}/${iterations}`);
+    await iteration();
+  }
 }
 
 main().catch(console.error)

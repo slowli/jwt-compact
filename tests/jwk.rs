@@ -85,12 +85,12 @@ fn hs256_incorrect_key_type() {
 }
 
 #[cfg(feature = "rsa")]
-#[test]
-fn rsa_jwk() {
-    //! Taken from https://tools.ietf.org/html/rfc7638#section-3.1.
+mod rsa_jwk {
+    use super::*;
 
-    use rsa::{BigUint, RSAPublicKey};
+    use rsa::{errors::Error as RsaError, BigUint, RSAPrivateKey, RSAPublicKey};
 
+    // Taken from https://tools.ietf.org/html/rfc7638#section-3.1
     const RSA_N: &str = "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2\
         aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCi\
         FV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65Y\
@@ -98,18 +98,112 @@ fn rsa_jwk() {
         91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_x\
         BniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw";
 
-    let n = base64::decode_config(RSA_N, base64::URL_SAFE_NO_PAD).unwrap();
-    let n = BigUint::from_bytes_be(&n);
-    let public_key = RSAPublicKey::new(n, BigUint::from(65_537_u32)).unwrap();
+    // Taken from https://tools.ietf.org/html/rfc7515#appendix-A.2.1
+    fn create_signing_jwk() -> serde_json::Value {
+        serde_json::json!({
+            "kty": "RSA",
+            "n": "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx\
+                HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs\
+                D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH\
+                SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV\
+                MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8\
+                NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ",
+            "e": "AQAB",
+            "d": "Eq5xpGnNCivDflJsRQBXHx1hdR1k6Ulwe2JZD50LpXyWPEAeP88vLNO97I\
+                jlA7_GQ5sLKMgvfTeXZx9SE-7YwVol2NXOoAJe46sui395IW_GO-pWJ1O0\
+                BkTGoVEn2bKVRUCgu-GjBVaYLU6f3l9kJfFNS3E0QbVdxzubSu3Mkqzjkn\
+                439X0M_V51gfpRLI9JYanrC4D4qAdGcopV_0ZHHzQlBjudU2QvXt4ehNYT\
+                CBr6XCLQUShb1juUO1ZdiYoFaFQT5Tw8bGUl_x_jTj3ccPDVZFD9pIuhLh\
+                BOneufuBiB4cS98l2SR_RQyGWSeWjnczT0QU91p1DhOVRuOopznQ",
+            "p": "4BzEEOtIpmVdVEZNCqS7baC4crd0pqnRH_5IB3jw3bcxGn6QLvnEtfdUdi\
+                YrqBdss1l58BQ3KhooKeQTa9AB0Hw_Py5PJdTJNPY8cQn7ouZ2KKDcmnPG\
+                BY5t7yLc1QlQ5xHdwW1VhvKn-nXqhJTBgIPgtldC-KDV5z-y2XDwGUc",
+            "q": "uQPEfgmVtjL0Uyyx88GZFF1fOunH3-7cepKmtH4pxhtCoHqpWmT8YAmZxa\
+                ewHgHAjLYsp1ZSe7zFYHj7C6ul7TjeLQeZD_YwD66t62wDmpe_HlB-TnBA\
+                -njbglfIsRLtXlnDzQkv5dTltRJ11BKBBypeeF6689rjcJIDEz9RWdc",
+            "dp": "BwKfV3Akq5_MFZDFZCnW-wzl-CCo83WoZvnLQwCTeDv8uzluRSnm71I3Q\
+                CLdhrqE2e9YkxvuxdBfpT_PI7Yz-FOKnu1R6HsJeDCjn12Sk3vmAktV2zb\
+                34MCdy7cpdTh_YVr7tss2u6vneTwrA86rZtu5Mbr1C1XsmvkxHQAdYo0",
+            "dq": "h_96-mK1R_7glhsum81dZxjTnYynPbZpHziZjeeHcXYsXaaMwkOlODsWa\
+                7I9xXDoRwbKgB719rrmI2oKr6N3Do9U0ajaHF-NKJnwgjMd2w9cjz3_-ky\
+                NlxAr2v4IKhGNpmM5iIgOS1VZnOZ68m6_pbLBSp3nssTdlqvd0tIiTHU",
+            "qi": "IYd7DHOhrWvxkwPQsRM2tOgrjbcrfvtQJipd-DlcxyVuuM9sQLdgjVk2o\
+                y26F0EmpScGLq2MowX7fhd_QJQ3ydy5cY7YIBi87w93IKLEdfnbJtoOPLU\
+                W0ITrJReOgo1cq9SbsxYawBgfp_gh6A5603k2-ZQwVK0JKSHuLFkuQ3U",
+        })
+    }
 
-    assert_eq!(
-        key_thumbprint::<Sha256, _>(&public_key),
-        "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
-    );
+    #[test]
+    fn verifying_jwk() {
+        let n = base64::decode_config(RSA_N, base64::URL_SAFE_NO_PAD).unwrap();
+        let n = BigUint::from_bytes_be(&n);
+        let public_key = RSAPublicKey::new(n, BigUint::from(65_537_u32)).unwrap();
 
-    let jwk = JsonWebKey::from(&public_key);
-    assert_jwk_roundtrip(&jwk);
-    assert_eq!(RSAPublicKey::try_from(&jwk).unwrap(), public_key);
+        assert_eq!(
+            key_thumbprint::<Sha256, _>(&public_key),
+            "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
+        );
+
+        let jwk = JsonWebKey::from(&public_key);
+        assert_jwk_roundtrip(&jwk);
+        assert_eq!(RSAPublicKey::try_from(&jwk).unwrap(), public_key);
+    }
+
+    #[test]
+    fn signing_jwk() {
+        let jwk = create_signing_jwk();
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+
+        let private_key = RSAPrivateKey::try_from(&jwk).unwrap();
+        let public_key = RSAPublicKey::try_from(&jwk).unwrap();
+        assert_eq!(public_key, private_key.to_public_key());
+
+        let jwk_from_key = JsonWebKey::from(&private_key);
+        // `jwk_from_key` won't be equal to `jwk`, but we can still check that a private key
+        // can be restored from it.
+        let private_key_copy = RSAPrivateKey::try_from(&jwk_from_key).unwrap();
+        assert_eq!(private_key_copy, private_key);
+
+        assert_eq!(
+            jwk.thumbprint::<Sha256>(),
+            JsonWebKey::from(&public_key).thumbprint::<Sha256>()
+        );
+
+        let public_jwk = JsonWebKey::from(&public_key);
+        assert_eq!(public_jwk, jwk.to_verifying_key());
+
+        let err = RSAPrivateKey::try_from(&public_jwk).unwrap_err();
+        assert_matches!(err, JwkError::NoField(field) if field == "d");
+    }
+
+    #[test]
+    fn incorrect_key_type() {
+        let jwk = serde_json::json!({
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
+        });
+        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let err = RSAPublicKey::try_from(&jwk).unwrap_err();
+
+        assert_matches!(
+            err,
+            JwkError::UnexpectedKeyType {
+                expected: KeyType::Rsa,
+                actual: KeyType::KeyPair,
+            }
+        );
+    }
+
+    #[test]
+    fn key_mismatch() {
+        let mut jwk = create_signing_jwk();
+        jwk.as_object_mut().unwrap()["n"] = String::from(RSA_N).into();
+        let jwk: JsonWebKey = serde_json::from_value(jwk).unwrap();
+        let err = RSAPrivateKey::try_from(&jwk).unwrap_err();
+
+        assert_matches!(err, JwkError::Custom(err) if err.is::<RsaError>());
+    }
 }
 
 #[cfg(feature = "es256k")]

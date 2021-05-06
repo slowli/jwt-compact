@@ -185,6 +185,11 @@ impl<'a> SecretBytes<'a> {
     pub fn borrowed(bytes: &'a [u8]) -> Self {
         Self(Cow::Borrowed(bytes))
     }
+
+    #[cfg(feature = "rsa")]
+    pub(crate) fn owned(bytes: Vec<u8>) -> Self {
+        Self(Cow::Owned(bytes))
+    }
 }
 
 impl fmt::Debug for SecretBytes<'_> {
@@ -239,11 +244,14 @@ impl<'de> Deserialize<'de> for SecretBytes<'_> {
 
 /// Basic [JWK] functionality: (de)serialization and creating thumbprints.
 ///
+/// See [RFC 7518] for the details about key presentation.
+///
 /// [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
 /// allow to get the overall presentation of the key. The latter returns JSON serialization
 /// of the key with fields ordered alphabetically. That is, this output for verifying keys
 /// can be used to compute key thumbprints.
 ///
+/// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-6
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kty")]
@@ -260,6 +268,9 @@ pub enum JsonWebKey<'a> {
         /// the big endian presentation with the minimum necessary number of bytes.
         #[serde(rename = "e", with = "base64url")]
         public_exponent: Cow<'a, [u8]>,
+        /// Private RSA parameters. Only present for private keys.
+        #[serde(flatten)]
+        private_parts: Option<RsaPrivateParts<'a>>,
     },
     /// Public or private key in an ECDSA crypto system. Has `kty` field set to `EC`.
     #[serde(rename = "EC")]
@@ -317,9 +328,11 @@ impl JsonWebKey<'_> {
             Self::Rsa {
                 modulus,
                 public_exponent,
+                ..
             } => Self::Rsa {
                 modulus: modulus.clone(),
                 public_exponent: public_exponent.clone(),
+                private_parts: None,
             },
 
             Self::EllipticCurve { curve, x, y, .. } => Self::EllipticCurve {
@@ -370,6 +383,55 @@ impl fmt::Display for JsonWebKey<'_> {
         }
         formatter.write_str("}")
     }
+}
+
+/// Parts of [`JsonWebKey::Rsa`] that are specific to private keys.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RsaPrivateParts<'a> {
+    /// Private exponent (`d`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "d")]
+    pub private_exponent: SecretBytes<'a>,
+    /// First prime factor (`p`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "p")]
+    pub prime_factor_p: SecretBytes<'a>,
+    /// Second prime factor (`q`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "q")]
+    pub prime_factor_q: SecretBytes<'a>,
+    /// First factor CRT exponent (`dp`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "dp", default, skip_serializing_if = "Option::is_none")]
+    pub p_crt_exponent: Option<SecretBytes<'a>>,
+    /// Second factor CRT exponent (`dq`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "dq", default, skip_serializing_if = "Option::is_none")]
+    pub q_crt_exponent: Option<SecretBytes<'a>>,
+    /// CRT coefficient of the second factor (`qi`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "qi", default, skip_serializing_if = "Option::is_none")]
+    pub q_crt_coefficient: Option<SecretBytes<'a>>,
+    /// Other prime factors.
+    #[serde(rename = "oth", default, skip_serializing_if = "Vec::is_empty")]
+    pub other_prime_factors: Vec<RsaPrimeFactor<'a>>,
+}
+
+/// Block for an additional prime factor in [`RsaPrivateParts`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RsaPrimeFactor<'a> {
+    /// Prime factor (`r`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "r")]
+    pub factor: SecretBytes<'a>,
+    /// Factor CRT exponent (`d`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
+    pub crt_exponent: Option<SecretBytes<'a>>,
+    /// Factor CRT coefficient (`t`). Serialized in the base64-url encoding using
+    /// the big endian presentation with the minimum necessary number of bytes.
+    #[serde(rename = "t", default, skip_serializing_if = "Option::is_none")]
+    pub crt_coefficient: Option<SecretBytes<'a>>,
 }
 
 /// [`JsonWebKey`] together with user-defined info, such as key ID (`kid`).

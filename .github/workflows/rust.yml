@@ -89,7 +89,7 @@ jobs:
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
-          name: "Clippy: sed25519-dalek"
+          name: "Clippy: ed25519-dalek"
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact

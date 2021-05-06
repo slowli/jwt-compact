@@ -46,14 +46,14 @@ use crate::alloc::{Cow, String, ToString, Vec};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum KeyType {
-    /// Public or private RSA key. Maps to the `RSA` value of the `kty` field for JWKs.
+    /// Public or private RSA key. Corresponds to the `RSA` value of the `kty` field for JWKs.
     Rsa,
-    /// Public or private key in an ECDSA crypto system. Maps to the `EC` value
+    /// Public or private key in an ECDSA crypto system. Corresponds to the `EC` value
     /// of the `kty` field for JWKs.
     EllipticCurve,
-    /// Symmetric key. Maps to the `oct` value of the `kty` field for JWKs.
+    /// Symmetric key. Corresponds to the `oct` value of the `kty` field for JWKs.
     Symmetric,
-    /// Generic asymmetric key. Maps to the `OKP` value of the `kty` field for JWKs.
+    /// Generic asymmetric keypair. Corresponds to the `OKP` value of the `kty` field for JWKs.
     KeyPair,
 }
 
@@ -112,7 +112,7 @@ impl fmt::Display for JwkError {
             Self::UnexpectedKeyType { expected, actual } => {
                 write!(
                     formatter,
-                    "Unexpected key type: {} (expected {})",
+                    "unexpected key type: {} (expected {})",
                     actual, expected
                 )
             }
@@ -140,7 +140,7 @@ impl fmt::Display for JwkError {
                 )
             }
             Self::MismatchedKeys => {
-                formatter.write_str("Private and public keys encoded in JWK do not match")
+                formatter.write_str("private and public keys encoded in JWK do not match")
             }
             Self::Custom(err) => fmt::Display::fmt(err, formatter),
         }
@@ -398,7 +398,12 @@ impl JsonWebKey<'_> {
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
     pub fn thumbprint<D: Digest>(&self) -> Output<D> {
-        D::digest(self.to_verifying_key().to_string().as_bytes())
+        let hashed_key = if self.is_signing_key() {
+            Cow::Owned(self.to_verifying_key())
+        } else {
+            Cow::Borrowed(self)
+        };
+        D::digest(hashed_key.to_string().as_bytes())
     }
 }
 
@@ -474,25 +479,6 @@ pub struct RsaPrimeFactor<'a> {
     /// Factor CRT coefficient (`t`).
     #[serde(rename = "t", default, skip_serializing_if = "Option::is_none")]
     pub crt_coefficient: Option<SecretBytes<'a>>,
-}
-
-/// [`JsonWebKey`] together with standard fields from [the JWK spec] and/or user-defined fields.
-///
-/// [the JWK spec]: https://tools.ietf.org/html/rfc7517.html#section-4
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ExtendedJsonWebKey<'a, T = ()> {
-    /// Standard fields.
-    #[serde(flatten)]
-    pub base: JsonWebKey<'a>,
-    /// Extra fields.
-    #[serde(flatten)]
-    pub extra: T,
-}
-
-impl<'a> From<JsonWebKey<'a>> for ExtendedJsonWebKey<'a> {
-    fn from(base: JsonWebKey<'a>) -> Self {
-        Self { base, extra: () }
-    }
 }
 
 #[cfg(any(
@@ -689,6 +675,14 @@ mod tests {
 
     #[test]
     fn extra_jwk_fields() {
+        #[derive(Debug, Serialize, Deserialize)]
+        struct ExtendedJsonWebKey<'a, T> {
+            #[serde(flatten)]
+            base: JsonWebKey<'a>,
+            #[serde(flatten)]
+            extra: T,
+        }
+
         #[derive(Debug, Deserialize)]
         struct Extra {
             #[serde(rename = "kid")]

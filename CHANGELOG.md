@@ -27,7 +27,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - Encapsulate `hmac` and `sha2` dependencies by introducing signature types 
   for `HS*` algorithms.
 
-- Do not enable `exonum-crypto` feature by default.
+- `exonum-crypto` feature is no longer enabled by default.
 
 ## 0.3.0 - 2020-11-30
 

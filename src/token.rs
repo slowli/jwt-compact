@@ -461,7 +461,7 @@ mod tests {
     #[test]
     fn header_with_x5t_field() {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
-        let header: CompleteHeader = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<'_> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.unwrap();
 
         assert_eq!(thumbprint[0], 0x94);
@@ -480,7 +480,7 @@ mod tests {
     #[test]
     fn header_with_x5t_sha256_field() {
         let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
-        let header: CompleteHeader = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<'_> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_thumbprint.unwrap();
 
         assert_eq!(thumbprint[0], 0x31);

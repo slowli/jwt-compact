@@ -92,7 +92,11 @@ fn hs256_incorrect_key_type() {
 mod rsa_jwk {
     use super::*;
 
-    use rsa::{errors::Error as RsaError, BigUint, RSAPrivateKey, RSAPublicKey};
+    use rand::thread_rng;
+    use rsa::{
+        algorithms::generate_multi_prime_key, errors::Error as RsaError, BigUint, RSAPrivateKey,
+        RSAPublicKey,
+    };
 
     // Taken from https://tools.ietf.org/html/rfc7638#section-3.1
     const RSA_N: &str = "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2\
@@ -180,6 +184,25 @@ mod rsa_jwk {
 
         let err = RSAPrivateKey::try_from(&public_jwk).unwrap_err();
         assert_matches!(err, JwkError::NoField(field) if field == "d");
+    }
+
+    #[test]
+    fn signing_jwk_for_multi_prime_key() {
+        let private_key = generate_multi_prime_key(&mut thread_rng(), 3, 2_048).unwrap();
+
+        let jwk = JsonWebKey::from(&private_key);
+        let private_key_copy = RSAPrivateKey::try_from(&jwk).unwrap();
+        assert_eq!(private_key_copy, private_key);
+
+        let public_jwk = jwk.to_verifying_key();
+        let public_key = RSAPublicKey::try_from(&public_jwk).unwrap();
+        assert_eq!(public_key, private_key.to_public_key());
+
+        let jwk_string = jwk.to_string();
+        assert!(jwk_string.starts_with(r#"{"d":"#));
+        assert!(jwk_string.contains(r#""oth":["#));
+        let jwk_copy: JsonWebKey<'_> = serde_json::from_str(&jwk_string).unwrap();
+        assert_eq!(jwk_copy, jwk);
     }
 
     #[test]

@@ -176,7 +176,11 @@ impl JwkError {
 /// Comparisons on `SecretBytes` are constant-time, but other operations (e.g., deserialization)
 /// may be var-time.
 ///
-/// Represented in JSON as a base64-url encoded string with no padding.
+/// # Serialization
+///
+/// Represented in human-readable formats (JSON, TOML, YAML, etc.) as a base64-url encoded string
+/// with no padding. For other formats (e.g., CBOR), `SecretBytes` will be serialized directly
+/// as a byte sequence.
 #[derive(Clone)]
 pub struct SecretBytes<'a>(Cow<'a, [u8]>);
 
@@ -244,15 +248,43 @@ impl<'de> Deserialize<'de> for SecretBytes<'_> {
 
 /// Basic [JWK] functionality: (de)serialization and creating thumbprints.
 ///
-/// See [RFC 7518] for the details about key presentation.
+/// See [RFC 7518] for the details about the fields for various key types.
 ///
 /// [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
 /// allow to get the overall presentation of the key. The latter returns JSON serialization
 /// of the key with fields ordered alphabetically. That is, this output for verifying keys
 /// can be used to compute key thumbprints.
 ///
+/// # Serialization
+///
+/// For human-readable formats (e.g., JSON, TOML, YAML), byte fields in `JsonWebKey`
+/// and embedded types ([`SecretBytes`], [`RsaPrivateParts`], [`RsaPrimeFactor`]) will be
+/// serialized in base64-url encoding with no padding, as per the JWK spec.
+/// For other formats (e.g., CBOR), byte fields will be serialized as byte sequences.
+///
+/// Because of [the limitations](https://github.com/pyfisch/cbor/issues/3)
+/// of the CBOR support in `serde`, a `JsonWebKey` serialized in CBOR is **not** compliant
+/// with the [CBOR Object Signing and Encryption spec][COSE] (COSE). It can still be a good
+/// way to decrease the serialized key size.
+///
+/// # Conversions
+///
+/// A JWK can be obtained from signing and verifying keys defined in the [`alg`](crate::alg)
+/// module via [`From`] / [`Into`] traits. Conversion from a JWK to a specific key is fallible
+/// and can be performed via [`TryFrom`](core::convert::TryFrom) with [`JwkError`] as an error
+/// type.
+///
+/// As a part of conversion for asymmetric signing keys, it is checked whether
+/// the signing and verifying parts of the JWK match; [`JwkError::MismatchedKeys`] is returned
+/// otherwise. This check is **not** performed for verifying keys even if the necessary data
+/// is present in the provided JWK.
+///
+/// ⚠ **Warning.** Conversions for private RSA keys are not fully compliant with [RFC 7518].
+/// See the docs for the relevant `impl`s for more details.
+///
 /// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-6
 /// [JWK]: https://tools.ietf.org/html/rfc7517.html
+/// [COSE]: https://tools.ietf.org/html/rfc8152
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kty")]
 #[non_exhaustive]
@@ -260,12 +292,10 @@ pub enum JsonWebKey<'a> {
     /// Public or private RSA key. Has `kty` field set to `RSA`.
     #[serde(rename = "RSA")]
     Rsa {
-        /// Key modulus (`n`). Serialized in the base64-url encoding using
-        /// the big endian presentation with the minimum necessary number of bytes.
+        /// Key modulus (`n`).
         #[serde(rename = "n", with = "base64url")]
         modulus: Cow<'a, [u8]>,
-        /// Public exponent (`e`). Serialized in the base64-url encoding using
-        /// the big endian presentation with the minimum necessary number of bytes.
+        /// Public exponent (`e`).
         #[serde(rename = "e", with = "base64url")]
         public_exponent: Cow<'a, [u8]>,
         /// Private RSA parameters. Only present for private keys.
@@ -278,36 +308,34 @@ pub enum JsonWebKey<'a> {
         /// Curve name (`crv`), such as `secp256k1`.
         #[serde(rename = "crv")]
         curve: Cow<'a, str>,
-        /// `x` coordinate of the curve point. Serialized in the base64-url encoding.
+        /// `x` coordinate of the curve point.
         #[serde(with = "base64url")]
         x: Cow<'a, [u8]>,
-        /// `y` coordinate of the curve point. Serialized in the base64-url encoding.
+        /// `y` coordinate of the curve point.
         #[serde(with = "base64url")]
         y: Cow<'a, [u8]>,
-        /// Secret scalar (not present for public keys). Serialized in the base64-url encoding.
+        /// Secret scalar (`d`); not present for public keys.
         #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
         secret: Option<SecretBytes<'a>>,
     },
     /// Generic symmetric key, e.g. for `HS256` algorithm. Has `kty` field set to `oct`.
     #[serde(rename = "oct")]
     Symmetric {
-        /// Bytes representing this key. Serialized in the base64-url encoding.
+        /// Bytes representing this key.
         #[serde(rename = "k")]
         secret: SecretBytes<'a>,
     },
-    /// Generic asymmetric key. This key type is used, for example for Ed25519 keys.
+    /// Generic asymmetric keypair. This key type is used e.g. for Ed25519 keys.
     #[serde(rename = "OKP")]
     KeyPair {
         /// Curve name (`crv`), such as `Ed25519`.
         #[serde(rename = "crv")]
         curve: Cow<'a, str>,
-        /// Public key. Serialized in the base64-url encoding.
-        /// For Ed25519, this is the standard 32-byte public key presentation (`x` coordinate
-        /// of a point on the curve + sign).
+        /// Public key. For Ed25519, this is the standard 32-byte public key presentation
+        /// (`x` coordinate of a point on the curve + sign).
         #[serde(with = "base64url")]
         x: Cow<'a, [u8]>,
-        /// Secret key. Serialized in the base64-url encoding.
-        /// For Ed25519, this is the *seed*.
+        /// Secret key (`d`). For Ed25519, this is the seed.
         #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
         secret: Option<SecretBytes<'a>>,
     },
@@ -365,7 +393,7 @@ impl JsonWebKey<'_> {
         }
     }
 
-    /// Computes a thumbprint of this JWK. The result complies to key thumbprint defined
+    /// Computes a thumbprint of this JWK. The result complies with the key thumbprint defined
     /// in [RFC 7638].
     ///
     /// [RFC 7638]: https://tools.ietf.org/html/rfc7638
@@ -397,30 +425,30 @@ impl fmt::Display for JsonWebKey<'_> {
 }
 
 /// Parts of [`JsonWebKey::Rsa`] that are specific to private keys.
+///
+/// # Serialization
+///
+/// Fields of this struct are serialized using the big endian presentation
+/// with the minimum necessary number of bytes. See [`JsonWebKey` notes](JsonWebKey#serialization)
+/// on encoding.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RsaPrivateParts<'a> {
-    /// Private exponent (`d`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// Private exponent (`d`).
     #[serde(rename = "d")]
     pub private_exponent: SecretBytes<'a>,
-    /// First prime factor (`p`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// First prime factor (`p`).
     #[serde(rename = "p")]
     pub prime_factor_p: SecretBytes<'a>,
-    /// Second prime factor (`q`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// Second prime factor (`q`).
     #[serde(rename = "q")]
     pub prime_factor_q: SecretBytes<'a>,
-    /// First factor CRT exponent (`dp`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// First factor CRT exponent (`dp`).
     #[serde(rename = "dp", default, skip_serializing_if = "Option::is_none")]
     pub p_crt_exponent: Option<SecretBytes<'a>>,
-    /// Second factor CRT exponent (`dq`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// Second factor CRT exponent (`dq`).
     #[serde(rename = "dq", default, skip_serializing_if = "Option::is_none")]
     pub q_crt_exponent: Option<SecretBytes<'a>>,
-    /// CRT coefficient of the second factor (`qi`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// CRT coefficient of the second factor (`qi`).
     #[serde(rename = "qi", default, skip_serializing_if = "Option::is_none")]
     pub q_crt_coefficient: Option<SecretBytes<'a>>,
     /// Other prime factors.
@@ -429,29 +457,34 @@ pub struct RsaPrivateParts<'a> {
 }
 
 /// Block for an additional prime factor in [`RsaPrivateParts`].
+///
+/// # Serialization
+///
+/// Fields of this struct are serialized using the big endian presentation
+/// with the minimum necessary number of bytes. See [`JsonWebKey` notes](JsonWebKey#serialization)
+/// on encoding.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RsaPrimeFactor<'a> {
-    /// Prime factor (`r`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// Prime factor (`r`).
     #[serde(rename = "r")]
     pub factor: SecretBytes<'a>,
-    /// Factor CRT exponent (`d`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// Factor CRT exponent (`d`).
     #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
     pub crt_exponent: Option<SecretBytes<'a>>,
-    /// Factor CRT coefficient (`t`). Serialized in the base64-url encoding using
-    /// the big endian presentation with the minimum necessary number of bytes.
+    /// Factor CRT coefficient (`t`).
     #[serde(rename = "t", default, skip_serializing_if = "Option::is_none")]
     pub crt_coefficient: Option<SecretBytes<'a>>,
 }
 
-/// [`JsonWebKey`] together with user-defined info, such as key ID (`kid`).
+/// [`JsonWebKey`] together with standard fields from [the JWK spec] and/or user-defined fields.
+///
+/// [the JWK spec]: https://tools.ietf.org/html/rfc7517.html#section-4
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ExtendedJsonWebKey<'a, T = ()> {
     /// Standard fields.
     #[serde(flatten)]
     pub base: JsonWebKey<'a>,
-    /// User-defined fields.
+    /// Extra fields.
     #[serde(flatten)]
     pub extra: T,
 }
@@ -535,7 +568,11 @@ mod base64url {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&base64::encode_config(value, base64::URL_SAFE_NO_PAD))
+        if serializer.is_human_readable() {
+            serializer.serialize_str(&base64::encode_config(value, base64::URL_SAFE_NO_PAD))
+        } else {
+            serializer.serialize_bytes(value)
+        }
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Cow<'static, [u8]>, D::Error>
@@ -548,16 +585,47 @@ mod base64url {
             type Value = Vec<u8>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(formatter, "base64url-encoded data")
+                formatter.write_str("base64url-encoded data")
             }
 
             fn visit_str<E: DeError>(self, value: &str) -> Result<Self::Value, E> {
                 base64::decode_config(value, base64::URL_SAFE_NO_PAD)
                     .map_err(|_| E::invalid_value(Unexpected::Str(value), &self))
             }
+
+            fn visit_bytes<E: DeError>(self, value: &[u8]) -> Result<Self::Value, E> {
+                Ok(value.to_vec())
+            }
+
+            fn visit_byte_buf<E: DeError>(self, value: Vec<u8>) -> Result<Self::Value, E> {
+                Ok(value)
+            }
         }
 
-        deserializer.deserialize_str(Base64Visitor).map(Cow::Owned)
+        struct BytesVisitor;
+
+        impl<'de> Visitor<'de> for BytesVisitor {
+            type Value = Vec<u8>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("byte buffer")
+            }
+
+            fn visit_bytes<E: DeError>(self, value: &[u8]) -> Result<Self::Value, E> {
+                Ok(value.to_vec())
+            }
+
+            fn visit_byte_buf<E: DeError>(self, value: Vec<u8>) -> Result<Self::Value, E> {
+                Ok(value)
+            }
+        }
+
+        let maybe_bytes = if deserializer.is_human_readable() {
+            deserializer.deserialize_str(Base64Visitor)
+        } else {
+            deserializer.deserialize_bytes(BytesVisitor)
+        };
+        maybe_bytes.map(Cow::Owned)
     }
 }
 
@@ -653,5 +721,20 @@ mod tests {
             jwk_from_key,
             JsonWebKey::Symmetric { secret } if secret.as_ref() == b"test"
         );
+    }
+
+    #[test]
+    fn jwk_with_cbor() {
+        let key = JsonWebKey::KeyPair {
+            curve: Cow::Borrowed("Ed25519"),
+            x: Cow::Borrowed(b"public"),
+            secret: Some(SecretBytes::borrowed(b"private")),
+        };
+        let bytes = serde_cbor::to_vec(&key).unwrap();
+        assert!(bytes.windows(6).any(|window| window == b"public"));
+        assert!(bytes.windows(7).any(|window| window == b"private"));
+
+        let restored: JsonWebKey<'_> = serde_cbor::from_slice(&bytes).unwrap();
+        assert_eq!(restored, key);
     }
 }

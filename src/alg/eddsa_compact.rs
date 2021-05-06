@@ -6,7 +6,7 @@ use core::convert::TryFrom;
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType},
+    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -128,7 +128,7 @@ impl<'a> From<&'a SecretKey> for JsonWebKey<'a> {
         JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),
             x: Cow::Borrowed(&key[Seed::BYTES..]),
-            secret: Some(Cow::Borrowed(&key[..Seed::BYTES])),
+            secret: Some(SecretBytes::borrowed(&key[..Seed::BYTES])),
         }
     }
 }

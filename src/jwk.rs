@@ -34,10 +34,11 @@
 //! # }
 //! ```
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::digest::{Digest, Output};
+use zeroize::Zeroize;
 
-use core::fmt;
+use core::{fmt, ops};
 
 use crate::alloc::{Cow, String, ToString, Vec};
 
@@ -169,6 +170,73 @@ impl JwkError {
     }
 }
 
+/// Generic container for secret bytes, which can be either owned or borrowed.
+/// If owned, bytes are zeroized on drop.
+///
+/// Comparisons on `SecretBytes` are constant-time, but other operations (e.g., deserialization)
+/// may be var-time.
+///
+/// Represented in JSON as a base64-url encoded string with no padding.
+#[derive(Clone)]
+pub struct SecretBytes<'a>(Cow<'a, [u8]>);
+
+impl<'a> SecretBytes<'a> {
+    /// Creates secret bytes from a borrowed slice.
+    pub fn borrowed(bytes: &'a [u8]) -> Self {
+        Self(Cow::Borrowed(bytes))
+    }
+}
+
+impl fmt::Debug for SecretBytes<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SecretBytes")
+            .field("len", &self.0.len())
+            .finish()
+    }
+}
+
+impl Drop for SecretBytes<'_> {
+    fn drop(&mut self) {
+        // if bytes are borrowed, we don't need to perform any special cleaning.
+        if let Cow::Owned(bytes) = &mut self.0 {
+            Zeroize::zeroize(bytes);
+        }
+    }
+}
+
+impl ops::Deref for SecretBytes<'_> {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+impl AsRef<[u8]> for SecretBytes<'_> {
+    fn as_ref(&self) -> &[u8] {
+        &*self
+    }
+}
+
+impl PartialEq for SecretBytes<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        subtle::ConstantTimeEq::ct_eq(self.as_ref(), other.as_ref()).into()
+    }
+}
+
+impl Serialize for SecretBytes<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        base64url::serialize(self.as_ref(), serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SecretBytes<'_> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        base64url::deserialize(deserializer).map(SecretBytes)
+    }
+}
+
 /// Basic [JWK] functionality: (de)serialization and creating thumbprints.
 ///
 /// [`Self::thumbprint()`] and the [`Display`](fmt::Display) implementation
@@ -206,20 +274,15 @@ pub enum JsonWebKey<'a> {
         #[serde(with = "base64url")]
         y: Cow<'a, [u8]>,
         /// Secret scalar (not present for public keys). Serialized in the base64-url encoding.
-        #[serde(
-            rename = "d",
-            default,
-            skip_serializing_if = "Option::is_none",
-            with = "base64url_opt"
-        )]
-        secret: Option<Cow<'a, [u8]>>,
+        #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
+        secret: Option<SecretBytes<'a>>,
     },
     /// Generic symmetric key, e.g. for `HS256` algorithm. Has `kty` field set to `oct`.
     #[serde(rename = "oct")]
     Symmetric {
         /// Bytes representing this key. Serialized in the base64-url encoding.
-        #[serde(rename = "k", with = "base64url")]
-        secret: Cow<'a, [u8]>,
+        #[serde(rename = "k")]
+        secret: SecretBytes<'a>,
     },
     /// Generic asymmetric key. This key type is used, for example for Ed25519 keys.
     #[serde(rename = "OKP")]
@@ -232,13 +295,8 @@ pub enum JsonWebKey<'a> {
         x: Cow<'a, [u8]>,
         /// Secret key (not present for public keys). Serialized in the base64-url encoding.
         /// For Ed25519, this is the *seed*.
-        #[serde(
-            rename = "d",
-            default,
-            skip_serializing_if = "Option::is_none",
-            with = "base64url_opt"
-        )]
-        secret: Option<Cow<'a, [u8]>>,
+        #[serde(rename = "d", default, skip_serializing_if = "Option::is_none")]
+        secret: Option<SecretBytes<'a>>,
     },
 }
 
@@ -427,32 +485,6 @@ mod base64url {
         }
 
         deserializer.deserialize_str(Base64Visitor).map(Cow::Owned)
-    }
-}
-
-mod base64url_opt {
-    use serde::{Deserializer, Serializer};
-
-    use super::base64url;
-    use crate::alloc::Cow;
-
-    #[allow(clippy::option_if_let_else)] // false positive; `serializer` is moved into both clauses
-    pub fn serialize<S>(value: &Option<Cow<'_, [u8]>>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if let Some(value) = value {
-            base64url::serialize(value, serializer)
-        } else {
-            serializer.serialize_none()
-        }
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Cow<'static, [u8]>>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        base64url::deserialize(deserializer).map(Some)
     }
 }
 

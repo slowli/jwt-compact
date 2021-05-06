@@ -13,7 +13,7 @@ use core::{convert::TryFrom, marker::PhantomData};
 use crate::{
     alg::{SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType},
+    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
     Algorithm, AlgorithmSignature,
 };
 
@@ -144,7 +144,7 @@ fn create_jwk<'a>(pk: &PublicKey, sk: Option<&'a SecretKey>) -> JsonWebKey<'a> {
         curve: "secp256k1".into(),
         x: Cow::Owned(uncompressed[1..=COORDINATE_SIZE].to_vec()),
         y: Cow::Owned(uncompressed[(1 + COORDINATE_SIZE)..].to_vec()),
-        secret: sk.map(|sk| Cow::Borrowed(&sk.as_ref()[..])),
+        secret: sk.map(|sk| SecretBytes::borrowed(&sk.as_ref()[..])),
     }
 }
 

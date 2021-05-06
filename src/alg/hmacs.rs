@@ -16,7 +16,7 @@ use core::{convert::TryFrom, fmt};
 use crate::{
     alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType},
+    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
     Algorithm, AlgorithmSignature,
 };
 
@@ -268,7 +268,7 @@ macro_rules! impl_key_traits {
         impl<'a> From<&'a $key> for JsonWebKey<'a> {
             fn from(key: &'a $key) -> JsonWebKey<'a> {
                 JsonWebKey::Symmetric {
-                    secret: Cow::Borrowed(key.as_ref()),
+                    secret: SecretBytes::borrowed(key.as_ref()),
                 }
             }
         }

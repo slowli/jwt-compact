@@ -3,8 +3,9 @@
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    alloc::Cow, token::CompleteHeader, Claims, CreationError, Header, SignedToken, Token,
-    UntrustedToken, ValidationError,
+    alloc::{Cow, String, ToOwned},
+    token::CompleteHeader,
+    Claims, CreationError, Header, SignedToken, Token, UntrustedToken, ValidationError,
 };
 
 /// Signature for a certain JWT signing `Algorithm`.

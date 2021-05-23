@@ -6,7 +6,7 @@ use secp256k1::{
     All, Message, PublicKey, Secp256k1, SecretKey, Signature,
 };
 use sha2::{
-    digest::{generic_array::typenum::U32, Digest},
+    digest::{generic_array::typenum::U32, BlockInput, Digest, FixedOutput, Reset, Update},
     Sha256,
 };
 
@@ -47,7 +47,7 @@ pub struct Es256k<D = Sha256> {
 
 impl<D> Default for Es256k<D>
 where
-    D: Digest<OutputSize = U32> + Default,
+    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
 {
     fn default() -> Self {
         Es256k {
@@ -59,11 +59,12 @@ where
 
 impl<D> Es256k<D>
 where
-    D: Digest<OutputSize = U32> + Default,
+    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
 {
     /// Creates a new algorithm instance.
     /// This is a (moderately) expensive operation, so if necessary, the algorithm should
     /// be `clone()`d rather than created anew.
+    #[cfg_attr(docsrs, doc(cfg(feature = "es256k")))]
     pub fn new(context: Secp256k1<All>) -> Self {
         Es256k {
             context,
@@ -74,7 +75,7 @@ where
 
 impl<D> Algorithm for Es256k<D>
 where
-    D: Digest<OutputSize = U32> + Default,
+    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
 {
     type SigningKey = SecretKey;
     type VerifyingKey = PublicKey;

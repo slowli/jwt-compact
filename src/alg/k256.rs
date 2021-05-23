@@ -54,16 +54,6 @@ where
     }
 }
 
-impl<D> Es256k<D>
-where
-    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
-{
-    /// Creates a new algorithm instance.
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
 impl<D> Algorithm for Es256k<D>
 where
     D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
@@ -95,7 +85,7 @@ where
         // are considered invalid by this implementation. Hence, we perform normalization here.
         //
         // See also: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
-        let mut normalized_signature = signature.clone();
+        let mut normalized_signature = *signature;
         if normalized_signature.normalize_s().is_err() {
             return false;
         }

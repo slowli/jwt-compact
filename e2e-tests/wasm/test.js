@@ -14,6 +14,8 @@ const {
   createHashToken,
   verifyEdToken,
   createEdToken,
+  verifyEs256kToken,
+  createEs256kToken,
 } = require('jwt-compact-wasm');
 
 const payload = {
@@ -77,6 +79,14 @@ async function iteration() {
     keyGenerator: () => generateKeyPair('EdDSA', { crv: 'Ed25519' }),
     signer: createEdToken,
     verifier: verifyEdToken,
+  });
+
+  // ES256K algorithm.
+  await assertRoundTrip({
+    algorithm: 'ES256K',
+    keyGenerator: () => generateKeyPair('ES256K'),
+    signer: createEs256kToken,
+    verifier: verifyEs256kToken,
   });
 }
 

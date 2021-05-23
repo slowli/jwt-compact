@@ -90,7 +90,19 @@ where
     ) -> bool {
         let mut digest = D::default();
         digest.update(message);
-        verifying_key.verify_digest(digest, signature).is_ok()
+
+        // Some implementations (e.g., OpenSSL) produce high-S signatures, which
+        // are considered invalid by this implementation. Hence, we perform normalization here.
+        //
+        // See also: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
+        let mut normalized_signature = signature.clone();
+        if normalized_signature.normalize_s().is_err() {
+            return false;
+        }
+
+        verifying_key
+            .verify_digest(digest, &normalized_signature)
+            .is_ok()
     }
 }
 

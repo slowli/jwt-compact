@@ -144,7 +144,7 @@ fn es256k_reference() {
     type PublicKey = <Es256k as Algorithm>::VerifyingKey;
 
     let public_key = PublicKey::from_slice(&KEY).unwrap();
-    let es256k: Es256k = Default::default();
+    let es256k = <Es256k>::default();
     let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "ES256K");
 
@@ -436,11 +436,38 @@ fn es256k_algorithm() {
     // Test correctness of `SigningKey` / `VerifyingKey` trait implementations.
     let signing_key_bytes = SigningKey::as_bytes(&signing_key);
     let signing_key_copy: SecretKey = SigningKey::from_slice(&signing_key_bytes).unwrap();
-    assert_eq!(signing_key.to_bytes(), signing_key_copy.to_bytes());
+    assert_eq!(signing_key.as_bytes(), signing_key_copy.as_bytes());
     assert_eq!(verifying_key, signing_key.to_verifying_key());
 
     let verifying_key_bytes = verifying_key.as_bytes();
     assert_eq!(verifying_key_bytes.len(), 33);
     let verifying_key_copy: PublicKey = VerifyingKey::from_slice(&verifying_key_bytes).unwrap();
     assert_eq!(verifying_key, verifying_key_copy);
+}
+
+#[cfg(any(feature = "es256k", feature = "k256"))]
+#[test]
+fn high_s_in_signature_is_successfully_validated() {
+    use jwt_compact::jwk::JsonWebKey;
+
+    type PublicKey = <Es256k as Algorithm>::VerifyingKey;
+
+    const TOKEN: &str = "eyJhbGciOiJFUzI1NksifQ.\
+         eyJuYW1lIjoiSm9obiBEb2UiLCJhZG1pbiI6ZmFsc2UsImV4cCI6MTYyMTc5ODg3OSwic3ViIjoiam9obi5\
+         kb2VAZXhhbXBsZS5jb20ifQ.\
+         h2LqgiD_K_jYPzwU1g28hmB-zfwJ94eU_M7BvrRfxTv7Mr92ueHIe52_8HJBzZmzZeELqFsQDgJb3ppTRUYdfQ";
+
+    let jwk = serde_json::json!({
+        "kty": "EC",
+        "crv": "secp256k1",
+        "x": "95MHYo69A7OwsGFDf7rvPgv3HDXUgUwpyPi2nJnAXD0",
+        "y": "YZZvIWme4a0PpEBme0vTQYJ0I9suh7-CZICQHEn_Y_4",
+    });
+    let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+    let public_key = PublicKey::try_from(&jwk).unwrap();
+
+    let token = UntrustedToken::new(TOKEN).unwrap();
+    <Es256k>::default()
+        .validate_integrity::<serde_json::Value>(&token, &public_key)
+        .unwrap();
 }

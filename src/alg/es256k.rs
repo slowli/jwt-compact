@@ -104,8 +104,15 @@ where
         let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");
 
+        // Some implementations (e.g., OpenSSL) produce high-S signatures, which
+        // are considered invalid by this implementation. Hence, we perform normalization here.
+        //
+        // See also: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
+        let mut normalized_signature = *signature;
+        normalized_signature.normalize_s();
+
         self.context
-            .verify(&message, signature, verifying_key)
+            .verify(&message, &normalized_signature, verifying_key)
             .is_ok()
     }
 }

@@ -238,8 +238,11 @@ mod rsa_jwk {
 #[cfg(any(feature = "es256k", feature = "k256"))]
 mod es256k {
     use super::*;
+
+    #[cfg(feature = "k256")]
+    use jwt_compact::alg::VerifyingKey;
     use jwt_compact::{
-        alg::{Es256k, SigningKey, VerifyingKey},
+        alg::{Es256k, SigningKey},
         Algorithm,
     };
 

@@ -1,3 +1,5 @@
+//! `EdDSA` algorithm implementation using the `exonum-crypto` crate.
+
 use anyhow::format_err;
 use exonum_crypto::{
     gen_keypair_from_seed, sign, verify, PublicKey, SecretKey, Seed, Signature, PUBLIC_KEY_LENGTH,

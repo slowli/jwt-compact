@@ -5,10 +5,13 @@ use core::{convert::TryFrom, fmt};
 
 use crate::{alloc::Cow, Algorithm};
 
-#[cfg(feature = "secp256k1")]
-mod es256k;
 mod generic;
 mod hmacs;
+// Alternative ES256K implementations.
+#[cfg(feature = "secp256k1")]
+mod es256k;
+#[cfg(feature = "k256")]
+mod k256;
 // Alternative EdDSA implementations.
 #[cfg(feature = "ed25519-compact")]
 mod eddsa_compact;
@@ -29,6 +32,8 @@ pub use self::eddsa_sodium::Ed25519;
 pub use self::es256k::Es256k;
 pub use self::generic::{SigningKey, VerifyingKey};
 pub use self::hmacs::*;
+#[cfg(feature = "k256")]
+pub use self::k256::Es256k;
 #[cfg(feature = "rsa")]
 #[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub use self::rsa::{

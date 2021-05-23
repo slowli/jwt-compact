@@ -235,13 +235,18 @@ mod rsa_jwk {
     }
 }
 
-#[cfg(feature = "es256k")]
+#[cfg(any(feature = "es256k", feature = "k256"))]
 mod es256k {
     use super::*;
-    use jwt_compact::alg::SigningKey;
+    use jwt_compact::{
+        alg::{Es256k, SigningKey, VerifyingKey},
+        Algorithm,
+    };
 
     use const_decoder::Decoder::Hex;
-    use secp256k1::{PublicKey, SecretKey};
+
+    type SecretKey = <Es256k as Algorithm>::SigningKey;
+    type PublicKey = <Es256k as Algorithm>::VerifyingKey;
 
     #[test]
     fn verifying_jwk() {
@@ -303,7 +308,7 @@ mod es256k {
         let public_jwk = JsonWebKey::from(&public_key);
         assert_eq!(public_jwk, jwk.to_verifying_key());
 
-        let err = SecretKey::try_from(&public_jwk).unwrap_err();
+        let err = SecretKey::try_from(&public_jwk).map(drop).unwrap_err();
         assert_matches!(err, JwkError::NoField(field) if field == "d");
     }
 
@@ -378,7 +383,8 @@ mod es256k {
 
         assert_matches!(
             err,
-            JwkError::Custom(e) if e.to_string().contains("malformed public key")
+            JwkError::Custom(e) if e.to_string().contains("malformed public key") ||
+                e.to_string().contains("signature error")
         );
     }
 
@@ -392,7 +398,7 @@ mod es256k {
             "d": "AQAB",
         });
         let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
-        let err = SecretKey::try_from(&jwk).unwrap_err();
+        let err = SecretKey::try_from(&jwk).map(drop).unwrap_err();
 
         assert_matches!(
             err,

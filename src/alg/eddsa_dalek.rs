@@ -1,3 +1,5 @@
+//! `EdDSA` algorithm implementation using the `ed25519-dalek` crate.
+
 use ed25519_dalek::{
     Keypair, PublicKey, SecretKey, Signature, Signer, Verifier, PUBLIC_KEY_LENGTH,
     SECRET_KEY_LENGTH,

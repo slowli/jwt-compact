@@ -1,3 +1,5 @@
+//! `ES256K` algorithm implementation using the `secp256k1` crate.
+
 use lazy_static::lazy_static;
 use secp256k1::{
     constants::{FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE},
@@ -37,7 +39,7 @@ impl AlgorithmSignature for Signature {
 /// but it can be set to any cryptographically secure hash function with 32-byte output
 /// (e.g., SHA3-256).
 #[derive(Debug)]
-#[cfg_attr(docsrs, doc(cfg(feature = "es256k")))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "es256k", feature = "k256"))))]
 pub struct Es256k<D = Sha256> {
     context: Secp256k1<All>,
     _digest: PhantomData<D>,

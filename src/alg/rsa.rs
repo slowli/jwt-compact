@@ -1,4 +1,4 @@
-//! RSA-based JWT schemes: `RS*` and `PS*`.
+//! RSA-based JWT algorithms: `RS*` and `PS*`.
 
 pub use rsa::{errors::Error as RsaError, RSAPrivateKey, RSAPublicKey};
 

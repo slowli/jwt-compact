@@ -122,14 +122,13 @@ fn hs512_reference() {
     );
 }
 
-#[cfg(feature = "secp256k1")]
+#[cfg(any(feature = "es256k", feature = "k256"))]
 #[test]
 fn es256k_reference() {
     //! Generated using https://github.com/uport-project/did-jwt based on the unit tests
     //! in the repository.
 
     use const_decoder::Decoder::Hex;
-    use secp256k1::{constants::UNCOMPRESSED_PUBLIC_KEY_SIZE, PublicKey};
 
     const TOKEN: &str =
         "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcy\
@@ -137,13 +136,15 @@ fn es256k_reference() {
          PKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
 
     /// Uncompressed secp256k1 public key.
-    const KEY: [u8; UNCOMPRESSED_PUBLIC_KEY_SIZE] = Hex.decode(
+    const KEY: [u8; 65] = Hex.decode(
         b"04fdd57adec3d438ea237fe46b33ee1e016eda6b585c3e27ea66686c2ea535847\
           946393f8145252eea68afe67e287b3ed9b31685ba6c3b00060a73b9b1242d68f7",
     );
 
+    type PublicKey = <Es256k as Algorithm>::VerifyingKey;
+
     let public_key = PublicKey::from_slice(&KEY).unwrap();
-    let es256k: Es256k = Default::default();
+    let es256k = <Es256k>::default();
     let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "ES256K");
 
@@ -413,11 +414,13 @@ fn ed25519_algorithm() {
     test_algorithm(&Ed25519, &signing_key, &verifying_key);
 }
 
-#[cfg(feature = "secp256k1")]
+#[cfg(any(feature = "es256k", feature = "k256"))]
 #[test]
 fn es256k_algorithm() {
     use rand::Rng;
-    use secp256k1::{PublicKey, Secp256k1, SecretKey};
+
+    type SecretKey = <Es256k as Algorithm>::SigningKey;
+    type PublicKey = <Es256k as Algorithm>::VerifyingKey;
 
     let mut rng = thread_rng();
     let signing_key = loop {
@@ -426,19 +429,45 @@ fn es256k_algorithm() {
             break key;
         }
     };
-    let context = Secp256k1::new();
-    let verifying_key = PublicKey::from_secret_key(&context, &signing_key);
-    let es256k: Es256k<sha2::Sha256> = Es256k::new(context);
+    let verifying_key = signing_key.to_verifying_key();
+    let es256k: Es256k = Es256k::default();
     test_algorithm(&es256k, &signing_key, &verifying_key);
 
     // Test correctness of `SigningKey` / `VerifyingKey` trait implementations.
     let signing_key_bytes = SigningKey::as_bytes(&signing_key);
     let signing_key_copy: SecretKey = SigningKey::from_slice(&signing_key_bytes).unwrap();
-    assert_eq!(signing_key, signing_key_copy);
+    assert_eq!(signing_key.as_bytes(), signing_key_copy.as_bytes());
     assert_eq!(verifying_key, signing_key.to_verifying_key());
 
     let verifying_key_bytes = verifying_key.as_bytes();
     assert_eq!(verifying_key_bytes.len(), 33);
     let verifying_key_copy: PublicKey = VerifyingKey::from_slice(&verifying_key_bytes).unwrap();
     assert_eq!(verifying_key, verifying_key_copy);
+}
+
+#[cfg(any(feature = "es256k", feature = "k256"))]
+#[test]
+fn high_s_in_signature_is_successfully_validated() {
+    use jwt_compact::jwk::JsonWebKey;
+
+    type PublicKey = <Es256k as Algorithm>::VerifyingKey;
+
+    const TOKEN: &str = "eyJhbGciOiJFUzI1NksifQ.\
+         eyJuYW1lIjoiSm9obiBEb2UiLCJhZG1pbiI6ZmFsc2UsImV4cCI6MTYyMTc5ODg3OSwic3ViIjoiam9obi5\
+         kb2VAZXhhbXBsZS5jb20ifQ.\
+         h2LqgiD_K_jYPzwU1g28hmB-zfwJ94eU_M7BvrRfxTv7Mr92ueHIe52_8HJBzZmzZeELqFsQDgJb3ppTRUYdfQ";
+
+    let jwk = serde_json::json!({
+        "kty": "EC",
+        "crv": "secp256k1",
+        "x": "95MHYo69A7OwsGFDf7rvPgv3HDXUgUwpyPi2nJnAXD0",
+        "y": "YZZvIWme4a0PpEBme0vTQYJ0I9suh7-CZICQHEn_Y_4",
+    });
+    let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+    let public_key = PublicKey::try_from(&jwk).unwrap();
+
+    let token = UntrustedToken::new(TOKEN).unwrap();
+    <Es256k>::default()
+        .validate_integrity::<serde_json::Value>(&token, &public_key)
+        .unwrap();
 }

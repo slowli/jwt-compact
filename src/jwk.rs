@@ -190,8 +190,8 @@ impl<'a> SecretBytes<'a> {
         Self(Cow::Borrowed(bytes))
     }
 
-    #[cfg(feature = "rsa")]
-    pub(crate) fn owned(bytes: Vec<u8>) -> Self {
+    /// Creates secret bytes from an owned `Vec`.
+    pub fn owned(bytes: Vec<u8>) -> Self {
         Self(Cow::Owned(bytes))
     }
 }
@@ -483,6 +483,7 @@ pub struct RsaPrimeFactor<'a> {
 
 #[cfg(any(
     feature = "es256k",
+    feature = "k256",
     feature = "exonum-crypto",
     feature = "ed25519-dalek",
     feature = "ed25519-compact"

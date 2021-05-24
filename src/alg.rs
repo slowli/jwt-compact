@@ -30,7 +30,7 @@ pub use self::eddsa_dalek::Ed25519;
 pub use self::eddsa_sodium::Ed25519;
 #[cfg(feature = "es256k")]
 pub use self::es256k::Es256k;
-pub use self::generic::{SigningKey, VerifyingKey};
+pub use self::generic::{SecretBytes, SigningKey, VerifyingKey};
 pub use self::hmacs::*;
 #[cfg(feature = "k256")]
 pub use self::k256::Es256k;

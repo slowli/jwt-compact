@@ -14,9 +14,9 @@ use zeroize::Zeroize;
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{SigningKey, StrongKey, VerifyingKey, WeakKeyError},
+    alg::{SecretBytes, SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature,
 };
 
@@ -250,8 +250,8 @@ macro_rules! impl_key_traits {
                 self.clone()
             }
 
-            fn as_bytes(&self) -> Cow<'_, [u8]> {
-                Cow::Borrowed(self.as_ref())
+            fn as_bytes(&self) -> SecretBytes<'_> {
+                SecretBytes::borrowed(self.as_ref())
             }
         }
 

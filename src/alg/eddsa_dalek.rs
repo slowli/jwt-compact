@@ -8,9 +8,9 @@ use ed25519_dalek::{
 use core::convert::TryFrom;
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{SecretBytes, SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -19,7 +19,7 @@ impl AlgorithmSignature for Signature {
         Self::try_from(bytes).map_err(|e| anyhow::anyhow!(e))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Owned(self.to_bytes().to_vec())
     }
 }
@@ -69,7 +69,7 @@ impl VerifyingKey<Ed25519> for PublicKey {
         Self::from_bytes(raw).map_err(|e| anyhow::anyhow!(e))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(self.as_ref())
     }
 }
@@ -83,8 +83,8 @@ impl SigningKey<Ed25519> for Keypair {
         self.public
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Owned(self.to_bytes().to_vec())
+    fn as_bytes(&self) -> SecretBytes<'_> {
+        SecretBytes::owned(self.to_bytes().to_vec())
     }
 }
 

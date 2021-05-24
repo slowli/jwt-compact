@@ -9,9 +9,9 @@ use exonum_crypto::{
 use core::convert::TryFrom;
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{SecretBytes, SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -95,8 +95,8 @@ impl SigningKey<Ed25519> for SecretKey {
         PublicKey::from_slice(&self[SEED_LENGTH..]).unwrap()
     }
 
-    fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Borrowed(&self[..])
+    fn as_bytes(&self) -> SecretBytes<'_> {
+        SecretBytes::borrowed(&self[..])
     }
 }
 

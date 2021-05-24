@@ -16,6 +16,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - Add basic JSON Web Key (JWK) support. This allows (de)serializing keys from / into
   a uniform format and computing key thumbprints.
 
+- Add ES256K implementation using pure-Rust [`k256`] crate.
+
 ### Changed
 
 - Update dependencies.
@@ -28,6 +30,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
   for `HS*` algorithms.
 
 - `exonum-crypto` feature is no longer enabled by default.
+
+### Fixed
+
+- Fix ES256K signature verification by accepting high-S signatures, which are still produced
+  by some third-party implementations (e.g., OpenSSL).
 
 ## 0.3.0 - 2020-11-30
 
@@ -93,3 +100,4 @@ The initial release of `jwt-compact`.
 
 [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
 [`rsa`]: https://crates.io/crates/rsa
+[`k256`]: https://crates.io/crates/k256

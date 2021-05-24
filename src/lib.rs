@@ -31,9 +31,12 @@
 //! | `EdDSA` (Ed25519) | [`ed25519-dalek`] | Pure Rust implementation |
 //! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
 //! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |
+//! | `ES256K` | [`k256`] | Pure Rust implementation |
 //! | `RS*`, `PS*` (RSA) | [`rsa`] | Uses pure Rust [`rsa`] crate with blinding |
 //!
-//! `EdDSA` and `ES256K` algorithms are non-standard. They both work with elliptic curves
+//! `EdDSA` and `ES256K` algorithms are somewhat less frequently supported by JWT implementations
+//! than others since they are recent additions to the JSON Web Algorithms (JWA) suit.
+//! They both work with elliptic curves
 //! (Curve25519 and secp256k1; both are widely used in crypto community and believed to be
 //! securely generated). These algs have 128-bit security, making them an alternative
 //! to `ES256`.
@@ -67,6 +70,7 @@
 //! [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
 //! [`secp256k1`]: https://docs.rs/secp256k1/
 //! [`libsecp256k1`]: https://github.com/bitcoin-core/secp256k1
+//! [`k256`]: https://docs.rs/k256/
 //! [`rsa`]: https://docs.rs/rsa/
 //! [`chrono`]: https://docs.rs/chrono/
 //!

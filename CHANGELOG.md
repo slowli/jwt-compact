@@ -5,6 +5,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.4.0 - 2021-05-24
+
 ### Added
 
 - Add `new()` constructor for `HS*` keys that accepts any type implementing

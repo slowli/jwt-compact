@@ -5,6 +5,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.4.0 - 2021-05-24
+
 ### Added
 
 - Add `new()` constructor for `HS*` keys that accepts any type implementing
@@ -27,9 +29,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - Rename `Claims.expiration_date` to `expiration` to be more precise.
 
 - Encapsulate `hmac` and `sha2` dependencies by introducing signature types 
-  for `HS*` algorithms.
+  for `HS*` algorithms. The `digest` dependency is still public.
 
 - `exonum-crypto` feature is no longer enabled by default.
+
+- Change return type of `SigningKey::as_bytes()` to securely zeroize owned values on drop.
 
 ### Fixed
 

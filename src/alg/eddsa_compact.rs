@@ -6,9 +6,9 @@ use rand_core::{CryptoRng, RngCore};
 use core::convert::TryFrom;
 
 use crate::{
-    alg::{SigningKey, VerifyingKey},
+    alg::{SecretBytes, SigningKey, VerifyingKey},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature, Renamed,
 };
 
@@ -22,7 +22,7 @@ impl AlgorithmSignature for Signature {
         Ok(Self::new(signature))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(self.as_ref())
     }
 }
@@ -80,7 +80,7 @@ impl VerifyingKey<Ed25519> for PublicKey {
         Self::from_slice(raw).map_err(|e| anyhow::anyhow!(e))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(self.as_ref())
     }
 }
@@ -94,8 +94,8 @@ impl SigningKey<Ed25519> for SecretKey {
         self.public_key()
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
-        Cow::Borrowed(self.as_ref())
+    fn as_bytes(&self) -> SecretBytes<'_> {
+        SecretBytes::borrowed(self.as_ref())
     }
 }
 

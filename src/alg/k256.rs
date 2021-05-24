@@ -15,9 +15,9 @@ use sha2::{
 use core::{convert::TryFrom, marker::PhantomData};
 
 use crate::{
-    alg,
+    alg::{self, SecretBytes},
     alloc::Cow,
-    jwk::{JsonWebKey, JwkError, KeyType, SecretBytes},
+    jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature,
 };
 
@@ -26,7 +26,7 @@ impl AlgorithmSignature for Signature {
         Signature::try_from(slice).map_err(|err| anyhow::anyhow!(err))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(self.as_ref())
     }
 }
@@ -105,8 +105,8 @@ impl alg::SigningKey<Es256k> for SigningKey {
         self.verify_key()
     }
 
-    fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(self.to_bytes().to_vec())
+    fn as_bytes(&self) -> SecretBytes<'_> {
+        SecretBytes::owned(self.to_bytes().to_vec())
     }
 }
 

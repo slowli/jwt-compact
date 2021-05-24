@@ -9,9 +9,9 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 use core::{convert::TryFrom, fmt};
 
 use crate::{
-    alg::{StrongKey, WeakKeyError},
+    alg::{SecretBytes, StrongKey, WeakKeyError},
     alloc::{Box, Cow, Vec},
-    jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts, SecretBytes},
+    jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
     Algorithm, AlgorithmSignature,
 };
 
@@ -25,7 +25,7 @@ impl AlgorithmSignature for RsaSignature {
         Ok(RsaSignature(bytes.to_vec()))
     }
 
-    fn as_bytes(&self) -> Cow<[u8]> {
+    fn as_bytes(&self) -> Cow<'_, [u8]> {
         Cow::Borrowed(&self.0)
     }
 }

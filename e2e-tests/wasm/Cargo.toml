@@ -32,7 +32,7 @@ getrandom-1 = { package = "getrandom", version = "0.1", features = ["wasm-bindge
 getrandom = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [dependencies.jwt-compact]
-version = "0.3.0"
+version = "0.4.0"
 path = "../.."
 default-features = false
 features = ["clock", "ed25519-compact", "rsa", "k256"]

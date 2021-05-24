@@ -98,6 +98,12 @@ jobs:
           name: "Clippy: ed25519-compact"
           token: ${{ secrets.GITHUB_TOKEN }}
           args: -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
+      - name: Clippy k256
+        uses: actions-rs/clippy-check@v1
+        with:
+          name: "Clippy: k256"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
       - name: Clippy WASM crate
         uses: actions-rs/clippy-check@v1
         with:
@@ -120,6 +126,11 @@ jobs:
         with:
           command: test
           args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
+      - name: Test k256
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p jwt-compact --no-default-features --features std,k256 --lib --tests
 
   build-wasm:
     needs:

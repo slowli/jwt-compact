@@ -102,7 +102,7 @@ impl alg::SigningKey<Es256k> for SigningKey {
     }
 
     fn to_verifying_key(&self) -> VerifyingKey {
-        self.verify_key()
+        self.verifying_key()
     }
 
     fn as_bytes(&self) -> SecretBytes<'_> {
@@ -163,7 +163,7 @@ impl TryFrom<&JsonWebKey<'_>> for VerifyingKey {
 
 impl<'a> From<&'a SigningKey> for JsonWebKey<'a> {
     fn from(key: &'a SigningKey) -> JsonWebKey<'a> {
-        create_jwk(&key.verify_key(), Some(key))
+        create_jwk(&key.verifying_key(), Some(key))
     }
 }
 

@@ -3,6 +3,7 @@
 //! [`jose`]: https://www.npmjs.com/package/jose
 
 use assert_matches::assert_matches;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
 use std::convert::TryFrom;
@@ -17,10 +18,7 @@ where
     D: Digest,
     JsonWebKey<'a>: From<&'a K>,
 {
-    base64::encode_config(
-        JsonWebKey::from(key).thumbprint::<D>(),
-        base64::URL_SAFE_NO_PAD,
-    )
+    Base64UrlUnpadded::encode_string(&*JsonWebKey::from(key).thumbprint::<D>())
 }
 
 fn assert_jwk_roundtrip(jwk: &JsonWebKey<'_>) {
@@ -42,7 +40,7 @@ fn hs256_jwk() {
     const KEY: &str =
         "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
 
-    let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
+    let key = Base64UrlUnpadded::decode_vec(KEY).unwrap();
     let key = Hs256Key::new(&key);
 
     let jwk = JsonWebKey::from(&key);
@@ -143,7 +141,7 @@ mod rsa_jwk {
 
     #[test]
     fn verifying_jwk() {
-        let n = base64::decode_config(RSA_N, base64::URL_SAFE_NO_PAD).unwrap();
+        let n = Base64UrlUnpadded::decode_vec(RSA_N).unwrap();
         let n = BigUint::from_bytes_be(&n);
         let public_key = RSAPublicKey::new(n, BigUint::from(65_537_u32)).unwrap();
 

@@ -5,6 +5,14 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Update dependencies.
+
+### Security
+
+- Use constant-time base64 encoding / decoding from the [`base64ct`] crate.
+
 ## 0.4.0 - 2021-05-24
 
 ### Added
@@ -105,3 +113,4 @@ The initial release of `jwt-compact`.
 [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
 [`rsa`]: https://crates.io/crates/rsa
 [`k256`]: https://crates.io/crates/k256
+[`base64ct`]: https://crates.io/crates/base64ct

@@ -1,9 +1,10 @@
 //! Key traits defined by the crate.
 
+use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    alloc::{Cow, String, ToOwned},
+    alloc::{Cow, String, ToOwned, Vec},
     token::CompleteHeader,
     Claims, CreationError, Header, SignedToken, Token, UntrustedToken, ValidationError,
 };
@@ -169,21 +170,19 @@ impl<A: Algorithm> AlgorithmExt for A {
             inner: header,
         };
         let header = serde_json::to_string(&complete_header).map_err(CreationError::Header)?;
-        let mut buffer = base64::encode_config(&header, base64::URL_SAFE_NO_PAD);
+        let mut buffer = Vec::new();
+        encode_base64_buf(&header, &mut buffer);
 
-        buffer.push('.');
         let claims = serde_json::to_string(claims).map_err(CreationError::Claims)?;
-        base64::encode_config_buf(&claims, base64::URL_SAFE_NO_PAD, &mut buffer);
+        buffer.push(b'.');
+        encode_base64_buf(&claims, &mut buffer);
 
-        let signature = self.sign(signing_key, buffer.as_bytes());
-        buffer.push('.');
-        base64::encode_config_buf(
-            signature.as_bytes().as_ref(),
-            base64::URL_SAFE_NO_PAD,
-            &mut buffer,
-        );
+        let signature = self.sign(signing_key, &buffer);
+        buffer.push(b'.');
+        encode_base64_buf(signature.as_bytes(), &mut buffer);
 
-        Ok(buffer)
+        // SAFETY: safe by construction: base64 alphabet and `.` char are valid UTF-8.
+        Ok(unsafe { String::from_utf8_unchecked(buffer) })
     }
 
     fn compact_token<T>(
@@ -201,21 +200,19 @@ impl<A: Algorithm> AlgorithmExt for A {
             inner: header,
         };
         let header = serde_json::to_string(&complete_header).map_err(CreationError::Header)?;
-        let mut buffer = base64::encode_config(&header, base64::URL_SAFE_NO_PAD);
+        let mut buffer = Vec::new();
+        encode_base64_buf(&header, &mut buffer);
 
-        buffer.push('.');
         let claims = serde_cbor::to_vec(claims).map_err(CreationError::CborClaims)?;
-        base64::encode_config_buf(&claims, base64::URL_SAFE_NO_PAD, &mut buffer);
+        buffer.push(b'.');
+        encode_base64_buf(&claims, &mut buffer);
 
-        let signature = self.sign(signing_key, buffer.as_bytes());
-        buffer.push('.');
-        base64::encode_config_buf(
-            signature.as_bytes().as_ref(),
-            base64::URL_SAFE_NO_PAD,
-            &mut buffer,
-        );
+        let signature = self.sign(signing_key, &buffer);
+        buffer.push(b'.');
+        encode_base64_buf(signature.as_bytes(), &mut buffer);
 
-        Ok(buffer)
+        // SAFETY: safe by construction: base64 alphabet and `.` char are valid UTF-8.
+        Ok(unsafe { String::from_utf8_unchecked(buffer) })
     }
 
     fn validate_integrity<T>(
@@ -260,4 +257,13 @@ impl<A: Algorithm> AlgorithmExt for A {
             token: Token::new(token.header().clone(), claims),
         })
     }
+}
+
+fn encode_base64_buf(source: impl AsRef<[u8]>, buffer: &mut Vec<u8>) {
+    let source = source.as_ref();
+    let previous_len = buffer.len();
+    let claims_len = Base64UrlUnpadded::encoded_len(source);
+    buffer.resize(previous_len + claims_len, 0);
+    Base64UrlUnpadded::encode(source, &mut buffer[previous_len..])
+        .expect("miscalculated base64-encoded length; this should never happen");
 }

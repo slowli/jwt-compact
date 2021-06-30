@@ -25,7 +25,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Public dependencies (present in the public API).
 anyhow = { version = "1.0.34", default-features = false }
-base64 = { version = "0.13.0", default-features = false, features = ["alloc"] }
+base64ct = { version = "1.0", features = ["alloc"] }
 chrono = { version = "0.4.19", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
@@ -88,7 +88,7 @@ default = ["std", "clock"]
 es256k = ["secp256k1", "lazy_static"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
-std = ["anyhow/std", "base64/std", "serde/std", "serde_cbor/std"]
+std = ["anyhow/std", "base64ct/std", "serde/std", "serde_cbor/std"]
 # Enables getting the current time using `Utc::now()` from `chrono`.
 # Without it, some `TimeOptions` constructors, such as the `Default` impl,
 # are not available. It is still possible to create `TimeOptions`

@@ -14,7 +14,7 @@ pub enum ParseError {
     /// separated by periods.
     InvalidTokenStructure,
     /// Cannot decode base64.
-    Base64(base64::DecodeError),
+    InvalidBase64Encoding,
     /// Token header cannot be parsed.
     MalformedHeader(serde_json::Error),
     /// [Content type][cty] mentioned in the token header is not supported.
@@ -29,7 +29,7 @@ impl fmt::Display for ParseError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidTokenStructure => formatter.write_str("Invalid token structure"),
-            Self::Base64(e) => write!(formatter, "base64 decoding error: {}", e),
+            Self::InvalidBase64Encoding => write!(formatter, "invalid base64 decoding"),
             Self::MalformedHeader(e) => write!(formatter, "Malformed token header: {}", e),
             Self::UnsupportedContentType(ty) => {
                 write!(formatter, "Unsupported content type: {}", ty)
@@ -38,17 +38,10 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl From<base64::DecodeError> for ParseError {
-    fn from(error: base64::DecodeError) -> Self {
-        Self::Base64(error)
-    }
-}
-
 #[cfg(feature = "std")]
 impl std::error::Error for ParseError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Base64(e) => Some(e),
             Self::MalformedHeader(e) => Some(e),
             _ => None,
         }

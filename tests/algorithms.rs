@@ -1,4 +1,5 @@
 use assert_matches::assert_matches;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{Duration, TimeZone, Utc};
 use hex_buffer_serde::{Hex as _, HexForm};
 use rand::{seq::index::sample as sample_indexes, thread_rng};
@@ -37,7 +38,7 @@ fn hs256_reference() {
     let token = UntrustedToken::new(TOKEN).unwrap();
     assert_eq!(token.algorithm(), "HS256");
 
-    let key = base64::decode_config(KEY, base64::URL_SAFE_NO_PAD).unwrap();
+    let key = Base64UrlUnpadded::decode_vec(KEY).unwrap();
     let key = Hs256Key::new(&key);
     let validated_token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
     assert_eq!(
@@ -245,7 +246,7 @@ fn test_algorithm<A: Algorithm>(
     // Mutate signature bits.
     let signature = token_string.rsplit('.').next().unwrap();
     let signature_start = token_string.rfind('.').unwrap() + 1;
-    let signature = base64::decode_config(signature, base64::URL_SAFE_NO_PAD).unwrap();
+    let signature = Base64UrlUnpadded::decode_vec(signature).unwrap();
     let signature_bits = signature.len() * 8;
 
     let mangled_bits: Box<dyn Iterator<Item = usize>> = if signature_bits <= MAX_MANGLED_BITS {
@@ -258,7 +259,7 @@ fn test_algorithm<A: Algorithm>(
     for i in mangled_bits {
         let mut mangled_signature = signature.clone();
         mangled_signature[i / 8] ^= 1 << (i % 8) as u8;
-        let mangled_signature = base64::encode_config(&mangled_signature, base64::URL_SAFE_NO_PAD);
+        let mangled_signature = Base64UrlUnpadded::encode_string(&mangled_signature);
 
         let mut mangled_str = token_string.clone();
         mangled_str.replace_range(signature_start.., &mangled_signature);
@@ -274,7 +275,7 @@ fn test_algorithm<A: Algorithm>(
 
     // Mutate header.
     let mangled_header = format!(r#"{{"alg":"{}","typ":"JWT"}}"#, algorithm.name());
-    let mangled_header = base64::encode_config(&mangled_header, base64::URL_SAFE_NO_PAD);
+    let mangled_header = Base64UrlUnpadded::encode_string(mangled_header.as_bytes());
     let header_end = token_string.find('.').unwrap();
     assert_ne!(mangled_header, &token_string[..header_end]);
     let mut mangled_str = token_string.clone();
@@ -286,7 +287,7 @@ fn test_algorithm<A: Algorithm>(
     assert_matches!(err, ValidationError::InvalidSignature);
 
     // Mutate claims.
-    let claims_string = base64::encode_config(
+    let claims_string = Base64UrlUnpadded::encode_string(
         &serde_json::to_vec(&{
             let mut mangled_claims = claims;
             let issued_at = mangled_claims.issued_at.as_mut().unwrap();
@@ -294,7 +295,6 @@ fn test_algorithm<A: Algorithm>(
             mangled_claims
         })
         .unwrap(),
-        base64::URL_SAFE_NO_PAD,
     );
     assert_ne!(
         claims_string,

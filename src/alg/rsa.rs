@@ -244,7 +244,11 @@ impl Rsa {
         match self.padding_alg {
             Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
             Padding::Pss => {
+                #[cfg(feature = "std")]
                 let rng = rand_core::OsRng;
+
+                #[cfg(not(feature = "std"))]
+                let rng = rdrand::RdRand::new().unwrap();
 
                 // The salt length needs to be set to the size of hash function output;
                 // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
@@ -276,9 +280,14 @@ impl Rsa {
 
     fn sign(&self, signing_key: &RSAPrivateKey, message: &[u8]) -> RsaSignature {
         let digest = self.hash_alg.digest(message);
+        #[cfg(feature = "std")]
+        let mut rng = rand_core::OsRng;
+
+        #[cfg(not(feature = "std"))]
+        let mut rng = rdrand::RdRand::new().unwrap();
         RsaSignature(
             signing_key
-                .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
+                .sign_blinded(&mut rng, self.padding_scheme(), &digest)
                 .expect("Unexpected RSA signature failure"),
         )
     }

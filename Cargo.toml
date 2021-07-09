@@ -45,6 +45,9 @@ zeroize = { version = "1.1", features = ["zeroize_derive"] }
 # Crypto backends (all public dependencies).
 secp256k1 = { version = "0.20", optional = true }
 
+# Strong random generator with no_std support
+rdrand = { version = "0.8.0", default-features = false, optional = true}
+
 [dependencies.k256]
 version = "0.9.4"
 default-features = false
@@ -72,6 +75,7 @@ features = ["random"]
 [dependencies.rsa]
 version = "0.4"
 optional = true
+default-features = false
 
 [dev-dependencies]
 assert_matches = "1.3"

@@ -13,7 +13,7 @@ and secure cryptographic primitives.
 
 ## Usage
 
-Add this to your `Crate.toml`:
+Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]

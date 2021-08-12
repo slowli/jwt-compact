@@ -1,6 +1,6 @@
 //! RSA-based JWT algorithms: `RS*` and `PS*`.
 
-pub use rsa::{errors::Error as RsaError, RSAPrivateKey, RSAPublicKey};
+pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
 use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, PublicKeyParts};
@@ -76,7 +76,6 @@ enum Padding {
 
 /// Bit length of an RSA key modulus (aka RSA key length).
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[allow(clippy::pub_enum_variant_names)] // false alarm
 #[non_exhaustive]
 #[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub enum ModulusBits {
@@ -163,8 +162,8 @@ pub struct Rsa {
 }
 
 impl Algorithm for Rsa {
-    type SigningKey = RSAPrivateKey;
-    type VerifyingKey = RSAPublicKey;
+    type SigningKey = RsaPrivateKey;
+    type VerifyingKey = RsaPublicKey;
     type Signature = RsaSignature;
 
     fn name(&self) -> Cow<'static, str> {
@@ -274,7 +273,7 @@ impl Rsa {
         }
     }
 
-    fn sign(&self, signing_key: &RSAPrivateKey, message: &[u8]) -> RsaSignature {
+    fn sign(&self, signing_key: &RsaPrivateKey, message: &[u8]) -> RsaSignature {
         let digest = self.hash_alg.digest(message);
         RsaSignature(
             signing_key
@@ -286,7 +285,7 @@ impl Rsa {
     fn verify_signature(
         &self,
         signature: &RsaSignature,
-        verifying_key: &RSAPublicKey,
+        verifying_key: &RsaPublicKey,
         message: &[u8],
     ) -> bool {
         let digest = self.hash_alg.digest(message);
@@ -299,24 +298,24 @@ impl Rsa {
     pub fn generate<R: CryptoRng + RngCore>(
         rng: &mut R,
         modulus_bits: ModulusBits,
-    ) -> rsa::errors::Result<(StrongKey<RSAPrivateKey>, StrongKey<RSAPublicKey>)> {
-        let signing_key = RSAPrivateKey::new(rng, modulus_bits.bits())?;
+    ) -> rsa::errors::Result<(StrongKey<RsaPrivateKey>, StrongKey<RsaPublicKey>)> {
+        let signing_key = RsaPrivateKey::new(rng, modulus_bits.bits())?;
         let verifying_key = signing_key.to_public_key();
         Ok((StrongKey(signing_key), StrongKey(verifying_key)))
     }
 }
 
-impl StrongKey<RSAPrivateKey> {
+impl StrongKey<RsaPrivateKey> {
     /// Converts this private key to a public key.
-    pub fn to_public_key(&self) -> StrongKey<RSAPublicKey> {
+    pub fn to_public_key(&self) -> StrongKey<RsaPublicKey> {
         StrongKey(self.0.to_public_key())
     }
 }
 
-impl TryFrom<RSAPrivateKey> for StrongKey<RSAPrivateKey> {
-    type Error = WeakKeyError<RSAPrivateKey>;
+impl TryFrom<RsaPrivateKey> for StrongKey<RsaPrivateKey> {
+    type Error = WeakKeyError<RsaPrivateKey>;
 
-    fn try_from(key: RSAPrivateKey) -> Result<Self, Self::Error> {
+    fn try_from(key: RsaPrivateKey) -> Result<Self, Self::Error> {
         if ModulusBits::is_valid_bits(key.n().bits()) {
             Ok(StrongKey(key))
         } else {
@@ -325,10 +324,10 @@ impl TryFrom<RSAPrivateKey> for StrongKey<RSAPrivateKey> {
     }
 }
 
-impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
-    type Error = WeakKeyError<RSAPublicKey>;
+impl TryFrom<RsaPublicKey> for StrongKey<RsaPublicKey> {
+    type Error = WeakKeyError<RsaPublicKey>;
 
-    fn try_from(key: RSAPublicKey) -> Result<Self, Self::Error> {
+    fn try_from(key: RsaPublicKey) -> Result<Self, Self::Error> {
         if ModulusBits::is_valid_bits(key.n().bits()) {
             Ok(StrongKey(key))
         } else {
@@ -337,8 +336,8 @@ impl TryFrom<RSAPublicKey> for StrongKey<RSAPublicKey> {
     }
 }
 
-impl<'a> From<&'a RSAPublicKey> for JsonWebKey<'a> {
-    fn from(key: &'a RSAPublicKey) -> JsonWebKey<'a> {
+impl<'a> From<&'a RsaPublicKey> for JsonWebKey<'a> {
+    fn from(key: &'a RsaPublicKey) -> JsonWebKey<'a> {
         JsonWebKey::Rsa {
             modulus: Cow::Owned(key.n().to_bytes_be()),
             public_exponent: Cow::Owned(key.e().to_bytes_be()),
@@ -347,7 +346,7 @@ impl<'a> From<&'a RSAPublicKey> for JsonWebKey<'a> {
     }
 }
 
-impl TryFrom<&JsonWebKey<'_>> for RSAPublicKey {
+impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
@@ -373,9 +372,9 @@ impl TryFrom<&JsonWebKey<'_>> for RSAPublicKey {
 /// (i.e., in the `oth` array).
 ///
 /// [RFC 7518]: https://tools.ietf.org/html/rfc7518#section-6.3.2
-impl<'a> From<&'a RSAPrivateKey> for JsonWebKey<'a> {
-    fn from(key: &'a RSAPrivateKey) -> JsonWebKey<'a> {
-        const MSG: &str = "RSAPrivateKey must have at least 2 prime factors";
+impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
+    fn from(key: &'a RsaPrivateKey) -> JsonWebKey<'a> {
+        const MSG: &str = "RsaPrivateKey must have at least 2 prime factors";
 
         let p = key.primes().get(0).expect(MSG);
         let q = key.primes().get(1).expect(MSG);
@@ -407,7 +406,7 @@ impl<'a> From<&'a RSAPrivateKey> for JsonWebKey<'a> {
 
 /// ⚠ **Warning.** Contrary to [RFC 7518] (at least, in spirit), this conversion ignores
 /// `dp`, `dq`, and `qi` fields from JWK, as well as `d` and `t` fields for additional factors.
-impl TryFrom<&JsonWebKey<'_>> for RSAPrivateKey {
+impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {

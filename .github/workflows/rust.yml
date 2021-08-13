@@ -9,7 +9,7 @@ on:
     - cron: '30 3 * * FRI'
 
 env:
-  msrv: 1.47.0
+  msrv: 1.51.0
   nightly: nightly-2021-04-15
 
 jobs:

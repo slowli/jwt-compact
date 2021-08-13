@@ -87,7 +87,7 @@ jobs:
         with:
           name: "Clippy: exonum-crypto, es256k, rsa"
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features exonum-crypto,es256k,rsa --all-targets -- -D warnings
+          args: -p jwt-compact --features exonum-crypto,es256k,rsa/pem --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
@@ -117,7 +117,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --features exonum-crypto,es256k,rsa
+          args: -p jwt-compact --features exonum-crypto,es256k,rsa/pem
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -256,7 +256,7 @@ jobs:
             --extern-html-root-url secp256k1=https://docs.rs/secp256k1/~0.20 \
             --extern-html-root-url serde_json=https://docs.rs/serde_json/~1 \
             --extern-html-root-url serde_cbor=https://docs.rs/serde_cbor/~0.11 \
-            --extern-html-root-url rsa=https://docs.rs/rsa/~0.4
+            --extern-html-root-url rsa=https://docs.rs/rsa/~0.5
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@releases/v3

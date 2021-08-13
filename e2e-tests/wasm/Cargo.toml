@@ -15,15 +15,11 @@ wasm-opt = ["-Os", "--enable-mutable-globals"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.68", features = ["serde-serialize"] }
+wasm-bindgen = "0.2.75"
 
 chrono = { version = "0.4.19", features = ["wasmbind"] }
-serde = "1.0"
-
-# Multiple other dependencies lead to `serde/std` being enabled
-# (e.g., `wasm-bindgen/serde-serialize`, `getrandom/js`).
-# Hence, we enable `serde_cbor/std` to avoid compilation errors.
-serde_cbor = "0.11.1"
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 # TODO: enabling `rand_core/getrandom` is not obvious; should RSA support be a crate feature?
 rand_core = { version = "0.6", features = ["getrandom"] }

@@ -175,8 +175,10 @@ impl<T> Claims<T> {
         self.expiration.map_or(
             Err(ValidationError::NoClaim(Claim::Expiration)),
             |expiration| {
-                let expiration = expiration.checked_add_signed(options.leeway);
-                if expiration.is_some() && (options.clock_fn)() > expiration.unwrap() {
+                let expiration_with_leeway = expiration
+                    .checked_add_signed(options.leeway)
+                    .unwrap_or(chrono::MAX_DATETIME);
+                if (options.clock_fn)() > expiration_with_leeway {
                     Err(ValidationError::Expired)
                 } else {
                     Ok(self)

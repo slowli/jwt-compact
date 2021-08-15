@@ -88,6 +88,8 @@ version-sync = "0.9"
 default = ["std", "clock"]
 # `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
 es256k = ["secp256k1", "lazy_static"]
+# RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
+with_rsa = ["rsa", "rand_core/getrandom"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
 std = ["anyhow/std", "base64ct/std", "serde/std", "serde_cbor/std"]

@@ -21,12 +21,11 @@ chrono = { version = "0.4.19", features = ["wasmbind"] }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
-# TODO: enabling `rand_core/getrandom` is not obvious; should RSA support be a crate feature?
-rand_core = { version = "0.6", features = ["getrandom"] }
+# Set up `getrandom` crate to use the host JS CSPRNG.
 getrandom = { version = "0.2", features = ["js"] }
 
 [dependencies.jwt-compact]
 version = "0.4.0"
 path = "../.."
 default-features = false
-features = ["clock", "ed25519-compact", "rsa", "k256"]
+features = ["clock", "ed25519-compact", "with_rsa", "k256"]

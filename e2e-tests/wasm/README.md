@@ -2,6 +2,15 @@
 
 This simple crate tests that `jwt-compact` builds and can be used in WASM.
 
+Note that `chrono` and `getrandom` crates need to be configured in [`Cargo.toml`](Cargo.toml)
+in order to work with the WASM target:
+
+```toml
+[dependencies]
+chrono = { version = "0.4.19", features = ["wasmbind"] }
+getrandom = { version = "0.2", features = ["js"] }
+```
+
 ## Usage
 
 1. Install WASM target for Rust via `rustup`: `rustup target add wasm32-unknown-unknown`.

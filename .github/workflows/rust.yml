@@ -208,10 +208,12 @@ jobs:
       - name: Format
         run: cargo fmt -- --check
       - name: Clippy
-        run: cargo clippy --bin jwt-compact-nostd -- -D warnings
+        run: cargo clippy --bin jwt-compact-nostd --all-features -- -D warnings
 
-      - name: Run binary!
-        run: cargo run --release
+      - name: Run binary (ed25519)!
+        run: cargo run --release --features ed25519
+      - name: Run binary (rsa)!
+        run: cargo run --release --features with_rsa
 
   document:
     needs:

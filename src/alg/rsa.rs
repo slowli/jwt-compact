@@ -76,7 +76,6 @@ enum Padding {
 
 /// Bit length of an RSA key modulus (aka RSA key length).
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[allow(clippy::pub_enum_variant_names)] // false alarm
 #[non_exhaustive]
 #[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub enum ModulusBits {

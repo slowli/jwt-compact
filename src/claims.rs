@@ -175,7 +175,10 @@ impl<T> Claims<T> {
         self.expiration.map_or(
             Err(ValidationError::NoClaim(Claim::Expiration)),
             |expiration| {
-                if (options.clock_fn)() > expiration + options.leeway {
+                let expiration_with_leeway = expiration
+                    .checked_add_signed(options.leeway)
+                    .unwrap_or(chrono::MAX_DATETIME);
+                if (options.clock_fn)() > expiration_with_leeway {
                     Err(ValidationError::Expired)
                 } else {
                     Ok(self)
@@ -280,6 +283,9 @@ mod tests {
             claims.validate_expiration(&time_options).unwrap_err(),
             ValidationError::NoClaim(Claim::Expiration)
         );
+
+        claims.expiration = Some(chrono::MAX_DATETIME);
+        assert!(claims.validate_expiration(&time_options).is_ok());
 
         claims.expiration = Some(Utc::now() - Duration::hours(1));
         assert_matches!(

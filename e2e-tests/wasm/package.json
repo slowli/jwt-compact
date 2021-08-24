@@ -18,7 +18,7 @@
     "test": "node test.js"
   },
   "dependencies": {
-    "jose": "^3.14.0",
+    "jose": "^3.15.4",
     "jwt-compact-wasm": "file:pkg"
   }
 }

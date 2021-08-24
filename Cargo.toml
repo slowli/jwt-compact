@@ -5,6 +5,7 @@ authors = [
   "Alex Ostrovski <ostrovski.alex@gmail.com>",
   "Akhil Velagapudi <akhilvelagapudi@gmail.com>",
   "Frank Denis <github@pureftpd.org>",
+  "Maximilian Münchow <github@maxmuen.de>",
 ]
 edition = "2018"
 readme = "README.md"

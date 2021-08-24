@@ -37,7 +37,7 @@ pub use self::k256::Es256k;
 #[cfg(feature = "rsa")]
 #[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub use self::rsa::{
-    ModulusBits, ModulusBitsError, RSAPrivateKey, RSAPublicKey, Rsa, RsaSignature,
+    ModulusBits, ModulusBitsError, Rsa, RsaPrivateKey, RsaPublicKey, RsaSignature,
 };
 
 /// Wrapper around keys allowing to enforce key strength requirements.

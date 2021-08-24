@@ -20,15 +20,26 @@ cortex-m-semihosting = "0.3.5"
 alloc-cortex-m = "0.4.0"
 panic-halt = "0.2.0"
 
+# RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
+getrandom = { version = "0.2", features = ["custom"], optional = true }
+once_cell = { version = "1.8.0", default-features = false, optional = true }
+rand_chacha = { version = "0.3.1", default-features = false, optional = true }
+rsa = { version = "0.5", default-features = false, optional = true }
+
 [dependencies.jwt-compact]
 version = "0.4.0"
 path = "../.."
 default-features = false
-features = ["ed25519-dalek"]
 
 [profile.release]
 opt-level = "z" # Optimize for size, rather than speed
 lto = true
+
+# Crypto backends are included as features in order to not overflow
+# flash memory of the (emulated) microcontroller.
+[features]
+ed25519 = ["jwt-compact/ed25519-dalek"]
+with_rsa = ["getrandom", "once_cell", "rand_chacha", "rsa", "jwt-compact/with_rsa"]
 
 [workspace]
 # ^-- Needed to prevent setting the `std` flag for crates (is this a cargo bug?).

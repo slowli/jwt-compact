@@ -2,13 +2,14 @@
 
 use assert_matches::assert_matches;
 use rand::thread_rng;
+use rsa::{pkcs1::FromRsaPrivateKey, pkcs8::FromPublicKey};
 
 use core::convert::TryFrom;
 
 use super::{create_claims, test_algorithm, CompactClaims, SampleClaims};
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 
-const RSA_PRIVATE_KEY: &str = r#"
+const RSA_PRIVATE_KEY: &str = "\
 -----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAnzyis1ZjfNB0bBgKFMSvvkTtwlvBsaJq7S5wA+kzeVOVpVWw
 kWdVha4s38XM/pa/yr47av7+z3VTmvDRyAHcaT92whREFpLv9cj5lTeJSibyr/Mr
@@ -35,10 +36,9 @@ NvVi5vcba9oGdElJX3e9mxqUKMrw7msJJv1MX8LWyMQC5L6YNYHDfbPF1q5L4i8j
 3YfRAoGAUxL/Eu5yvMK8SAt/dJK6FedngcM3JEFNplmtLYVLWhkIlNRGDwkg3I5K
 y18Ae9n7dHVueyslrb6weq7dTkYDi3iOYRW8HRkIQh06wEdbxt0shTzAJvvCQfrB
 jg/3747WSsf/zBTcHihTRBdAv6OmdhV4/dD5YBfLAkLrd+mX7iE=
------END RSA PRIVATE KEY-----
-"#;
+-----END RSA PRIVATE KEY-----";
 
-const RSA_PUBLIC_KEY: &str = r#"
+const RSA_PUBLIC_KEY: &str = "\
 -----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnzyis1ZjfNB0bBgKFMSv
 vkTtwlvBsaJq7S5wA+kzeVOVpVWwkWdVha4s38XM/pa/yr47av7+z3VTmvDRyAHc
@@ -47,30 +47,25 @@ tvHWTxZYEcXLgAXFuUuaS3uF9gEiNQwzGTU1v0FqkqTBr4B8nW3HCN47XUu0t8Y0
 e+lf4s4OxQawWD79J9/5d3Ry0vbV3Am1FtGJiJvOwRsIfVChDpYStTcHTCMqtvWb
 V6L11BWkpzGXSW4Hv43qa+GSYOD2QU68Mb59oSk2OB+BtOLpJofmbGEGgvmwyCI9
 MwIDAQAB
------END PUBLIC KEY-----
-"#;
+-----END PUBLIC KEY-----";
 
 #[test]
 fn rs256_algorithm() {
-    let rsa = Rsa::rs256();
-    let signing_key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-    let signing_key = RSAPrivateKey::from_pkcs1(&signing_key.contents).unwrap();
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
     signing_key.validate().unwrap();
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&Rsa::rs256(), &signing_key, &verifying_key);
 }
 
 #[test]
 fn rs256_algorithm_with_checked_len() {
-    let rsa = StrongAlg(Rsa::rs256());
     let signing_key = {
-        let key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-        let key = RSAPrivateKey::from_pkcs1(&key.contents).unwrap();
+        let key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
         key.validate().unwrap();
         StrongKey::try_from(key).unwrap()
     };
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&StrongAlg(Rsa::rs256()), &signing_key, &verifying_key);
 }
 
 #[test]
@@ -86,7 +81,7 @@ fn rs256_algorithm_with_generated_keys() {
 
 #[test]
 fn ps256_checked_len_fails_on_undersized_key() {
-    let small_private_key = RSAPrivateKey::new(&mut thread_rng(), 1_024).unwrap();
+    let small_private_key = RsaPrivateKey::new(&mut thread_rng(), 1_024).unwrap();
     let claims = create_claims();
     let token = Rsa::ps256()
         .compact_token(Header::default(), &claims, &small_private_key)
@@ -98,8 +93,7 @@ fn ps256_checked_len_fails_on_undersized_key() {
     assert!(StrongKey::try_from(small_public_key).is_err());
     assert!(StrongKey::try_from(small_private_key).is_err());
 
-    let public_key = rsa::pem::parse(RSA_PUBLIC_KEY).unwrap();
-    let public_key = RSAPublicKey::from_pkcs8(&public_key.contents).unwrap();
+    let public_key = RsaPublicKey::from_public_key_pem(RSA_PUBLIC_KEY).unwrap();
     let public_key = StrongKey::try_from(public_key).unwrap();
 
     let err = StrongAlg(Rsa::ps256())
@@ -110,57 +104,46 @@ fn ps256_checked_len_fails_on_undersized_key() {
 
 #[test]
 fn rs384_algorithm() {
-    let rsa = Rsa::rs384();
-    let signing_key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-    let signing_key = RSAPrivateKey::from_pkcs1(&signing_key.contents).unwrap();
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
     signing_key.validate().unwrap();
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&Rsa::rs384(), &signing_key, &verifying_key);
 }
 
 #[test]
 fn rs512_algorithm() {
-    let rsa = Rsa::rs512();
-    let signing_key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-    let signing_key = RSAPrivateKey::from_pkcs1(&signing_key.contents).unwrap();
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
     signing_key.validate().unwrap();
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&Rsa::rs512(), &signing_key, &verifying_key);
 }
 
 #[test]
 fn ps256_algorithm() {
-    let rsa = Rsa::ps256();
-    let signing_key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-    let signing_key = RSAPrivateKey::from_pkcs1(&signing_key.contents).unwrap();
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
     signing_key.validate().unwrap();
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&Rsa::ps256(), &signing_key, &verifying_key);
 }
 
 #[test]
 fn ps384_algorithm() {
-    let rsa = Rsa::ps384();
-    let signing_key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-    let signing_key = RSAPrivateKey::from_pkcs1(&signing_key.contents).unwrap();
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
     signing_key.validate().unwrap();
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&Rsa::ps384(), &signing_key, &verifying_key);
 }
 
 #[test]
 fn ps512_algorithm() {
-    let rsa = Rsa::ps512();
-    let signing_key = rsa::pem::parse(RSA_PRIVATE_KEY).unwrap();
-    let signing_key = RSAPrivateKey::from_pkcs1(&signing_key.contents).unwrap();
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
     signing_key.validate().unwrap();
     let verifying_key = signing_key.to_public_key();
-    test_algorithm(&rsa, &signing_key, &verifying_key);
+    test_algorithm(&Rsa::ps512(), &signing_key, &verifying_key);
 }
 
 fn test_rsa_reference(rsa: Rsa, token: &str) {
-    let public_key = rsa::pem::parse(RSA_PUBLIC_KEY).unwrap();
-    let public_key = RSAPublicKey::from_pkcs8(&public_key.contents).unwrap();
+    let public_key = RsaPublicKey::from_public_key_pem(RSA_PUBLIC_KEY).unwrap();
     let token = UntrustedToken::new(token).unwrap();
     assert_eq!(token.algorithm(), rsa.name());
 

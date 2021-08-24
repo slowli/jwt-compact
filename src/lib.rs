@@ -32,7 +32,7 @@
 //! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
 //! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |
 //! | `ES256K` | [`k256`] | Pure Rust implementation |
-//! | `RS*`, `PS*` (RSA) | [`rsa`] | Uses pure Rust [`rsa`] crate with blinding |
+//! | `RS*`, `PS*` (RSA) | `with_rsa` | Uses pure Rust [`rsa`] crate with blinding |
 //!
 //! `EdDSA` and `ES256K` algorithms are somewhat less frequently supported by JWT implementations
 //! than others since they are recent additions to the JSON Web Algorithms (JWA) suit.
@@ -41,6 +41,13 @@
 //! securely generated). These algs have 128-bit security, making them an alternative
 //! to `ES256`.
 //!
+//! RSA support requires a system-wide RNG retrieved via the [`getrandom`] crate.
+//! In case of a compilation failure in the `getrandom` crate, you may want
+//! to include it as a direct dependency and specify one of its features
+//! to assist `getrandom` with choosing an appropriate RNG implementation; consult `getrandom` docs
+//! for more details. See also WASM and bare-metal E2E tests included
+//! in the [source code repository] of this crate.
+//!
 //! # `no_std` support
 //!
 //! The crate supports a `no_std` compilation mode. This is controlled by two features:
@@ -48,7 +55,7 @@
 //!
 //! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
 //!   Without it, some [`TimeOptions`] constructors, such as the `Default` impl,
-//!   are not available. It is still possible to create `TimeOptions` with an excplicitly specified
+//!   are not available. It is still possible to create `TimeOptions` with an explicitly specified
 //!   clock function, or to set / verify time-related [`Claims`] fields manually.
 //! - The `std` feature is propagated to the core dependencies and enables `std`-specific
 //!   functionality (such as error types implementing the standard `Error` trait).
@@ -73,6 +80,8 @@
 //! [`k256`]: https://docs.rs/k256/
 //! [`rsa`]: https://docs.rs/rsa/
 //! [`chrono`]: https://docs.rs/chrono/
+//! [`getrandom`]: https://docs.rs/getrandom/
+//! [source code repository]: https://github.com/slowli/jwt-compact
 //!
 //! # Examples
 //!

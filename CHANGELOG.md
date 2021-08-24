@@ -13,6 +13,9 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Fix datetime overflow when validating the expiration claim.
 
+- Fix `no_std` support for RSA-based JWS algorithms. As a part of the fix,
+  to enable RSA, you should now use the `with_rsa` feature instead of `rsa`.
+
 ### Security
 
 - Use constant-time base64 encoding / decoding from the [`base64ct`] crate.

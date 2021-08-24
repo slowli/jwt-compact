@@ -97,4 +97,4 @@ async function main(iterations = 10) {
   }
 }
 
-main().catch(console.error)
+main().catch(console.error);

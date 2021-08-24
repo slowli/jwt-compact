@@ -92,8 +92,8 @@ mod rsa_jwk {
 
     use rand::thread_rng;
     use rsa::{
-        algorithms::generate_multi_prime_key, errors::Error as RsaError, BigUint, RSAPrivateKey,
-        RSAPublicKey,
+        algorithms::generate_multi_prime_key, errors::Error as RsaError, BigUint, RsaPrivateKey,
+        RsaPublicKey,
     };
 
     // Taken from https://tools.ietf.org/html/rfc7638#section-3.1
@@ -143,7 +143,7 @@ mod rsa_jwk {
     fn verifying_jwk() {
         let n = Base64UrlUnpadded::decode_vec(RSA_N).unwrap();
         let n = BigUint::from_bytes_be(&n);
-        let public_key = RSAPublicKey::new(n, BigUint::from(65_537_u32)).unwrap();
+        let public_key = RsaPublicKey::new(n, BigUint::from(65_537_u32)).unwrap();
 
         assert_eq!(
             key_thumbprint::<Sha256, _>(&public_key),
@@ -153,7 +153,7 @@ mod rsa_jwk {
         let jwk = JsonWebKey::from(&public_key);
         assert!(!jwk.is_signing_key());
         assert_jwk_roundtrip(&jwk);
-        assert_eq!(RSAPublicKey::try_from(&jwk).unwrap(), public_key);
+        assert_eq!(RsaPublicKey::try_from(&jwk).unwrap(), public_key);
     }
 
     #[test]
@@ -162,14 +162,14 @@ mod rsa_jwk {
         let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
         assert!(jwk.is_signing_key());
 
-        let private_key = RSAPrivateKey::try_from(&jwk).unwrap();
-        let public_key = RSAPublicKey::try_from(&jwk).unwrap();
+        let private_key = RsaPrivateKey::try_from(&jwk).unwrap();
+        let public_key = RsaPublicKey::try_from(&jwk).unwrap();
         assert_eq!(public_key, private_key.to_public_key());
 
         let jwk_from_key = JsonWebKey::from(&private_key);
         // `jwk_from_key` won't be equal to `jwk`, but we can still check that a private key
         // can be restored from it.
-        let private_key_copy = RSAPrivateKey::try_from(&jwk_from_key).unwrap();
+        let private_key_copy = RsaPrivateKey::try_from(&jwk_from_key).unwrap();
         assert_eq!(private_key_copy, private_key);
 
         assert_eq!(
@@ -180,7 +180,7 @@ mod rsa_jwk {
         let public_jwk = JsonWebKey::from(&public_key);
         assert_eq!(public_jwk, jwk.to_verifying_key());
 
-        let err = RSAPrivateKey::try_from(&public_jwk).unwrap_err();
+        let err = RsaPrivateKey::try_from(&public_jwk).unwrap_err();
         assert_matches!(err, JwkError::NoField(field) if field == "d");
     }
 
@@ -189,11 +189,11 @@ mod rsa_jwk {
         let private_key = generate_multi_prime_key(&mut thread_rng(), 3, 2_048).unwrap();
 
         let jwk = JsonWebKey::from(&private_key);
-        let private_key_copy = RSAPrivateKey::try_from(&jwk).unwrap();
+        let private_key_copy = RsaPrivateKey::try_from(&jwk).unwrap();
         assert_eq!(private_key_copy, private_key);
 
         let public_jwk = jwk.to_verifying_key();
-        let public_key = RSAPublicKey::try_from(&public_jwk).unwrap();
+        let public_key = RsaPublicKey::try_from(&public_jwk).unwrap();
         assert_eq!(public_key, private_key.to_public_key());
 
         let jwk_string = jwk.to_string();
@@ -211,7 +211,7 @@ mod rsa_jwk {
             "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
         });
         let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
-        let err = RSAPublicKey::try_from(&jwk).unwrap_err();
+        let err = RsaPublicKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(
             err,
@@ -227,7 +227,7 @@ mod rsa_jwk {
         let mut jwk = create_signing_jwk();
         jwk.as_object_mut().unwrap()["n"] = String::from(RSA_N).into();
         let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
-        let err = RSAPrivateKey::try_from(&jwk).unwrap_err();
+        let err = RsaPrivateKey::try_from(&jwk).unwrap_err();
 
         assert_matches!(err, JwkError::Custom(err) if err.is::<RsaError>());
     }

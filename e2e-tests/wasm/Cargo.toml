@@ -15,24 +15,17 @@ wasm-opt = ["-Os", "--enable-mutable-globals"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.68", features = ["serde-serialize"] }
+wasm-bindgen = "0.2.75"
 
 chrono = { version = "0.4.19", features = ["wasmbind"] }
-pem = "0.8.1"
-serde = "1.0"
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
-# Multiple other dependencies lead to `serde/std` being enabled
-# (e.g., `rsa`, `wasm-bindgen/serde-serialize`, `get_random/js`).
-# Hence, we enable `serde_cbor/std` to avoid compilation errors.
-serde_cbor = "0.11.1"
-
-# We need to configure getrandom v0.1 *and* v0.2: v0.1 is used by `rand_core`,
-# and v0.2 is used by `ed25519-compact`.
-getrandom-1 = { package = "getrandom", version = "0.1", features = ["wasm-bindgen"] }
-getrandom = { package = "getrandom", version = "0.2", features = ["js"] }
+# Set up `getrandom` crate to use the host JS CSPRNG.
+getrandom = { version = "0.2", features = ["js"] }
 
 [dependencies.jwt-compact]
 version = "0.4.0"
 path = "../.."
 default-features = false
-features = ["clock", "ed25519-compact", "rsa", "k256"]
+features = ["clock", "ed25519-compact", "with_rsa", "k256"]

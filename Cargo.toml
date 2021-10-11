@@ -78,7 +78,7 @@ features = ["alloc"]
 
 [dev-dependencies]
 assert_matches = "1.3"
-const-decoder = "0.1.0"
+const-decoder = "0.2.0"
 criterion = "0.3.4"
 hex-buffer-serde = "0.3.0"
 rand = "0.8.3"

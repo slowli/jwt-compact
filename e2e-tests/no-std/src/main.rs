@@ -184,7 +184,7 @@ const ED_PRIVATE_KEY: [u8; 64] = const_decoder::Decoder::Hex.decode(
 );
 
 #[cfg(feature = "with_rsa")]
-const RSA_PRIVATE_KEY: [u8; 1190] = const_decoder::Pem::parse(
+const RSA_PRIVATE_KEY: [u8; 1190] = const_decoder::Pem::decode(
     br"-----BEGIN RSA PRIVATE KEY-----
        MIIEogIBAAKCAQEAnzyis1ZjfNB0bBgKFMSvvkTtwlvBsaJq7S5wA+kzeVOVpVWw
        kWdVha4s38XM/pa/yr47av7+z3VTmvDRyAHcaT92whREFpLv9cj5lTeJSibyr/Mr

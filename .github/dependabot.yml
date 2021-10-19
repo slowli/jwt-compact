@@ -9,6 +9,17 @@ updates:
     assignees:
       - slowli
 
+  # Need a separate entry since the no-std package is not included
+  # into the root workspace.
+  - package-ecosystem: cargo
+    directory: "/e2e-tests/no-std"
+    schedule:
+      interval: daily
+      time: "03:00"
+    open-pull-requests-limit: 10
+    assignees:
+      - slowli
+
   - package-ecosystem: npm
     directory: "/e2e-tests/wasm"
     schedule:

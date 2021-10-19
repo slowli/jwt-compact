@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 
 const { strict: assert } = require('assert');
-const { SignJWT } = require('jose/jwt/sign');
-const { jwtVerify } = require('jose/jwt/verify');
-const { fromKeyLike } = require('jose/jwk/from_key_like');
-const { generateKeyPair } = require('jose/util/generate_key_pair');
-const { generateSecret } = require('jose/util/generate_secret');
+const { SignJWT, jwtVerify, generateKeyPair, generateSecret, exportJWK } = require('jose');
 
 const {
   verifyRsaToken,
@@ -38,11 +34,11 @@ async function assertRoundTrip({
     .setSubject('john.doe@example.com')
     .sign(privateKey);
 
-  const claims = verifier(token, await fromKeyLike(publicKey));
+  const claims = verifier(token, await exportJWK(publicKey));
   assert.deepEqual(claims, { sub: 'john.doe@example.com', ...payload });
 
   console.log(`Verifying ${algorithm} (WASM -> JS)...`);
-  const wasmToken = signer(claims, await fromKeyLike(privateKey));
+  const wasmToken = signer(claims, await exportJWK(privateKey));
   const { payload: wasmClaims } = await jwtVerify(wasmToken, publicKey);
   assert.equal(typeof wasmClaims.exp, 'number');
   delete wasmClaims.exp;

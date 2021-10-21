@@ -19,7 +19,7 @@ mod eddsa_compact;
 mod eddsa_dalek;
 #[cfg(feature = "exonum-crypto")]
 mod eddsa_sodium;
-#[cfg(feature = "rsa")]
+#[cfg(feature = "with_rsa")]
 mod rsa;
 
 #[cfg(feature = "ed25519-compact")]
@@ -34,8 +34,8 @@ pub use self::generic::{SecretBytes, SigningKey, VerifyingKey};
 pub use self::hmacs::*;
 #[cfg(feature = "k256")]
 pub use self::k256::Es256k;
-#[cfg(feature = "rsa")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
+#[cfg(feature = "with_rsa")]
+#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
 pub use self::rsa::{
     ModulusBits, ModulusBitsError, Rsa, RsaPrivateKey, RsaPublicKey, RsaSignature,
 };

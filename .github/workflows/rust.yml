@@ -41,7 +41,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: -p jwt-compact --lib --features exonum-crypto,es256k,rsa
+          args: -p jwt-compact --lib --features exonum-crypto,es256k,with_rsa
       - name: Build with dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -87,7 +87,7 @@ jobs:
         with:
           name: "Clippy: exonum-crypto, es256k, rsa"
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features exonum-crypto,es256k,rsa/pem --all-targets -- -D warnings
+          args: -p jwt-compact --features exonum-crypto,es256k,with_rsa,rsa/pem --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:
@@ -117,7 +117,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --features exonum-crypto,es256k,rsa/pem
+          args: -p jwt-compact --features exonum-crypto,es256k,with_rsa,rsa/pem
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -250,7 +250,7 @@ jobs:
       - name: Build docs
         run: |
           cargo clean --doc && \
-          cargo rustdoc -p jwt-compact --features exonum-crypto,es256k,rsa -- \
+          cargo rustdoc -p jwt-compact --features exonum-crypto,es256k,with_rsa -- \
             --cfg docsrs -Z unstable-options \
             --extern-html-root-url base64=https://docs.rs/base64/~0.13 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \

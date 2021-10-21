@@ -10,7 +10,7 @@ use core::convert::TryFrom;
 
 use jwt_compact::{alg::*, prelude::*, Algorithm, AlgorithmExt, ValidationError};
 
-#[cfg(feature = "rsa")]
+#[cfg(feature = "with_rsa")]
 mod rsa;
 
 type Obj = serde_json::Map<String, serde_json::Value>;

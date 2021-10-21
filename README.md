@@ -17,7 +17,7 @@ Add this to your `Crate.toml`:
 
 ```toml
 [dependencies]
-jwt-compact = "0.4.0"
+jwt-compact = "0.5.0-beta.1"
 ```
 
 See the crate docs for the examples of usage.

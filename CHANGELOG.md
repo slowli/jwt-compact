@@ -5,6 +5,21 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add `UntrustedToken::into_owned()` method to extend the token lifetime to static.
+  This is useful if an `UntrustedToken` needs to be stashed / passed across threads.
+
+- Add `UntrustedToken::deserialize_claims_unchecked()` to extract claims from a token
+  without verification. As the name length implies, the method should only be used
+  in exceptional cases.
+
+- Implement `FromStr` and some standard traits (`Clone`, `Copy`, `PartialEq`) for `Rsa`.
+
+- Introduce `AlgorithmSignature::LENGTH` constant for specifying the expected 
+  signature length. The new `ValidationError::InvalidSignatureLen` variant provides
+  more specific errors if the signature length is not as specified.
+
 ## 0.5.0-beta.1 - 2021-10-21
 
 ### Changed

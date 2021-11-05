@@ -303,6 +303,7 @@ impl FromStr for Rsa {
 
 /// Errors that can occur when parsing an [`Rsa`] algorithm from a string.
 #[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
 pub struct RsaParseError(String);
 
 impl fmt::Display for RsaParseError {

@@ -147,7 +147,7 @@ enum ContentType {
 /// Parsed, but unvalidated token.
 #[derive(Debug, Clone)]
 pub struct UntrustedToken<'a> {
-    pub(crate) signed_data: &'a [u8],
+    pub(crate) signed_data: Cow<'a, [u8]>,
     header: Header,
     algorithm: String,
     content_type: ContentType,
@@ -279,8 +279,9 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                     Some(s) => return Err(ParseError::UnsupportedContentType(s)),
                 };
 
+                let signed_data = s.rsplitn(2, '.').nth(1).unwrap().as_bytes();
                 Ok(Self {
-                    signed_data: s.rsplitn(2, '.').nth(1).unwrap().as_bytes(),
+                    signed_data: Cow::Borrowed(signed_data),
                     header: header.inner,
                     algorithm: header.algorithm.into_owned(),
                     content_type,
@@ -298,6 +299,18 @@ impl<'a> UntrustedToken<'a> {
     /// conversion.
     pub fn new<S: AsRef<str> + ?Sized>(s: &'a S) -> Result<Self, ParseError> {
         Self::try_from(s.as_ref())
+    }
+
+    /// Converts this token to an owned form.
+    pub fn into_owned(self) -> UntrustedToken<'static> {
+        UntrustedToken {
+            signed_data: Cow::Owned(self.signed_data.into_owned()),
+            header: self.header,
+            algorithm: self.algorithm,
+            content_type: self.content_type,
+            serialized_claims: self.serialized_claims,
+            signature: self.signature,
+        }
     }
 
     /// Gets the token header.

@@ -416,7 +416,7 @@ mod tests {
     use crate::{
         alg::{Hs256, Hs256Key},
         alloc::ToOwned,
-        AlgorithmExt,
+        AlgorithmExt, Empty,
     };
 
     use assert_matches::assert_matches;
@@ -587,5 +587,30 @@ mod tests {
                 claims
             );
         }
+    }
+
+    fn test_invalid_signature_len(mangled_str: &str, actual_len: usize) {
+        let token = UntrustedToken::new(&mangled_str).unwrap();
+        let key = Base64UrlUnpadded::decode_vec(HS256_KEY).unwrap();
+        let key = Hs256Key::new(&key);
+
+        let err = Hs256.validate_integrity::<Empty>(&token, &key).unwrap_err();
+        assert_matches!(
+            err,
+            ValidationError::InvalidSignatureLen { actual, expected: 32 }
+                if actual == actual_len
+        );
+    }
+
+    #[test]
+    fn short_signature_error() {
+        test_invalid_signature_len(&HS256_TOKEN[..HS256_TOKEN.len() - 1], 31);
+    }
+
+    #[test]
+    fn long_signature_error() {
+        let mut mangled_string = HS256_TOKEN.to_owned();
+        mangled_string.push('a');
+        test_invalid_signature_len(&mangled_string, 33);
     }
 }

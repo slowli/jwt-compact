@@ -1,6 +1,5 @@
 //! JWT algorithms based on HMACs.
 
-use anyhow::ensure;
 use hmac::crypto_mac::generic_array::{typenum::Unsigned, GenericArray};
 use hmac::{crypto_mac, Hmac, Mac as _, NewMac};
 use rand_core::{CryptoRng, RngCore};
@@ -11,7 +10,7 @@ use sha2::{
 use smallvec::{smallvec, SmallVec};
 use zeroize::Zeroize;
 
-use core::{convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, StrongKey, VerifyingKey, WeakKeyError},
@@ -36,9 +35,10 @@ macro_rules! define_hmac_signature {
         }
 
         impl AlgorithmSignature for $name {
+            const LENGTH: Option<NonZeroUsize> =
+                NonZeroUsize::new(<$digest as Digest>::OutputSize::USIZE);
+
             fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-                let expected_len = <$digest as Digest>::OutputSize::to_usize();
-                ensure!(bytes.len() == expected_len, "Invalid signature length");
                 let bytes = GenericArray::clone_from_slice(bytes);
                 Ok(Self(crypto_mac::Output::new(bytes)))
             }

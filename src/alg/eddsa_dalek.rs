@@ -2,10 +2,10 @@
 
 use ed25519_dalek::{
     Keypair, PublicKey, SecretKey, Signature, Signer, Verifier, PUBLIC_KEY_LENGTH,
-    SECRET_KEY_LENGTH,
+    SECRET_KEY_LENGTH, SIGNATURE_LENGTH,
 };
 
-use core::convert::TryFrom;
+use core::{convert::TryFrom, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},
@@ -15,6 +15,8 @@ use crate::{
 };
 
 impl AlgorithmSignature for Signature {
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(SIGNATURE_LENGTH);
+
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         Self::try_from(bytes).map_err(|e| anyhow::anyhow!(e))
     }

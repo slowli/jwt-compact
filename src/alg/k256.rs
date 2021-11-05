@@ -12,7 +12,7 @@ use sha2::{
     Sha256,
 };
 
-use core::{convert::TryFrom, marker::PhantomData};
+use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
     alg::{self, SecretBytes},
@@ -22,6 +22,9 @@ use crate::{
 };
 
 impl AlgorithmSignature for Signature {
+    // TODO: Replace the hard-coded constant
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(64);
+
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         Signature::try_from(slice).map_err(|err| anyhow::anyhow!(err))
     }

@@ -3,7 +3,7 @@
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
-use core::convert::TryFrom;
+use core::{convert::TryFrom, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},
@@ -13,11 +13,10 @@ use crate::{
 };
 
 impl AlgorithmSignature for Signature {
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(Signature::BYTES);
+
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
         let mut signature = [0_u8; Signature::BYTES];
-        if bytes.len() != signature.len() {
-            return Err(anyhow::anyhow!(ed25519_compact::Error::SignatureMismatch));
-        }
         signature.copy_from_slice(bytes);
         Ok(Self::new(signature))
     }

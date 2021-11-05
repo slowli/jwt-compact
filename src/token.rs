@@ -329,7 +329,9 @@ impl<'a> UntrustedToken<'a> {
         &self.signature
     }
 
-    pub(crate) fn deserialize_claims<T>(&self) -> Result<Claims<T>, ValidationError>
+    /// Deserializes claims from this token without checking token integrity. The resulting
+    /// claims are thus **not** guaranteed to be valid.
+    pub fn deserialize_claims_unchecked<T>(&self) -> Result<Claims<T>, ValidationError>
     where
         T: DeserializeOwned,
     {

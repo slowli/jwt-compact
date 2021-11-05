@@ -154,7 +154,7 @@ impl std::error::Error for ModulusBitsError {}
 ///
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
 pub struct Rsa {
     hash_alg: HashAlg,
@@ -167,11 +167,16 @@ impl Algorithm for Rsa {
     type Signature = RsaSignature;
 
     fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed(self.name())
+        Cow::Borrowed(self.alg_name())
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        self.sign(signing_key, message)
+        let digest = self.hash_alg.digest(message);
+        RsaSignature(
+            signing_key
+                .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
+                .expect("Unexpected RSA signature failure"),
+        )
     }
 
     fn verify_signature(
@@ -180,7 +185,10 @@ impl Algorithm for Rsa {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        self.verify_signature(signature, verifying_key, message)
+        let digest = self.hash_alg.digest(message);
+        verifying_key
+            .verify(self.padding_scheme(), &digest, &signature.0)
+            .is_ok()
     }
 }
 
@@ -232,7 +240,7 @@ impl Rsa {
         name.parse().unwrap()
     }
 
-    fn padding_scheme(&self) -> PaddingScheme {
+    fn padding_scheme(self) -> PaddingScheme {
         match self.padding_alg {
             Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
             Padding::Pss => {
@@ -255,7 +263,7 @@ impl Rsa {
         }
     }
 
-    fn name(&self) -> &'static str {
+    fn alg_name(self) -> &'static str {
         match (self.padding_alg, self.hash_alg) {
             (Padding::Pkcs1v15, HashAlg::Sha256) => "RS256",
             (Padding::Pkcs1v15, HashAlg::Sha384) => "RS384",
@@ -264,27 +272,6 @@ impl Rsa {
             (Padding::Pss, HashAlg::Sha384) => "PS384",
             (Padding::Pss, HashAlg::Sha512) => "PS512",
         }
-    }
-
-    fn sign(&self, signing_key: &RsaPrivateKey, message: &[u8]) -> RsaSignature {
-        let digest = self.hash_alg.digest(message);
-        RsaSignature(
-            signing_key
-                .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
-                .expect("Unexpected RSA signature failure"),
-        )
-    }
-
-    fn verify_signature(
-        &self,
-        signature: &RsaSignature,
-        verifying_key: &RsaPublicKey,
-        message: &[u8],
-    ) -> bool {
-        let digest = self.hash_alg.digest(message);
-        verifying_key
-            .verify(self.padding_scheme(), &digest, &signature.0)
-            .is_ok()
     }
 
     /// Generates a new key pair with the specified modulus bit length (aka key length).

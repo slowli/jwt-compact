@@ -239,3 +239,9 @@ fn ps384_reference() {
 
     test_rsa_reference(Rsa::ps384(), TOKEN);
 }
+
+#[test]
+fn parsing_rsa_alg_from_string() {
+    let rsa: Rsa = "PS256".parse().unwrap();
+    assert_eq!(rsa, Rsa::ps256());
+}

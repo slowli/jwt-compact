@@ -26,7 +26,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Public dependencies (present in the public API).
 anyhow = { version = "1.0.34", default-features = false }
-base64ct = { version = "1.0", features = ["alloc"] }
+base64ct = { version = "~1.1", features = ["alloc"] }
+# ^ base64ct v1.2.0 requires 2021 edition support
 chrono = { version = "0.4.19", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }

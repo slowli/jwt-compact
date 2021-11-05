@@ -6,11 +6,11 @@ use rand_core::{CryptoRng, RngCore};
 use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use core::{convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt, str::FromStr};
 
 use crate::{
     alg::{SecretBytes, StrongKey, WeakKeyError},
-    alloc::{Box, Cow, Vec},
+    alloc::{Box, Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
     Algorithm, AlgorithmSignature,
 };
@@ -226,17 +226,10 @@ impl Rsa {
     ///
     /// # Panics
     ///
-    /// - Panics if the name is not one of the six RSA-based JWS algorithms.
+    /// - Panics if the name is not one of the six RSA-based JWS algorithms. Prefer using
+    ///   the [`FromStr`] trait if the conversion is potentially fallible.
     pub fn with_name(name: &str) -> Self {
-        match name {
-            "RS256" => Self::rs256(),
-            "RS384" => Self::rs384(),
-            "RS512" => Self::rs512(),
-            "PS256" => Self::ps256(),
-            "PS384" => Self::ps384(),
-            "PS512" => Self::ps512(),
-            _ => panic!("Invalid RSA alg name: {}", name),
-        }
+        name.parse().unwrap()
     }
 
     fn padding_scheme(&self) -> PaddingScheme {
@@ -304,6 +297,35 @@ impl Rsa {
         Ok((StrongKey(signing_key), StrongKey(verifying_key)))
     }
 }
+
+impl FromStr for Rsa {
+    type Err = RsaParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "RS256" => Self::rs256(),
+            "RS384" => Self::rs384(),
+            "RS512" => Self::rs512(),
+            "PS256" => Self::ps256(),
+            "PS384" => Self::ps384(),
+            "PS512" => Self::ps512(),
+            _ => return Err(RsaParseError(s.to_owned())),
+        })
+    }
+}
+
+/// Errors that can occur when parsing an [`Rsa`] algorithm from a string.
+#[derive(Debug)]
+pub struct RsaParseError(String);
+
+impl fmt::Display for RsaParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "Invalid RSA algorithm name: {}", self.0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for RsaParseError {}
 
 impl StrongKey<RsaPrivateKey> {
     /// Converts this private key to a public key.

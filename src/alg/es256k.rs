@@ -2,7 +2,9 @@
 
 use lazy_static::lazy_static;
 use secp256k1::{
-    constants::{FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE},
+    constants::{
+        COMPACT_SIGNATURE_SIZE, FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE,
+    },
     All, Message, PublicKey, Secp256k1, SecretKey, Signature,
 };
 use sha2::{
@@ -10,7 +12,7 @@ use sha2::{
     Sha256,
 };
 
-use core::{convert::TryFrom, marker::PhantomData};
+use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},
@@ -23,6 +25,8 @@ use crate::{
 const COORDINATE_SIZE: usize = FIELD_SIZE.len();
 
 impl AlgorithmSignature for Signature {
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(COMPACT_SIGNATURE_SIZE);
+
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         Signature::from_compact(slice).map_err(Into::into)
     }

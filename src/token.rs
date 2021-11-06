@@ -147,7 +147,7 @@ enum ContentType {
 /// Parsed, but unvalidated token.
 #[derive(Debug, Clone)]
 pub struct UntrustedToken<'a> {
-    pub(crate) signed_data: &'a [u8],
+    pub(crate) signed_data: Cow<'a, [u8]>,
     header: Header,
     algorithm: String,
     content_type: ContentType,
@@ -279,8 +279,9 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                     Some(s) => return Err(ParseError::UnsupportedContentType(s)),
                 };
 
+                let signed_data = s.rsplitn(2, '.').nth(1).unwrap().as_bytes();
                 Ok(Self {
-                    signed_data: s.rsplitn(2, '.').nth(1).unwrap().as_bytes(),
+                    signed_data: Cow::Borrowed(signed_data),
                     header: header.inner,
                     algorithm: header.algorithm.into_owned(),
                     content_type,
@@ -300,6 +301,18 @@ impl<'a> UntrustedToken<'a> {
         Self::try_from(s.as_ref())
     }
 
+    /// Converts this token to an owned form.
+    pub fn into_owned(self) -> UntrustedToken<'static> {
+        UntrustedToken {
+            signed_data: Cow::Owned(self.signed_data.into_owned()),
+            header: self.header,
+            algorithm: self.algorithm,
+            content_type: self.content_type,
+            serialized_claims: self.serialized_claims,
+            signature: self.signature,
+        }
+    }
+
     /// Gets the token header.
     pub fn header(&self) -> &Header {
         &self.header
@@ -316,7 +329,9 @@ impl<'a> UntrustedToken<'a> {
         &self.signature
     }
 
-    pub(crate) fn deserialize_claims<T>(&self) -> Result<Claims<T>, ValidationError>
+    /// Deserializes claims from this token without checking token integrity. The resulting
+    /// claims are thus **not** guaranteed to be valid.
+    pub fn deserialize_claims_unchecked<T>(&self) -> Result<Claims<T>, ValidationError>
     where
         T: DeserializeOwned,
     {
@@ -401,7 +416,7 @@ mod tests {
     use crate::{
         alg::{Hs256, Hs256Key},
         alloc::ToOwned,
-        AlgorithmExt,
+        AlgorithmExt, Empty,
     };
 
     use assert_matches::assert_matches;
@@ -572,5 +587,30 @@ mod tests {
                 claims
             );
         }
+    }
+
+    fn test_invalid_signature_len(mangled_str: &str, actual_len: usize) {
+        let token = UntrustedToken::new(&mangled_str).unwrap();
+        let key = Base64UrlUnpadded::decode_vec(HS256_KEY).unwrap();
+        let key = Hs256Key::new(&key);
+
+        let err = Hs256.validate_integrity::<Empty>(&token, &key).unwrap_err();
+        assert_matches!(
+            err,
+            ValidationError::InvalidSignatureLen { actual, expected: 32 }
+                if actual == actual_len
+        );
+    }
+
+    #[test]
+    fn short_signature_error() {
+        test_invalid_signature_len(&HS256_TOKEN[..HS256_TOKEN.len() - 1], 31);
+    }
+
+    #[test]
+    fn long_signature_error() {
+        let mut mangled_string = HS256_TOKEN.to_owned();
+        mangled_string.push('a');
+        test_invalid_signature_len(&mangled_string, 33);
     }
 }

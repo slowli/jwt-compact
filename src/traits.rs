@@ -3,19 +3,34 @@
 use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{de::DeserializeOwned, Serialize};
 
+use core::num::NonZeroUsize;
+
 use crate::{
     alloc::{Cow, String, ToOwned, Vec},
     token::CompleteHeader,
     Claims, CreationError, Header, SignedToken, Token, UntrustedToken, ValidationError,
 };
 
-/// Signature for a certain JWT signing `Algorithm`.
+/// Signature for a certain JWT signing [`Algorithm`].
 ///
 /// We require that signature can be restored from a byte slice,
 /// and can be represented as a byte slice.
 pub trait AlgorithmSignature: Sized {
+    /// Constant byte length of signatures supported by the [`Algorithm`], or `None` if
+    /// the signature length is variable.
+    ///
+    /// - If this value is `Some(_)`, the signature will be first checked for its length
+    ///   during token verification. An [`InvalidSignatureLen`] error will be raised if the length
+    ///   is invalid. [`Self::try_from_slice()`] will thus always receive a slice with
+    ///   the expected length.
+    /// - If this value is `None`, no length check is performed before calling
+    ///   [`Self::try_from_slice()`].
+    ///
+    /// [`InvalidSignatureLen`]: crate::ValidationError::InvalidSignatureLen
+    const LENGTH: Option<NonZeroUsize> = None;
+
     /// Attempts to restore a signature from a byte slice. This method may fail
-    /// if the slice is malformed (e.g., has a wrong length).
+    /// if the slice is malformed.
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self>;
 
     /// Represents this signature as bytes.
@@ -26,7 +41,7 @@ pub trait AlgorithmSignature: Sized {
 pub trait Algorithm {
     /// Key used when issuing new tokens.
     type SigningKey;
-    /// Key used when verifying tokens. May coincide with `SigningKey` for symmetric
+    /// Key used when verifying tokens. May coincide with [`Self::SigningKey`] for symmetric
     /// algorithms (e.g., `HS*`).
     type VerifyingKey;
     /// Signature produced by the algorithm.
@@ -243,12 +258,22 @@ impl<A: Algorithm> AlgorithmExt for A {
             });
         }
 
-        let signature = Self::Signature::try_from_slice(token.signature_bytes())
+        let signature = token.signature_bytes();
+        if let Some(expected_len) = Self::Signature::LENGTH {
+            if signature.len() != expected_len.get() {
+                return Err(ValidationError::InvalidSignatureLen {
+                    expected: expected_len.get(),
+                    actual: signature.len(),
+                });
+            }
+        }
+
+        let signature = Self::Signature::try_from_slice(signature)
             .map_err(ValidationError::MalformedSignature)?;
         // We assume that parsing claims is less computationally demanding than
         // validating a signature.
-        let claims = token.deserialize_claims::<T>()?;
-        if !self.verify_signature(&signature, verifying_key, token.signed_data) {
+        let claims = token.deserialize_claims_unchecked::<T>()?;
+        if !self.verify_signature(&signature, verifying_key, &*token.signed_data) {
             return Err(ValidationError::InvalidSignature);
         }
 

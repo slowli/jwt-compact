@@ -59,7 +59,14 @@ pub enum ValidationError {
         /// Actual algorithm in the token.
         actual: String,
     },
-    /// Token signature is malformed (e.g., has an incorrect length).
+    /// Token signature has invalid byte length.
+    InvalidSignatureLen {
+        /// Expected signature length.
+        expected: usize,
+        /// Actual signature length.
+        actual: usize,
+    },
+    /// Token signature is malformed.
     MalformedSignature(anyhow::Error),
     /// Token signature has failed verification.
     InvalidSignature,
@@ -100,6 +107,12 @@ impl fmt::Display for ValidationError {
             Self::AlgorithmMismatch { expected, actual } => write!(
                 formatter,
                 "Token algorithm ({actual}) differs from expected ({expected})",
+                expected = expected,
+                actual = actual
+            ),
+            Self::InvalidSignatureLen { expected, actual } => write!(
+                formatter,
+                "Invalid signature length: expected {expected} bytes, got {actual} bytes",
                 expected = expected,
                 actual = actual
             ),

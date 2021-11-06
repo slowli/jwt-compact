@@ -3,10 +3,10 @@
 use anyhow::format_err;
 use exonum_crypto::{
     gen_keypair_from_seed, sign, verify, PublicKey, SecretKey, Seed, Signature, PUBLIC_KEY_LENGTH,
-    SEED_LENGTH,
+    SEED_LENGTH, SIGNATURE_LENGTH,
 };
 
-use core::convert::TryFrom;
+use core::{convert::TryFrom, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},
@@ -16,8 +16,12 @@ use crate::{
 };
 
 impl AlgorithmSignature for Signature {
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(SIGNATURE_LENGTH);
+
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(bytes).ok_or_else(|| format_err!("Invalid signature length"))
+        // There are no checks other than by signature length in `from_slice`,
+        // so the `unwrap()` below is safe.
+        Ok(Self::from_slice(bytes).unwrap())
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {

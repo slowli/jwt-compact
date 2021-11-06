@@ -6,11 +6,11 @@ use rand_core::{CryptoRng, RngCore};
 use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use core::{convert::TryFrom, fmt};
+use core::{convert::TryFrom, fmt, str::FromStr};
 
 use crate::{
     alg::{SecretBytes, StrongKey, WeakKeyError},
-    alloc::{Box, Cow, Vec},
+    alloc::{Box, Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
     Algorithm, AlgorithmSignature,
 };
@@ -154,7 +154,7 @@ impl std::error::Error for ModulusBitsError {}
 ///
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
 pub struct Rsa {
     hash_alg: HashAlg,
@@ -167,11 +167,16 @@ impl Algorithm for Rsa {
     type Signature = RsaSignature;
 
     fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed(self.name())
+        Cow::Borrowed(self.alg_name())
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        self.sign(signing_key, message)
+        let digest = self.hash_alg.digest(message);
+        RsaSignature(
+            signing_key
+                .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
+                .expect("Unexpected RSA signature failure"),
+        )
     }
 
     fn verify_signature(
@@ -180,7 +185,10 @@ impl Algorithm for Rsa {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        self.verify_signature(signature, verifying_key, message)
+        let digest = self.hash_alg.digest(message);
+        verifying_key
+            .verify(self.padding_scheme(), &digest, &signature.0)
+            .is_ok()
     }
 }
 
@@ -226,20 +234,13 @@ impl Rsa {
     ///
     /// # Panics
     ///
-    /// - Panics if the name is not one of the six RSA-based JWS algorithms.
+    /// - Panics if the name is not one of the six RSA-based JWS algorithms. Prefer using
+    ///   the [`FromStr`] trait if the conversion is potentially fallible.
     pub fn with_name(name: &str) -> Self {
-        match name {
-            "RS256" => Self::rs256(),
-            "RS384" => Self::rs384(),
-            "RS512" => Self::rs512(),
-            "PS256" => Self::ps256(),
-            "PS384" => Self::ps384(),
-            "PS512" => Self::ps512(),
-            _ => panic!("Invalid RSA alg name: {}", name),
-        }
+        name.parse().unwrap()
     }
 
-    fn padding_scheme(&self) -> PaddingScheme {
+    fn padding_scheme(self) -> PaddingScheme {
         match self.padding_alg {
             Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
             Padding::Pss => {
@@ -262,7 +263,7 @@ impl Rsa {
         }
     }
 
-    fn name(&self) -> &'static str {
+    fn alg_name(self) -> &'static str {
         match (self.padding_alg, self.hash_alg) {
             (Padding::Pkcs1v15, HashAlg::Sha256) => "RS256",
             (Padding::Pkcs1v15, HashAlg::Sha384) => "RS384",
@@ -271,27 +272,6 @@ impl Rsa {
             (Padding::Pss, HashAlg::Sha384) => "PS384",
             (Padding::Pss, HashAlg::Sha512) => "PS512",
         }
-    }
-
-    fn sign(&self, signing_key: &RsaPrivateKey, message: &[u8]) -> RsaSignature {
-        let digest = self.hash_alg.digest(message);
-        RsaSignature(
-            signing_key
-                .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
-                .expect("Unexpected RSA signature failure"),
-        )
-    }
-
-    fn verify_signature(
-        &self,
-        signature: &RsaSignature,
-        verifying_key: &RsaPublicKey,
-        message: &[u8],
-    ) -> bool {
-        let digest = self.hash_alg.digest(message);
-        verifying_key
-            .verify(self.padding_scheme(), &digest, &signature.0)
-            .is_ok()
     }
 
     /// Generates a new key pair with the specified modulus bit length (aka key length).
@@ -304,6 +284,36 @@ impl Rsa {
         Ok((StrongKey(signing_key), StrongKey(verifying_key)))
     }
 }
+
+impl FromStr for Rsa {
+    type Err = RsaParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "RS256" => Self::rs256(),
+            "RS384" => Self::rs384(),
+            "RS512" => Self::rs512(),
+            "PS256" => Self::ps256(),
+            "PS384" => Self::ps384(),
+            "PS512" => Self::ps512(),
+            _ => return Err(RsaParseError(s.to_owned())),
+        })
+    }
+}
+
+/// Errors that can occur when parsing an [`Rsa`] algorithm from a string.
+#[derive(Debug)]
+#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+pub struct RsaParseError(String);
+
+impl fmt::Display for RsaParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "Invalid RSA algorithm name: {}", self.0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for RsaParseError {}
 
 impl StrongKey<RsaPrivateKey> {
     /// Converts this private key to a public key.

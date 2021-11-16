@@ -149,7 +149,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: '14'
+          node-version: '16'
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
         with:

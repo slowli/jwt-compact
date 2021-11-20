@@ -73,6 +73,8 @@ pub enum ValidationError {
     /// Token claims cannot be deserialized from JSON.
     MalformedClaims(serde_json::Error),
     /// Token claims cannot be deserialized from CBOR.
+    #[cfg(feature = "serde_cbor")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
     MalformedCborClaims(serde_cbor::error::Error),
     /// Claim requested during validation is not present in the token.
     NoClaim(Claim),
@@ -119,6 +121,7 @@ impl fmt::Display for ValidationError {
             Self::MalformedSignature(e) => write!(formatter, "Malformed token signature: {}", e),
             Self::InvalidSignature => formatter.write_str("Signature has failed verification"),
             Self::MalformedClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
+            #[cfg(feature = "serde_cbor")]
             Self::MalformedCborClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
             Self::NoClaim(claim) => write!(
                 formatter,
@@ -137,6 +140,7 @@ impl std::error::Error for ValidationError {
         match self {
             Self::MalformedSignature(e) => Some(e.as_ref()),
             Self::MalformedClaims(e) => Some(e),
+            #[cfg(feature = "serde_cbor")]
             Self::MalformedCborClaims(e) => Some(e),
             _ => None,
         }
@@ -152,6 +156,8 @@ pub enum CreationError {
     /// Token claims cannot be serialized into JSON.
     Claims(serde_json::Error),
     /// Token claims cannot be serialized into CBOR.
+    #[cfg(feature = "serde_cbor")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
     CborClaims(serde_cbor::error::Error),
 }
 
@@ -160,6 +166,7 @@ impl fmt::Display for CreationError {
         match self {
             Self::Header(e) => write!(formatter, "Cannot serialize header: {}", e),
             Self::Claims(e) => write!(formatter, "Cannot serialize claims: {}", e),
+            #[cfg(feature = "serde_cbor")]
             Self::CborClaims(e) => write!(formatter, "Cannot serialize claims into CBOR: {}", e),
         }
     }
@@ -170,6 +177,7 @@ impl std::error::Error for CreationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Header(e) | Self::Claims(e) => Some(e),
+            #[cfg(feature = "serde_cbor")]
             Self::CborClaims(e) => Some(e),
         }
     }

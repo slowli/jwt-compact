@@ -61,6 +61,7 @@ fn encoding_benches(criterion: &mut Criterion) {
         });
     });
 
+    #[cfg(feature = "serde_cbor")]
     criterion.bench_function("encoding_cbor/full", |bencher| {
         bencher.iter(|| {
             let header = Header::default().with_key_id(&key_id);
@@ -80,26 +81,29 @@ fn decoding_benches(criterion: &mut Criterion) {
         .set_duration_and_issuance(&time_options, Duration::minutes(10))
         .set_not_before(Utc::now() - Duration::minutes(10));
 
-    let token = Hs256.token(header.clone(), &claims, &key).unwrap();
+    #[cfg(feature = "serde_cbor")]
+    {
+        let compact_token = Hs256.compact_token(header.clone(), &claims, &key).unwrap();
+        criterion.bench_function("decoding_cbor", |bencher| {
+            bencher.iter(|| UntrustedToken::new(&compact_token).unwrap())
+        });
+        criterion.bench_function("decoding_cbor/full", |bencher| {
+            bencher.iter(|| {
+                let token = UntrustedToken::new(&compact_token).unwrap();
+                Hs256
+                    .validate_integrity::<CustomClaims>(&token, &key)
+                    .unwrap()
+            });
+        });
+    }
+
+    let token = Hs256.token(header, &claims, &key).unwrap();
     criterion.bench_function("decoding", |bencher| {
         bencher.iter(|| UntrustedToken::new(&token).unwrap())
     });
     criterion.bench_function("decoding/full", |bencher| {
         bencher.iter(|| {
             let token = UntrustedToken::new(&token).unwrap();
-            Hs256
-                .validate_integrity::<CustomClaims>(&token, &key)
-                .unwrap()
-        });
-    });
-
-    let compact_token = Hs256.compact_token(header, &claims, &key).unwrap();
-    criterion.bench_function("decoding_cbor", |bencher| {
-        bencher.iter(|| UntrustedToken::new(&compact_token).unwrap())
-    });
-    criterion.bench_function("decoding_cbor/full", |bencher| {
-        bencher.iter(|| {
-            let token = UntrustedToken::new(&compact_token).unwrap();
             Hs256
                 .validate_integrity::<CustomClaims>(&token, &key)
                 .unwrap()

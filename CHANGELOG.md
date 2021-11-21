@@ -20,6 +20,12 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
   signature length. The new `ValidationError::InvalidSignatureLen` variant provides
   more specific errors if the signature length is not as specified.
 
+- Allow opting out from CBOR claims encoding by making `serde_cbor` dependency optional
+  and using it as a crate feature. The relevant functionality (`AlgorithmExt::compact_token`,
+  some error variants, etc.) is now gated behind this feature.
+  This change is motivated by the fact that supporting verification of CBOR-encoded tokens 
+  has non-zero cost for library users (e.g., in terms of code size or security analysis).
+
 ## 0.5.0-beta.1 - 2021-10-21
 
 ### Changed

@@ -19,7 +19,8 @@ pub enum ParseError {
     MalformedHeader(serde_json::Error),
     /// [Content type][cty] mentioned in the token header is not supported.
     ///
-    /// Supported content types are JSON (used by default) and CBOR.
+    /// Supported content types are JSON (used by default) and CBOR (only if the `serde_cbor`
+    /// crate feature is enabled, which it is by default).
     ///
     /// [cty]: https://tools.ietf.org/html/rfc7515#section-4.1.10
     UnsupportedContentType(String),

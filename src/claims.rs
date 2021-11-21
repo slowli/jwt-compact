@@ -266,12 +266,20 @@ mod tests {
     fn empty_claims_can_be_serialized() {
         let mut claims = Claims::empty();
         assert!(serde_json::to_string(&claims).is_ok());
-        assert!(serde_cbor::to_vec(&claims).is_ok());
         claims.expiration = Some(Utc::now());
         assert!(serde_json::to_string(&claims).is_ok());
-        assert!(serde_cbor::to_vec(&claims).is_ok());
         claims.not_before = Some(Utc::now());
         assert!(serde_json::to_string(&claims).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "serde_cbor")]
+    fn empty_claims_can_be_serialized_to_cbor() {
+        let mut claims = Claims::empty();
+        assert!(serde_cbor::to_vec(&claims).is_ok());
+        claims.expiration = Some(Utc::now());
+        assert!(serde_cbor::to_vec(&claims).is_ok());
+        claims.not_before = Some(Utc::now());
         assert!(serde_cbor::to_vec(&claims).is_ok());
     }
 

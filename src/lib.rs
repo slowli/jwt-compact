@@ -14,8 +14,8 @@
 //!
 //! # Additional features
 //!
-//! - The crate supports more compact [CBOR] encoding of the claims. The compactly encoded JWTs
-//!   have [`cty` field] (content type) in their header set to `"CBOR"`.
+//! - The crate supports more compact [CBOR] encoding of the claims. This feature is enabled
+//!   via the [`serde_cbor` feature](#cbor-support).
 //! - The crate supports `EdDSA` algorithm with the Ed25519 elliptic curve, and `ES256K` algorithm
 //!   with the secp256k1 elliptic curve.
 //! - Supports basic [JSON Web Key](https://tools.ietf.org/html/rfc7517.html) functionality,
@@ -47,6 +47,19 @@
 //! to assist `getrandom` with choosing an appropriate RNG implementation; consult `getrandom` docs
 //! for more details. See also WASM and bare-metal E2E tests included
 //! in the [source code repository] of this crate.
+//!
+//! ## CBOR support
+//!
+//! If the `serde_cbor` crate feature is enabled (and it is enabled by default), token claims can
+//! be encoded using [CBOR] with the [`AlgorithmExt::compact_token()`] method.
+//! The compactly encoded JWTs have the [`cty` field] (content type) in their header
+//! set to `"CBOR"`. Tokens with such encoding can be verified in the same way as ordinary tokens;
+//! see [examples below](#examples).
+//!
+//! If the `serde_cbor` feature is disabled, `AlgorithmExt::compact_token()` is not available.
+//! Verifying CBOR-encoded tokens in this case is not supported either;
+//! a [`ParseError::UnsupportedContentType`] will be returned when creating an [`UntrustedToken`]
+//! from the token string.
 //!
 //! # `no_std` support
 //!
@@ -214,6 +227,7 @@ mod alloc {
 
 /// Prelude to neatly import all necessary stuff from the crate.
 pub mod prelude {
+    #[doc(no_inline)]
     pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
 }
 

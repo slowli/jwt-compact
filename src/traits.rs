@@ -138,6 +138,8 @@ pub trait AlgorithmExt: Algorithm {
         T: Serialize;
 
     /// Creates a new token with CBOR-encoded claims and serializes it to string.
+    #[cfg(feature = "serde_cbor")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
     fn compact_token<T>(
         &self,
         header: Header,
@@ -200,6 +202,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         Ok(unsafe { String::from_utf8_unchecked(buffer) })
     }
 
+    #[cfg(feature = "serde_cbor")]
     fn compact_token<T>(
         &self,
         header: Header,

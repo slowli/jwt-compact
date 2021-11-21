@@ -141,6 +141,7 @@ pub(crate) struct CompleteHeader<'a> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ContentType {
     Json,
+    #[cfg(feature = "serde_cbor")]
     Cbor,
 }
 
@@ -275,6 +276,7 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                 let content_type = match header.content_type {
                     None => ContentType::Json,
                     Some(ref s) if s.eq_ignore_ascii_case("json") => ContentType::Json,
+                    #[cfg(feature = "serde_cbor")]
                     Some(ref s) if s.eq_ignore_ascii_case("cbor") => ContentType::Cbor,
                     Some(s) => return Err(ParseError::UnsupportedContentType(s)),
                 };
@@ -338,6 +340,8 @@ impl<'a> UntrustedToken<'a> {
         match self.content_type {
             ContentType::Json => serde_json::from_slice(&self.serialized_claims)
                 .map_err(ValidationError::MalformedClaims),
+
+            #[cfg(feature = "serde_cbor")]
             ContentType::Cbor => serde_cbor::from_slice(&self.serialized_claims)
                 .map_err(ValidationError::MalformedCborClaims),
         }

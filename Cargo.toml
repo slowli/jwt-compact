@@ -31,7 +31,7 @@ base64ct = { version = "~1.1", features = ["alloc"] }
 chrono = { version = "0.4.19", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
-serde_cbor = { version = "0.11.1", default-features = false, features = ["alloc"] }
+serde_cbor = { version = "0.11.1", default-features = false, features = ["alloc"], optional = true }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 # SHA crypto backend (private dependency; re-exported `digest` crate is public).
@@ -87,14 +87,14 @@ uuid = { version = "0.8.2", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]
-default = ["std", "clock"]
+default = ["std", "clock", "serde_cbor"]
 # `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
 es256k = ["secp256k1", "lazy_static"]
 # RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
 with_rsa = ["rsa", "rand_core/getrandom"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
-std = ["anyhow/std", "base64ct/std", "serde/std", "serde_cbor/std"]
+std = ["anyhow/std"]
 # Enables getting the current time using `Utc::now()` from `chrono`.
 # Without it, some `TimeOptions` constructors, such as the `Default` impl,
 # are not available. It is still possible to create `TimeOptions`

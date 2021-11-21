@@ -658,6 +658,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde_cbor")]
     fn jwk_with_cbor() {
         let key = JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),

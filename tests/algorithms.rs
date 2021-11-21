@@ -228,12 +228,15 @@ fn test_algorithm<A: Algorithm>(
     let claims = create_claims();
 
     // Successful case with a compact token.
-    let token_string = algorithm
-        .compact_token(Header::default(), &claims, signing_key)
-        .unwrap();
-    let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
-    let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
-    assert_eq!(*token.claims(), claims);
+    #[cfg(feature = "serde_cbor")]
+    {
+        let token_string = algorithm
+            .compact_token(Header::default(), &claims, signing_key)
+            .unwrap();
+        let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
+        let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
+        assert_eq!(*token.claims(), claims);
+    }
 
     // Successful case.
     let token_string = algorithm
@@ -346,6 +349,7 @@ fn hs512_algorithm() {
     test_algorithm(&Hs512, &key, &key);
 }
 
+#[cfg(feature = "serde_cbor")]
 #[test]
 fn compact_token_hs256() {
     let claims = create_claims();

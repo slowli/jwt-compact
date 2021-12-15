@@ -29,7 +29,7 @@ use jwt_compact::{
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
-#[cfg(feature = "with_rsa")]
+#[cfg(any(feature = "ed25519", feature = "with_rsa"))]
 mod rsa_helpers {
     use getrandom::{register_custom_getrandom, Error as RandomError};
     use once_cell::unsync::Lazy;
@@ -173,7 +173,7 @@ impl TokenChecker {
     }
 }
 
-const HEAP_SIZE: usize = 16_384;
+const HEAP_SIZE: usize = 32_768;
 
 const HASH_SECRET_KEY: &[u8] = b"super_secret_key_donut_steel";
 

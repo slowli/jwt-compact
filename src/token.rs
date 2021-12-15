@@ -189,7 +189,6 @@ impl<T> Token<T> {
 /// ```
 /// # use jwt_compact::{alg::{Hs256, Hs256Key, Hs256Signature}, prelude::*};
 /// # use chrono::Duration;
-/// # use hmac::crypto_mac::generic_array::{typenum, GenericArray};
 /// # use serde::{Deserialize, Serialize};
 /// #
 /// #[derive(Serialize, Deserialize)]

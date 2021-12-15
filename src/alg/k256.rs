@@ -8,14 +8,16 @@ use k256::{
     elliptic_curve::sec1::ToEncodedPoint,
 };
 use sha2::{
-    digest::{generic_array::typenum::U32, BlockInput, FixedOutput, Reset, Update},
-    Sha256,
+    digest::{
+        crypto_common::BlockSizeUser, generic_array::typenum::U32, FixedOutputReset, HashMarker,
+    },
+    Digest, Sha256,
 };
 
 use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
-    alg::{self, SecretBytes},
+    alg::{self, digest_compat::Compat, SecretBytes},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature,
@@ -48,7 +50,7 @@ pub struct Es256k<D = Sha256> {
 
 impl<D> Default for Es256k<D>
 where
-    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
+    D: FixedOutputReset<OutputSize = U32> + BlockSizeUser + Clone + Default + HashMarker,
 {
     fn default() -> Self {
         Es256k {
@@ -59,7 +61,7 @@ where
 
 impl<D> Algorithm for Es256k<D>
 where
-    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
+    D: FixedOutputReset<OutputSize = U32> + BlockSizeUser + Clone + Default + HashMarker,
 {
     type SigningKey = SigningKey;
     type VerifyingKey = VerifyingKey;
@@ -70,7 +72,7 @@ where
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut digest = D::default();
+        let mut digest = Compat::<D>::default();
         digest.update(message);
         signing_key.sign_digest(digest)
     }
@@ -81,7 +83,7 @@ where
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut digest = D::default();
+        let mut digest = Compat::<D>::default();
         digest.update(message);
 
         // Some implementations (e.g., OpenSSL) produce high-S signatures, which
@@ -89,8 +91,8 @@ where
         //
         // See also: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
         let mut normalized_signature = *signature;
-        if normalized_signature.normalize_s().is_err() {
-            return false;
+        if let Some(new_signature) = normalized_signature.normalize_s() {
+            normalized_signature = new_signature;
         }
 
         verifying_key

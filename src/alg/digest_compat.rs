@@ -1,9 +1,10 @@
 //! Provides compatibility layer for using `digest 0.10` digests where `digest 0.9` traits
 //! are required. Motivated by `k256` and `rsa` crates depending on `digest 0.9`.
 
-use digest_legacy::{generic_array::GenericArray, BlockInput, FixedOutput, Reset, Update};
 #[cfg(feature = "k256")]
 use k256::ecdsa::digest as digest_legacy;
+
+use digest_legacy::{generic_array::GenericArray, BlockInput, FixedOutput, Reset, Update};
 use sha2::digest::{self, crypto_common::BlockSizeUser, Output};
 
 /// Thin wrapper around a `digest 0.10` hash digest. Implements traits from both 0.9 and 0.10.

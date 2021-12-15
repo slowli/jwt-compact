@@ -45,6 +45,11 @@ See the crate docs for the examples of usage.
   and thus be represented by different datatypes (e.g., `iss` may be a human-readable short ID,
   a hex-encoded key digest, etc.)
 
+## Supported Rust Versions
+
+The base crate is compatible with Rust 1.51+. The `k256` cryptographic backend requires Rust 1.56+,
+while other backends are compatible with 1.51+.
+
 ## Alternatives
 
 [`jsonwebtoken`], [`frank_jwt`] or [`biscuit`] may be viable alternatives depending on the use case

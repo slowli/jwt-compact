@@ -13,6 +13,8 @@ mod es256k;
 #[cfg(feature = "k256")]
 mod k256;
 // Alternative EdDSA implementations.
+#[cfg(any(feature = "digest-legacy", feature = "k256"))]
+mod digest_compat;
 #[cfg(feature = "ed25519-compact")]
 mod eddsa_compact;
 #[cfg(feature = "ed25519-dalek")]

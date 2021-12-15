@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 use core::{convert::TryFrom, fmt, str::FromStr};
 
 use crate::{
-    alg::{SecretBytes, StrongKey, WeakKeyError},
+    alg::{digest_compat::Compat, SecretBytes, StrongKey, WeakKeyError},
     alloc::{Box, Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
     Algorithm, AlgorithmSignature,
@@ -249,15 +249,18 @@ impl Rsa {
                 // The salt length needs to be set to the size of hash function output;
                 // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
                 match self.hash_alg {
-                    HashAlg::Sha256 => {
-                        PaddingScheme::new_pss_with_salt::<Sha256, _>(rng, Sha256::output_size())
-                    }
-                    HashAlg::Sha384 => {
-                        PaddingScheme::new_pss_with_salt::<Sha384, _>(rng, Sha384::output_size())
-                    }
-                    HashAlg::Sha512 => {
-                        PaddingScheme::new_pss_with_salt::<Sha512, _>(rng, Sha512::output_size())
-                    }
+                    HashAlg::Sha256 => PaddingScheme::new_pss_with_salt::<Compat<Sha256>, _>(
+                        rng,
+                        Sha256::output_size(),
+                    ),
+                    HashAlg::Sha384 => PaddingScheme::new_pss_with_salt::<Compat<Sha384>, _>(
+                        rng,
+                        Sha384::output_size(),
+                    ),
+                    HashAlg::Sha512 => PaddingScheme::new_pss_with_salt::<Compat<Sha512>, _>(
+                        rng,
+                        Sha512::output_size(),
+                    ),
                 }
             }
         }

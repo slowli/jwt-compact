@@ -1,10 +1,10 @@
 //! JWT algorithms based on HMACs.
 
-use hmac::crypto_mac::generic_array::{typenum::Unsigned, GenericArray};
-use hmac::{crypto_mac, Hmac, Mac as _, NewMac};
+use hmac::digest::generic_array::{typenum::Unsigned, GenericArray};
+use hmac::{digest::CtOutput, Hmac, Mac as _};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{
-    digest::{BlockInput, Digest},
+    digest::{core_api::BlockSizeUser, OutputSizeUser},
     Sha256, Sha384, Sha512,
 };
 use smallvec::{smallvec, SmallVec};
@@ -26,7 +26,7 @@ macro_rules! define_hmac_signature {
     ) => {
         $(#[$($attr)+])*
         #[derive(Clone, PartialEq, Eq)]
-        pub struct $name(crypto_mac::Output<Hmac<$digest>>);
+        pub struct $name(CtOutput<Hmac<$digest>>);
 
         impl fmt::Debug for $name {
             fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -36,11 +36,11 @@ macro_rules! define_hmac_signature {
 
         impl AlgorithmSignature for $name {
             const LENGTH: Option<NonZeroUsize> =
-                NonZeroUsize::new(<$digest as Digest>::OutputSize::USIZE);
+                NonZeroUsize::new(<$digest as OutputSizeUser>::OutputSize::USIZE);
 
             fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
                 let bytes = GenericArray::clone_from_slice(bytes);
-                Ok(Self(crypto_mac::Output::new(bytes)))
+                Ok(Self(CtOutput::new(bytes)))
             }
 
             fn as_bytes(&self) -> Cow<'_, [u8]> {
@@ -82,7 +82,7 @@ macro_rules! define_hmac_key {
         impl $name {
             /// Generates a random key using a cryptographically secure RNG.
             pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> StrongKey<Self> {
-                let mut key = $name(smallvec![0; <$digest as BlockInput>::BlockSize::to_usize()]);
+                let mut key = $name(smallvec![0; <$digest as BlockSizeUser>::BlockSize::to_usize()]);
                 rng.fill_bytes(&mut key.0);
                 StrongKey(key)
             }
@@ -93,7 +93,7 @@ macro_rules! define_hmac_key {
             }
 
             /// Computes HMAC with this key and the specified `message`.
-            fn hmac(&self, message: impl AsRef<[u8]>) -> crypto_mac::Output<Hmac<$digest>> {
+            fn hmac(&self, message: impl AsRef<[u8]>) -> CtOutput<Hmac<$digest>> {
                 let mut hmac = Hmac::<$digest>::new_from_slice(&self.0)
                     .expect("HMACs work with any key size");
                 hmac.update(message.as_ref());
@@ -123,7 +123,7 @@ macro_rules! define_hmac_key {
             type Error = WeakKeyError<$name>;
 
             fn try_from(value: $name) -> Result<Self, Self::Error> {
-                if value.0.len() >= <$digest as BlockInput>::BlockSize::to_usize() {
+                if value.0.len() >= <$digest as BlockSizeUser>::BlockSize::to_usize() {
                     Ok(StrongKey(value))
                 } else {
                     Err(WeakKeyError(value))

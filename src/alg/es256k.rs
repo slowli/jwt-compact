@@ -8,7 +8,7 @@ use secp256k1::{
     All, Message, PublicKey, Secp256k1, SecretKey, Signature,
 };
 use sha2::{
-    digest::{generic_array::typenum::U32, BlockInput, Digest, FixedOutput, Reset, Update},
+    digest::{generic_array::typenum::U32, Digest},
     Sha256,
 };
 
@@ -51,7 +51,7 @@ pub struct Es256k<D = Sha256> {
 
 impl<D> Default for Es256k<D>
 where
-    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
+    D: Digest<OutputSize = U32>,
 {
     fn default() -> Self {
         Es256k {
@@ -63,7 +63,7 @@ where
 
 impl<D> Es256k<D>
 where
-    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
+    D: Digest<OutputSize = U32>,
 {
     /// Creates a new algorithm instance.
     /// This is a (moderately) expensive operation, so if necessary, the algorithm should
@@ -79,7 +79,7 @@ where
 
 impl<D> Algorithm for Es256k<D>
 where
-    D: BlockInput + FixedOutput<OutputSize = U32> + Clone + Default + Reset + Update,
+    D: Digest<OutputSize = U32>,
 {
     type SigningKey = SecretKey;
     type VerifyingKey = PublicKey;
@@ -90,7 +90,7 @@ where
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut digest = D::default();
+        let mut digest = D::new();
         digest.update(message);
         let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");
@@ -104,7 +104,7 @@ where
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut digest = D::default();
+        let mut digest = D::new();
         digest.update(message);
         let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");

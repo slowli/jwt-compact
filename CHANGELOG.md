@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.5.0 - 2021-12-29
+
+*(All changes are relative compared to [the 0.5.0-beta.1 release](#050-beta1---2021-10-21))*
+
 ### Added
 
 - Add `UntrustedToken::into_owned()` method to extend the token lifetime to static.

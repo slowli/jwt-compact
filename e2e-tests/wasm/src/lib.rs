@@ -1,6 +1,7 @@
 //! Module testing that the library can verify JWTs in WASM.
 
 #![no_std]
+#![allow(clippy::unused_unit)] // triggered by the `wasm_bindgen` macro
 
 extern crate alloc;
 

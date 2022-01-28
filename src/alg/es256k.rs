@@ -5,7 +5,8 @@ use secp256k1::{
     constants::{
         COMPACT_SIGNATURE_SIZE, FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE,
     },
-    All, Message, PublicKey, Secp256k1, SecretKey, Signature,
+    ecdsa::Signature,
+    All, Message, PublicKey, Secp256k1, SecretKey,
 };
 use sha2::{
     digest::{
@@ -97,7 +98,7 @@ where
         let message = Message::from_slice(&digest.finalize())
             .expect("failed to convert message to the correct form");
 
-        self.context.sign(&message, signing_key)
+        self.context.sign_ecdsa(&message, signing_key)
     }
 
     fn verify_signature(
@@ -119,7 +120,7 @@ where
         normalized_signature.normalize_s();
 
         self.context
-            .verify(&message, &normalized_signature, verifying_key)
+            .verify_ecdsa(&message, &normalized_signature, verifying_key)
             .is_ok()
     }
 }

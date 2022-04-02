@@ -300,6 +300,7 @@ impl JsonWebKey<'_> {
     }
 
     /// Returns a copy of this key with parts not necessary for signature verification removed.
+    #[must_use]
     pub fn to_verifying_key(&self) -> Self {
         match self {
             Self::Rsa {

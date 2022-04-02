@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/slowli/jwt-compact/workflows/Rust/badge.svg?branch=master)](https://github.com/slowli/jwt-compact/actions)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/jwt-compact.svg)](https://github.com/slowli/jwt-compact/blob/master/LICENSE)
-![rust 1.51.0+ required](https://img.shields.io/badge/rust-1.51.0+-blue.svg?label=Required%20Rust)
+![rust 1.52+ required](https://img.shields.io/badge/rust-1.52s+-blue.svg?label=Required%20Rust)
 ![no_std supported](https://img.shields.io/badge/no__std-tested-green.svg)
 
 **Documentation:** [![Docs.rs](https://docs.rs/jwt-compact/badge.svg)](https://docs.rs/jwt-compact/)
@@ -48,8 +48,8 @@ See the crate docs for the examples of usage.
 
 ## Supported Rust Versions
 
-The base crate is compatible with Rust 1.51+. The `k256` cryptographic backend requires Rust 1.56+,
-while other backends are compatible with 1.51+.
+The base crate is compatible with Rust 1.52+. `k256` and `ed25519-dalek` cryptographic backends
+require Rust 1.56+, while other backends are compatible with 1.52+.
 
 ## Alternatives
 

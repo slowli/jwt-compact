@@ -92,36 +92,42 @@ pub struct Header {
 
 impl Header {
     /// Sets the `key_set_url` field for this header.
+    #[must_use]
     pub fn with_key_set_url(mut self, key_set_url: impl Into<String>) -> Self {
         self.key_set_url = Some(key_set_url.into());
         self
     }
 
     /// Sets the `key_id` field for this header.
+    #[must_use]
     pub fn with_key_id(mut self, key_id: impl Into<String>) -> Self {
         self.key_id = Some(key_id.into());
         self
     }
 
     /// Sets the `certificate_url` field for this header.
+    #[must_use]
     pub fn with_certificate_url(mut self, certificate_url: impl Into<String>) -> Self {
         self.certificate_url = Some(certificate_url.into());
         self
     }
 
     /// Sets the `certificate_sha1_thumbprint` field for this header.
+    #[must_use]
     pub fn with_certificate_sha1_thumbprint(mut self, certificate_thumbprint: [u8; 20]) -> Self {
         self.certificate_sha1_thumbprint = Some(certificate_thumbprint);
         self
     }
 
     /// Sets the `certificate_thumbprint` field for this header.
+    #[must_use]
     pub fn with_certificate_thumbprint(mut self, certificate_thumbprint: [u8; 32]) -> Self {
         self.certificate_thumbprint = Some(certificate_thumbprint);
         self
     }
 
     /// Sets the `token_type` field for this header.
+    #[must_use]
     pub fn with_token_type(mut self, token_type: impl Into<String>) -> Self {
         self.token_type = Some(token_type.into());
         self
@@ -279,8 +285,7 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                     Some(ref s) if s.eq_ignore_ascii_case("cbor") => ContentType::Cbor,
                     Some(s) => return Err(ParseError::UnsupportedContentType(s)),
                 };
-
-                let signed_data = s.rsplitn(2, '.').nth(1).unwrap().as_bytes();
+                let signed_data = s.rsplit_once('.').unwrap().0.as_bytes();
                 Ok(Self {
                     signed_data: Cow::Borrowed(signed_data),
                     header: header.inner,

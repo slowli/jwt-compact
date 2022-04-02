@@ -132,6 +132,7 @@ impl<T> Claims<T> {
 
     /// Sets the `expiration` claim so that the token has the specified `duration`.
     /// The current timestamp is taken from `options`.
+    #[must_use]
     pub fn set_duration<F>(self, options: &TimeOptions<F>, duration: Duration) -> Self
     where
         F: Fn() -> DateTime<Utc>,
@@ -144,6 +145,7 @@ impl<T> Claims<T> {
 
     /// Atomically sets `issued_at` and `expiration` claims: first to the current time
     /// (taken from `options`), and the second to match the specified `duration` of the token.
+    #[must_use]
     pub fn set_duration_and_issuance<F>(self, options: &TimeOptions<F>, duration: Duration) -> Self
     where
         F: Fn() -> DateTime<Utc>,
@@ -157,6 +159,7 @@ impl<T> Claims<T> {
     }
 
     /// Sets the `nbf` claim.
+    #[must_use]
     pub fn set_not_before(self, moment: DateTime<Utc>) -> Self {
         Self {
             not_before: Some(moment),

@@ -8,6 +8,7 @@ on:
 
 env:
   msrv: 1.52
+  msrv_crypto: 1.56
   nightly: nightly-2021-12-03
 
 jobs:
@@ -40,16 +41,41 @@ jobs:
         with:
           command: build
           args: -p jwt-compact --lib --features exonum-crypto,es256k,with_rsa
-      - name: Build with dalek crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
       - name: Build with ed25519-compact
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib
+
+  # Checks minimum supported Rust version for some crypto backends.
+  build-msrv-crypto:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-msrv-crypto-cargo-build-target
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.msrv_crypto }}
+          override: true
+
+      - name: Build with dalek crypto
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
+      - name: Build with k256 crypto
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p jwt-compact --no-default-features --features k256 --lib
 
   build:
     runs-on: ubuntu-latest
@@ -217,6 +243,7 @@ jobs:
     needs:
       - build
       - build-msrv
+      - build-msrv-crypto
       - build-wasm
       - build-nostd
     if: github.event_name == 'push'

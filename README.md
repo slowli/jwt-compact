@@ -48,8 +48,8 @@ See the crate docs for the examples of usage.
 
 ## Supported Rust Versions
 
-The base crate is compatible with Rust 1.52+. The `k256` cryptographic backend requires Rust 1.56+,
-while other backends are compatible with 1.52+.
+The base crate is compatible with Rust 1.52+. `k256` and `ed25519-dalek` cryptographic backends
+require Rust 1.56+, while other backends are compatible with 1.52+.
 
 ## Alternatives
 

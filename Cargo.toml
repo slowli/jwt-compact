@@ -91,7 +91,7 @@ const-decoder = "0.2.0"
 criterion = "0.3.4"
 hex-buffer-serde = "0.3.0"
 rand = "0.8.3"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
+uuid = { version = "1.0.0", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]

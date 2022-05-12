@@ -152,7 +152,7 @@ impl TokenChecker {
     #[cfg(feature = "with_rsa")]
     fn roundtrip_rsa(&self, alg: &Rsa, private_key_der: &[u8]) -> anyhow::Result<()> {
         use jwt_compact::alg::{RsaPrivateKey, RsaPublicKey};
-        use rsa::pkcs1::FromRsaPrivateKey;
+        use rsa::pkcs1::DecodeRsaPrivateKey;
 
         hprintln!("Testing algorithm: {}", alg.name()).unwrap();
 

@@ -7,17 +7,12 @@ use k256::{
     },
     elliptic_curve::sec1::ToEncodedPoint,
 };
-use sha2::{
-    digest::{
-        crypto_common::BlockSizeUser, generic_array::typenum::U32, FixedOutputReset, HashMarker,
-    },
-    Digest, Sha256,
-};
+use sha2::{Digest, Sha256};
 
 use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
-    alg::{self, digest_compat::Compat, SecretBytes},
+    alg::{self, SecretBytes},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
     Algorithm, AlgorithmSignature,
@@ -50,7 +45,9 @@ pub struct Es256k<D = Sha256> {
 
 impl<D> Default for Es256k<D>
 where
-    D: FixedOutputReset<OutputSize = U32> + BlockSizeUser + Clone + Default + HashMarker,
+    D: Default + Digest,
+    SigningKey: DigestSigner<D, Signature>,
+    VerifyingKey: DigestVerifier<D, Signature>,
 {
     fn default() -> Self {
         Es256k {
@@ -61,7 +58,9 @@ where
 
 impl<D> Algorithm for Es256k<D>
 where
-    D: FixedOutputReset<OutputSize = U32> + BlockSizeUser + Clone + Default + HashMarker,
+    D: Default + Digest,
+    SigningKey: DigestSigner<D, Signature>,
+    VerifyingKey: DigestVerifier<D, Signature>,
 {
     type SigningKey = SigningKey;
     type VerifyingKey = VerifyingKey;
@@ -72,7 +71,7 @@ where
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut digest = Compat::<D>::default();
+        let mut digest = D::default();
         digest.update(message);
         signing_key.sign_digest(digest)
     }
@@ -83,7 +82,7 @@ where
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut digest = Compat::<D>::default();
+        let mut digest = D::default();
         digest.update(message);
 
         // Some implementations (e.g., OpenSSL) produce high-S signatures, which

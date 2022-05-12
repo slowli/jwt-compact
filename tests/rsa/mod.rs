@@ -2,7 +2,7 @@
 
 use assert_matches::assert_matches;
 use rand::thread_rng;
-use rsa::{pkcs1::FromRsaPrivateKey, pkcs8::FromPublicKey};
+use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
 
 use core::convert::TryFrom;
 

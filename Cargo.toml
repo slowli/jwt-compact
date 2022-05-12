@@ -8,6 +8,7 @@ authors = [
   "Maximilian Münchow <github@maxmuen.de>",
 ]
 edition = "2018"
+rust-version = "1.57"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["JWT", "token", "authorization"]
@@ -48,7 +49,7 @@ zeroize = { version = "1.1", features = ["zeroize_derive"] }
 secp256k1 = { version = "0.21", optional = true }
 
 [dependencies.k256]
-version = "0.10.0"
+version = "0.11.0"
 default-features = false
 features = ["ecdsa"]
 optional = true
@@ -72,18 +73,9 @@ default-features = false
 features = ["random"]
 
 [dependencies.rsa]
-version = "0.5"
+version = "0.6"
 optional = true
 default-features = false
-features = ["alloc"]
-
-# Required by the `rsa` crate in order to create PSS padding.
-# TODO: remove once `rsa` is updated
-[dependencies.digest-legacy]
-package = "digest"
-version = "0.9"
-default-features = false
-optional = true
 
 [dev-dependencies]
 assert_matches = "1.3"
@@ -91,7 +83,7 @@ const-decoder = "0.2.0"
 criterion = "0.3.4"
 hex-buffer-serde = "0.3.0"
 rand = "0.8.3"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
+uuid = { version = "1.0.0", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]
@@ -99,7 +91,7 @@ default = ["std", "clock", "serde_cbor"]
 # `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
 es256k = ["secp256k1", "lazy_static"]
 # RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
-with_rsa = ["rsa", "digest-legacy", "rand_core/getrandom"]
+with_rsa = ["rsa", "rand_core/getrandom"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
 std = ["anyhow/std"]

@@ -8,6 +8,7 @@ authors = [
   "Maximilian Münchow <github@maxmuen.de>",
 ]
 edition = "2018"
+rust-version = "1.57"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["JWT", "token", "authorization"]

@@ -118,6 +118,7 @@ impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
 #[derive(Debug, Clone, Copy, Default)]
 pub struct StrongAlg<T>(pub T);
 
+#[allow(clippy::trait_duplication_in_bounds)] // false positive
 impl<T: Algorithm> Algorithm for StrongAlg<T>
 where
     StrongKey<T::SigningKey>: TryFrom<T::SigningKey>,

@@ -20,7 +20,7 @@ exclude = ["e2e-tests"]
 
 [package.metadata.docs.rs]
 # Enable non-conflicting additional algorithms in documentation on `docs.rs`.
-features = ["exonum-crypto", "es256k", "with_rsa"]
+features = ["exonum-crypto", "es256k", "p256", "with_rsa"]
 # Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
 rustdoc-args = ["--cfg", "docsrs"]
 

@@ -239,3 +239,6 @@ pub use crate::{
     token::{Header, SignedToken, Token, UntrustedToken},
     traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed},
 };
+
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");

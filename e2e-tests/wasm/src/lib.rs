@@ -14,7 +14,7 @@ use alloc::string::{String, ToString};
 use core::{convert::TryFrom, fmt};
 
 use jwt_compact::{
-    alg::{Ed25519, Es256k, Hs256, Hs384, Hs512, Rsa},
+    alg::{Ed25519, Es256, Es256k, Hs256, Hs384, Hs512, Rsa},
     jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
 };
@@ -172,4 +172,18 @@ pub fn create_es256k_token(claims: &JsValue, private_key: &JsValue) -> Result<St
     let jwk: JsonWebKey<'_> = into_serde(private_key).map_err(to_js_error)?;
     let claims: SampleClaims = into_serde(claims).map_err(to_js_error)?;
     do_create_token(&<Es256k>::default(), claims, &jwk)
+}
+
+#[wasm_bindgen(js_name = "verifyEs256Token")]
+pub fn verify_es256_token(token: &str, public_key: &JsValue) -> Result<JsValue, JsValue> {
+    let jwk: JsonWebKey<'_> = into_serde(public_key).map_err(to_js_error)?;
+    let token = UntrustedToken::new(token).map_err(to_js_error)?;
+    do_verify_token(&Es256, &token, &jwk)
+}
+
+#[wasm_bindgen(js_name = "createEs256Token")]
+pub fn create_es256_token(claims: &JsValue, private_key: &JsValue) -> Result<String, JsValue> {
+    let jwk: JsonWebKey<'_> = into_serde(private_key).map_err(to_js_error)?;
+    let claims: SampleClaims = into_serde(claims).map_err(to_js_error)?;
+    do_create_token(&Es256, claims, &jwk)
 }

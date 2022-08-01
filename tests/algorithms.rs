@@ -123,6 +123,47 @@ fn hs512_reference() {
     );
 }
 
+#[cfg(feature = "p256")]
+#[test]
+fn es256_reference() {
+    //! Taken from https://www.rfc-editor.org/rfc/rfc7515.html
+
+    use jwt_compact::jwk::JsonWebKey;
+
+    type PublicKey = <Es256 as Algorithm>::VerifyingKey;
+
+    const TOKEN: &str =
+        "eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt\
+         cGxlLmNvbS9pc19yb290Ijp0cnVlfQ.DtEhU3ljbEg8L38VWAfUAqOyKAM6-Xx-F4GawxaepmXFCgfTjDxw5d\
+         jxLa8ISlSApmWQxfKTUJqPP3-Kg6NU1Q";
+
+    let jwk = json!({
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+        "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+        "d": "jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI",
+    });
+    let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+    let public_key = PublicKey::try_from(&jwk).unwrap();
+
+    let token = UntrustedToken::new(TOKEN).unwrap();
+    assert_eq!(token.algorithm(), "ES256");
+
+    let token = Es256
+        .validate_integrity::<Obj>(&token, &public_key)
+        .unwrap();
+    assert_eq!(
+        token.claims().expiration.unwrap().timestamp(),
+        1_300_819_380
+    );
+    let expected_claims = json!({
+        "iss": "joe",
+        "http://example.com/is_root": true,
+    });
+    assert_eq!(token.claims().custom, *expected_claims.as_object().unwrap());
+}
+
 #[cfg(any(feature = "es256k", feature = "k256"))]
 #[test]
 fn es256k_reference() {
@@ -474,4 +515,34 @@ fn high_s_in_signature_is_successfully_validated() {
     <Es256k>::default()
         .validate_integrity::<serde_json::Value>(&token, &public_key)
         .unwrap();
+}
+
+#[cfg(feature = "p256")]
+#[test]
+fn es256_algorithm() {
+    use rand::Rng;
+
+    type SecretKey = <Es256 as Algorithm>::SigningKey;
+    type PublicKey = <Es256 as Algorithm>::VerifyingKey;
+
+    let mut rng = thread_rng();
+    let signing_key = loop {
+        let bytes: [u8; 32] = rng.gen();
+        if let Ok(key) = SecretKey::from_slice(&bytes) {
+            break key;
+        }
+    };
+    let verifying_key = signing_key.to_verifying_key();
+    test_algorithm(&Es256, &signing_key, &verifying_key);
+
+    // Test correctness of `SigningKey` / `VerifyingKey` trait implementations.
+    let signing_key_bytes = SigningKey::as_bytes(&signing_key);
+    let signing_key_copy: SecretKey = SigningKey::from_slice(&signing_key_bytes).unwrap();
+    assert_eq!(signing_key.as_bytes(), signing_key_copy.as_bytes());
+    assert_eq!(verifying_key, signing_key.to_verifying_key());
+
+    let verifying_key_bytes = verifying_key.as_bytes();
+    assert_eq!(verifying_key_bytes.len(), 33);
+    let verifying_key_copy: PublicKey = VerifyingKey::from_slice(&verifying_key_bytes).unwrap();
+    assert_eq!(verifying_key, verifying_key_copy);
 }

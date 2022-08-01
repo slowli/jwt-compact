@@ -430,6 +430,198 @@ mod es256k {
     }
 }
 
+#[cfg(feature = "p256")]
+mod es256 {
+    use super::*;
+
+    use jwt_compact::{
+        alg::{Es256, SigningKey, VerifyingKey},
+        Algorithm,
+    };
+
+    use const_decoder::Decoder::Hex;
+
+    type SecretKey = <Es256 as Algorithm>::SigningKey;
+    type PublicKey = <Es256 as Algorithm>::VerifyingKey;
+
+    #[test]
+    fn verifying_jwk() {
+        // Randomly generated
+        const KEY_BYTES: [u8; 65] = Hex.decode(
+            b"0462d9db8bda27be4dc4bedac51139a430fbb01e940a39dedc9cbf9c821175164e\
+             d487a14605e30a05dafc455f7152882b4e1a94da721a11435c6b0b1ed356ba5d",
+        );
+        let public_key = PublicKey::from_slice(&KEY_BYTES[..]).unwrap();
+
+        let jwk = JsonWebKey::from(&public_key);
+        assert!(!jwk.is_signing_key());
+        assert_jwk_roundtrip(&jwk);
+        assert_eq!(
+            jwk.to_string(),
+            r#"{"crv":"P-256","kty":"EC","x":"Ytnbi9onvk3EvtrFETmkMPuwHpQKOd7cnL-cghF1Fk4",
+               "y":"1IehRgXjCgXa_EVfcVKIK04alNpyGhFDXGsLHtNWul0"}"#
+                .replace(|c: char| c.is_ascii_whitespace(), "")
+        );
+        assert_eq!(PublicKey::try_from(&jwk).unwrap(), public_key);
+
+        assert_eq!(
+            key_thumbprint::<Sha256, _>(&public_key),
+            "do-Rj_Jimba-KQ_4c8Ylb_kSAdv7YgOuWd7ug22Bbho"
+        );
+        assert_eq!(
+            key_thumbprint::<Sha384, _>(&public_key),
+            "MvlPlL4mSfz0Iwq-57TNfA6ObASk3OruzaaXDARwF9XvTR4Q3CyjOl2fyxWhyXsY"
+        );
+        assert_eq!(
+            key_thumbprint::<Sha512, _>(&public_key),
+            "zKx-94k9UPrqp0qg4GLQ7HvxdGGqcjHNNhvDFFIOOKdM5cj3AD6GA-PJf3pByu76nNBc38lsBB5MUw8s4FTO5A"
+        );
+    }
+
+    #[test]
+    fn signing_jwk() {
+        // Taken from https://www.rfc-editor.org/rfc/rfc7515.html#appendix-A.3
+        let jwk = serde_json::json!({
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+            "d": "jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        assert!(jwk.is_signing_key());
+
+        let secret_key = SecretKey::try_from(&jwk).unwrap();
+        let public_key = PublicKey::try_from(&jwk).unwrap();
+        assert_eq!(public_key, secret_key.to_verifying_key());
+
+        assert_eq!(JsonWebKey::from(&secret_key), jwk);
+        assert_eq!(
+            jwk.thumbprint::<Sha256>(),
+            JsonWebKey::from(&public_key).thumbprint::<Sha256>()
+        );
+
+        let public_jwk = JsonWebKey::from(&public_key);
+        assert_eq!(public_jwk, jwk.to_verifying_key());
+
+        let err = SecretKey::try_from(&public_jwk).map(drop).unwrap_err();
+        assert_matches!(err, JwkError::NoField(field) if field == "d");
+    }
+
+    #[test]
+    fn incorrect_key_type() {
+        let jwk = serde_json::json!({
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "NK0ABg2FlJUVj9UIOrh4wOlLtlV3WL70SQYXSl4Kh0c",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        let err = PublicKey::try_from(&jwk).unwrap_err();
+
+        assert_matches!(
+            err,
+            JwkError::UnexpectedKeyType {
+                expected: KeyType::EllipticCurve,
+                actual: KeyType::KeyPair,
+            }
+        );
+    }
+
+    #[test]
+    fn incorrect_curve() {
+        let jwk = serde_json::json!({
+            "kty": "EC",
+            "crv": "secp256k1",
+            "x": "_axQlhVy0Fy_slQfh5DvSC_foMd4390JbniILOmbiK8",
+            "y": "UWYZV-H7itKPKenuQZ4utsKN3shM5NUjRqq5DsgGHqU",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        let err = PublicKey::try_from(&jwk).unwrap_err();
+
+        assert_matches!(
+            err,
+            JwkError::UnexpectedValue { field, expected, actual }
+                if field == "crv" && expected == "P-256" && actual == "secp256k1"
+        );
+    }
+
+    #[test]
+    fn incorrect_x_len() {
+        let jwk = serde_json::json!({
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "AQAB",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        let err = PublicKey::try_from(&jwk).unwrap_err();
+
+        assert_matches!(
+            err,
+            JwkError::UnexpectedLen {
+                field,
+                expected: 32,
+                actual: 3,
+            } if field == "x"
+        );
+    }
+
+    #[test]
+    fn point_not_on_curve() {
+        let jwk = serde_json::json!({
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        let err = PublicKey::try_from(&jwk).unwrap_err();
+
+        assert_matches!(
+            err,
+            JwkError::Custom(e) if e.to_string().contains("malformed public key") ||
+                e.to_string().contains("signature error")
+        );
+    }
+
+    #[test]
+    fn incorrect_scalar_len() {
+        let jwk = serde_json::json!({
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+            "d": "AQAB",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        let err = SecretKey::try_from(&jwk).map(drop).unwrap_err();
+
+        assert_matches!(
+            err,
+            JwkError::UnexpectedLen {
+                field,
+                expected: 32,
+                actual: 3,
+            } if field == "d"
+        );
+    }
+
+    #[test]
+    fn key_mismatch() {
+        let jwk = serde_json::json!({
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+            "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+            "d": "bBU2NlHcGstClU_QL0sSzLFk4bqAfDx8ue4NdDOD9sg",
+        });
+        let jwk: JsonWebKey<'_> = serde_json::from_value(jwk).unwrap();
+        let err = SecretKey::try_from(&jwk).map(drop).unwrap_err();
+
+        assert_matches!(err, JwkError::MismatchedKeys);
+    }
+}
+
 #[cfg(any(
     feature = "exonum-crypto",
     feature = "ed25519-dalek",

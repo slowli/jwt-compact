@@ -32,6 +32,7 @@
 //! | `EdDSA` (Ed25519) | [`ed25519-compact`] | Compact pure Rust implementation, WASM-compatible |
 //! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |
 //! | `ES256K` | [`k256`] | Pure Rust implementation |
+//! | `ES256`  | [`p256`] | Pure Rust implementation |
 //! | `RS*`, `PS*` (RSA) | `with_rsa` | Uses pure Rust [`rsa`] crate with blinding |
 //!
 //! `EdDSA` and `ES256K` algorithms are somewhat less frequently supported by JWT implementations
@@ -91,6 +92,7 @@
 //! [`secp256k1`]: https://docs.rs/secp256k1/
 //! [`libsecp256k1`]: https://github.com/bitcoin-core/secp256k1
 //! [`k256`]: https://docs.rs/k256/
+//! [`p256`]: https://docs.rs/p256/
 //! [`rsa`]: https://docs.rs/rsa/
 //! [`chrono`]: https://docs.rs/chrono/
 //! [`getrandom`]: https://docs.rs/getrandom/

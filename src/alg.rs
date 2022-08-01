@@ -19,6 +19,9 @@ mod eddsa_compact;
 mod eddsa_dalek;
 #[cfg(feature = "exonum-crypto")]
 mod eddsa_sodium;
+// ES256 implemenation.
+#[cfg(feature = "p256")]
+mod p256;
 // RSA implementation.
 #[cfg(feature = "with_rsa")]
 mod rsa;
@@ -35,6 +38,8 @@ pub use self::generic::{SecretBytes, SigningKey, VerifyingKey};
 pub use self::hmacs::*;
 #[cfg(feature = "k256")]
 pub use self::k256::Es256k;
+#[cfg(feature = "p256")]
+pub use self::p256::Es256;
 #[cfg(feature = "with_rsa")]
 #[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
 pub use self::rsa::{

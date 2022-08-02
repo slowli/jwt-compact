@@ -28,4 +28,4 @@ getrandom = { version = "0.2", features = ["js"] }
 version = "0.5.0"
 path = "../.."
 default-features = false
-features = ["clock", "ed25519-compact", "with_rsa", "k256"]
+features = ["clock", "ed25519-compact", "with_rsa", "k256", "p256"]

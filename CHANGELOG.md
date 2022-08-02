@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Add ES256 implementation using pure-Rust [`p256`] crate.
+
 ### Changed
 
 - Update dependencies and bump minimum supported Rust version to 1.57.
@@ -151,4 +155,5 @@ The initial release of `jwt-compact`.
 [`ed25519-compact`]: https://crates.io/crates/ed25519-compact
 [`rsa`]: https://crates.io/crates/rsa
 [`k256`]: https://crates.io/crates/k256
+[`p256`]: https://crates.io/crates/p256
 [`base64ct`]: https://crates.io/crates/base64ct

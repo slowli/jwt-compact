@@ -20,7 +20,48 @@ Add this to your `Crate.toml`:
 jwt-compact = "0.5.0"
 ```
 
-See the crate docs for the examples of usage.
+## Basic token lifecycle
+
+```rust
+use chrono::{Duration, Utc};
+use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
+use serde::{Serialize, Deserialize};
+
+/// Custom claims encoded in the token.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct CustomClaims {
+    #[serde(rename = "sub")]
+    subject: String,
+    // other fields...
+}
+
+// Choose time-related options for token creation / validation.
+let time_options = TimeOptions::default();
+// Create a symmetric HMAC key, which will be used both to create and verify tokens.
+let key = Hs256Key::new(b"super_secret_key_donut_steel");
+// Create a token.
+let header = Header::default().with_key_id("my-key");
+let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
+    .set_duration_and_issuance(&time_options, Duration::hours(1))
+    .set_not_before(Utc::now());
+let token_string = Hs256.token(header, &claims, &key)?;
+println!("token: {}", token_string);
+
+// Parse the token.
+let token = UntrustedToken::new(&token_string)?;
+// Before verifying the token, we might find the key which has signed the token
+// using the `Header.key_id` field.
+assert_eq!(token.header().key_id.as_deref(), Some("my-key"));
+// Validate the token integrity.
+let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
+// Validate additional conditions.
+token.claims()
+    .validate_expiration(&time_options)?
+    .validate_maturity(&time_options)?;
+Ok::<_, anyhow::Error>(())
+```
+
+See the crate docs for more examples of usage.
 
 ## Features
 
@@ -35,9 +76,10 @@ See the crate docs for the examples of usage.
   with the secp256k1 elliptic curve. Both curves are widely used in crypto community
   and believed to be securely generated (there are some doubts about parameter generation
   for elliptic curves used in standard `ES*` algorithms).
+- The `ES256` algorithm is supported via pure Rust [`p256`] crate.
 - RSA algorithms (`RS*` and `PS*`) are supported via pure Rust [`rsa`] crate.
-- Supports the `no_std` mode. [No-std support](e2e-tests/no-std) and [WASM compatibility](e2e-tests/wasm)
-  are explicitly tested.
+- The crate supports the `no_std` mode. [No-std support](e2e-tests/no-std) 
+  and [WASM compatibility](e2e-tests/wasm) are explicitly tested.
 
 ### Missing features
 
@@ -45,10 +87,7 @@ See the crate docs for the examples of usage.
   This is intentional: depending on the use case, such claims can have different semantics
   and thus be represented by different datatypes (e.g., `iss` may be a human-readable short ID,
   a hex-encoded key digest, etc.)
-
-## Supported Rust Versions
-
-The crate is compatible with Rust 1.57+.
+- `ES384` and `ES512` algorithms.
 
 ## Alternatives
 
@@ -73,4 +112,5 @@ Licensed under the [Apache-2.0 license](LICENSE).
 [`jsonwebtoken`]: https://crates.io/crates/jsonwebtoken
 [`frank_jwt`]: https://crates.io/crates/frank_jwt
 [`biscuit`]: https://crates.io/crates/biscuit
+[`p256`]: https://crates.io/crates/p256
 [`rsa`]: https://crates.io/crates/rsa

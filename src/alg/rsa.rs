@@ -154,7 +154,7 @@ impl std::error::Error for ModulusBitsError {}
 ///
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
 pub struct Rsa {
     hash_alg: HashAlg,

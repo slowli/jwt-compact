@@ -86,7 +86,7 @@ pub enum ValidationError {
 }
 
 /// Identifier of a claim in `Claims`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Claim {
     /// `exp` claim (expiration time).

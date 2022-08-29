@@ -7,7 +7,7 @@ in order to work with the WASM target:
 
 ```toml
 [dependencies]
-chrono = { version = "0.4.19", features = ["wasmbind"] }
+chrono = { version = "0.4.22", features = ["wasmbind"] }
 getrandom = { version = "0.2", features = ["js"] }
 ```
 

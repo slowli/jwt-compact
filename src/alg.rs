@@ -65,7 +65,7 @@ pub use self::rsa::{
 /// See [`StrongAlg`] docs for an example of usage.
 ///
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StrongKey<T>(T);
 
 impl<T> StrongKey<T> {

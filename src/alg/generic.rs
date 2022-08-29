@@ -111,7 +111,7 @@ impl ops::Deref for SecretBytes<'_> {
 
 impl AsRef<[u8]> for SecretBytes<'_> {
     fn as_ref(&self) -> &[u8] {
-        &*self
+        self
     }
 }
 

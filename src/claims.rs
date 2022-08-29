@@ -180,7 +180,7 @@ impl<T> Claims<T> {
             |expiration| {
                 let expiration_with_leeway = expiration
                     .checked_add_signed(options.leeway)
-                    .unwrap_or(chrono::MAX_DATETIME);
+                    .unwrap_or(DateTime::<Utc>::MAX_UTC);
                 if (options.clock_fn)() > expiration_with_leeway {
                     Err(ValidationError::Expired)
                 } else {
@@ -295,7 +295,7 @@ mod tests {
             ValidationError::NoClaim(Claim::Expiration)
         );
 
-        claims.expiration = Some(chrono::MAX_DATETIME);
+        claims.expiration = Some(DateTime::<Utc>::MAX_UTC);
         assert!(claims.validate_expiration(&time_options).is_ok());
 
         claims.expiration = Some(Utc::now() - Duration::hours(1));

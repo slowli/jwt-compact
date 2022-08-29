@@ -335,7 +335,7 @@ fn test_algorithm<A: Algorithm>(
         &serde_json::to_vec(&{
             let mut mangled_claims = claims;
             let issued_at = mangled_claims.issued_at.as_mut().unwrap();
-            *issued_at = *issued_at + Duration::seconds(1);
+            *issued_at += Duration::seconds(1);
             mangled_claims
         })
         .unwrap(),

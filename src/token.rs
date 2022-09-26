@@ -463,10 +463,20 @@ mod tests {
         );
     }
 
-    // TODO: `base64ct` does not check zero padding for the last byte. Is this OK?
     #[test]
     fn base64_error_during_parsing() {
         let mangled_str = HS256_TOKEN.replace('0', "+");
+        assert_matches!(
+            UntrustedToken::new(&mangled_str).unwrap_err(),
+            ParseError::InvalidBase64Encoding
+        );
+    }
+
+    #[test]
+    fn base64_padding_error_during_parsing() {
+        let mut mangled_str = HS256_TOKEN.to_owned();
+        mangled_str.pop();
+        mangled_str.push('_'); // leads to non-zero padding for the last encoded byte
         assert_matches!(
             UntrustedToken::new(&mangled_str).unwrap_err(),
             ParseError::InvalidBase64Encoding
@@ -612,7 +622,7 @@ mod tests {
 
     #[test]
     fn short_signature_error() {
-        test_invalid_signature_len(&HS256_TOKEN[..HS256_TOKEN.len() - 1], 31);
+        test_invalid_signature_len(&HS256_TOKEN[..HS256_TOKEN.len() - 3], 30);
     }
 
     #[test]

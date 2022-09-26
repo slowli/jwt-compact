@@ -105,7 +105,7 @@ impl ops::Deref for SecretBytes<'_> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &self.0
     }
 }
 

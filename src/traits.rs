@@ -276,7 +276,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         // We assume that parsing claims is less computationally demanding than
         // validating a signature.
         let claims = token.deserialize_claims_unchecked::<T>()?;
-        if !self.verify_signature(&signature, verifying_key, &*token.signed_data) {
+        if !self.verify_signature(&signature, verifying_key, &token.signed_data) {
             return Err(ValidationError::InvalidSignature);
         }
 

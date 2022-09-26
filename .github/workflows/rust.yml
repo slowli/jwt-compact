@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 env:
-  msrv: 1.57
-  nightly: nightly-2021-12-03
+  msrv: "1.60"
+  nightly: nightly-2022-05-21
 
 jobs:
   # Checks minimum supported Rust version.
@@ -88,9 +88,17 @@ jobs:
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
-          name: "Clippy: exonum-crypto, p256, es256k, rsa"
+          name: "Clippy: p256, es256k, rsa"
+          # The corresponding deps don't include `serde/std`; thus, we test that it's valid
+          # to enable `std` and `serde_cbor` without enabling `serde/std`.
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features exonum-crypto,p256,es256k,with_rsa,rsa/pem --all-targets -- -D warnings
+          args: -p jwt-compact --features p256,es256k,with_rsa,rsa/pem --all-targets -- -D warnings
+      - name: Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          name: "Clippy: exonum-crypto"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
       - name: Clippy dalek crypto
         uses: actions-rs/clippy-check@v1
         with:

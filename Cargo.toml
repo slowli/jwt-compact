@@ -97,7 +97,7 @@ default = ["std", "clock", "serde_cbor"]
 # `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
 es256k = ["secp256k1", "lazy_static"]
 # RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
-with_rsa = ["rsa", "rand_core/getrandom"]
+with_rsa = ["rsa", "rand_core/getrandom", "sha2/oid"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
 std = ["anyhow/std", "serde_json/std", "serde_cbor?/std"]

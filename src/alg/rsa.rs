@@ -3,7 +3,7 @@
 pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
-use rsa::{hash::Hash, BigUint, PaddingScheme, PublicKey, PublicKeyParts};
+use rsa::{BigUint, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use core::{convert::TryFrom, fmt, str::FromStr};
@@ -39,14 +39,6 @@ enum HashAlg {
 }
 
 impl HashAlg {
-    fn as_hash(self) -> Hash {
-        match self {
-            Self::Sha256 => Hash::SHA2_256,
-            Self::Sha384 => Hash::SHA2_384,
-            Self::Sha512 => Hash::SHA2_512,
-        }
-    }
-
     fn digest(self, message: &[u8]) -> Box<[u8]> {
         match self {
             Self::Sha256 => {
@@ -242,21 +234,23 @@ impl Rsa {
 
     fn padding_scheme(self) -> PaddingScheme {
         match self.padding_alg {
-            Padding::Pkcs1v15 => PaddingScheme::new_pkcs1v15_sign(Some(self.hash_alg.as_hash())),
+            Padding::Pkcs1v15 => match self.hash_alg {
+                HashAlg::Sha256 => PaddingScheme::new_pkcs1v15_sign::<Sha256>(),
+                HashAlg::Sha384 => PaddingScheme::new_pkcs1v15_sign::<Sha384>(),
+                HashAlg::Sha512 => PaddingScheme::new_pkcs1v15_sign::<Sha512>(),
+            },
             Padding::Pss => {
-                let rng = rand_core::OsRng;
-
                 // The salt length needs to be set to the size of hash function output;
                 // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
                 match self.hash_alg {
                     HashAlg::Sha256 => {
-                        PaddingScheme::new_pss_with_salt::<Sha256, _>(rng, Sha256::output_size())
+                        PaddingScheme::new_pss_with_salt::<Sha256>(Sha256::output_size())
                     }
                     HashAlg::Sha384 => {
-                        PaddingScheme::new_pss_with_salt::<Sha384, _>(rng, Sha384::output_size())
+                        PaddingScheme::new_pss_with_salt::<Sha384>(Sha384::output_size())
                     }
                     HashAlg::Sha512 => {
-                        PaddingScheme::new_pss_with_salt::<Sha512, _>(rng, Sha512::output_size())
+                        PaddingScheme::new_pss_with_salt::<Sha512>(Sha512::output_size())
                     }
                 }
             }
@@ -453,6 +447,7 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
         );
 
         let key = Self::from_components(n, e, d, factors);
+        let key = key.map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;
         key.validate()
             .map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;
         Ok(key)

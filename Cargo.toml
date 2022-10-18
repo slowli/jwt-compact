@@ -72,7 +72,7 @@ default-features = false
 features = ["u64_backend", "rand"]
 
 [dependencies.ed25519-compact]
-version = "1.0.0"
+version = "2.0.2"
 optional = true
 default-features = false
 features = ["random"]

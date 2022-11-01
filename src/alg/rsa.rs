@@ -410,6 +410,8 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
 
 /// ⚠ **Warning.** Contrary to [RFC 7518] (at least, in spirit), this conversion ignores
 /// `dp`, `dq`, and `qi` fields from JWK, as well as `d` and `t` fields for additional factors.
+///
+/// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
 impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
     type Error = JwkError;
 

@@ -11,7 +11,7 @@ use serde_json::Error as JsonError;
 use wasm_bindgen::prelude::*;
 
 use alloc::string::{String, ToString};
-use core::{convert::TryFrom, fmt};
+use core::fmt;
 
 use jwt_compact::{
     alg::{Ed25519, Es256, Es256k, Hs256, Hs384, Hs512, Rsa},

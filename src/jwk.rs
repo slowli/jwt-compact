@@ -13,7 +13,6 @@
 //! ```
 //! use jwt_compact::{alg::Hs256Key, jwk::JsonWebKey};
 //! use sha2::Sha256;
-//! # use std::convert::TryFrom;
 //!
 //! # fn main() -> anyhow::Result<()> {
 //! // Load a key from the JWK presentation.
@@ -71,7 +70,7 @@ impl fmt::Display for KeyType {
 }
 
 /// Errors that can occur when transforming a [`JsonWebKey`] into the presentation specific for
-/// a crypto backend, via [`TryFrom`](core::convert::TryFrom) trait.
+/// a crypto backend, using the [`TryFrom`] trait.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum JwkError {
@@ -209,7 +208,7 @@ impl<'de> Deserialize<'de> for SecretBytes<'_> {
 ///
 /// A JWK can be obtained from signing and verifying keys defined in the [`alg`](crate::alg)
 /// module via [`From`] / [`Into`] traits. Conversion from a JWK to a specific key is fallible
-/// and can be performed via [`TryFrom`](core::convert::TryFrom) with [`JwkError`] as an error
+/// and can be performed via [`TryFrom`] with [`JwkError`] as an error
 /// type.
 ///
 /// As a part of conversion for asymmetric signing keys, it is checked whether
@@ -431,8 +430,6 @@ mod helpers {
     use super::{JsonWebKey, JwkError};
     use crate::{alg::SigningKey, alloc::ToOwned, Algorithm};
 
-    use core::convert::TryFrom;
-
     impl JsonWebKey<'_> {
         pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
             if curve == expected {
@@ -562,7 +559,6 @@ mod tests {
     use crate::alg::Hs256Key;
 
     use assert_matches::assert_matches;
-    use core::convert::TryFrom;
 
     fn create_jwk() -> JsonWebKey<'static> {
         JsonWebKey::KeyPair {

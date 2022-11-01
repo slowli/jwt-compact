@@ -1,7 +1,7 @@
 //! Implementations of JWT signing / verification algorithms. Also contains generic traits
 //! for signing and verifying keys.
 
-use core::{convert::TryFrom, fmt};
+use core::fmt;
 
 use crate::{alloc::Cow, Algorithm};
 
@@ -104,7 +104,6 @@ impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
 /// # Examples
 ///
 /// ```
-/// # use core::convert::{TryFrom, TryInto};
 /// # use rand::thread_rng;
 /// # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key, StrongAlg, StrongKey}};
 /// # fn main() -> anyhow::Result<()> {

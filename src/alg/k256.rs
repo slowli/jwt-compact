@@ -10,7 +10,7 @@ use k256::{
 };
 use sha2::{digest::typenum::Unsigned, Digest, Sha256};
 
-use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize, ops::Add};
+use core::{marker::PhantomData, num::NonZeroUsize, ops::Add};
 
 use crate::{
     alg::{self, SecretBytes},

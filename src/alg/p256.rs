@@ -6,7 +6,7 @@ use p256::ecdsa::{
 };
 use sha2::{Digest, Sha256};
 
-use core::{convert::TryFrom, num::NonZeroUsize};
+use core::num::NonZeroUsize;
 
 use crate::{
     alg::{self, SecretBytes},

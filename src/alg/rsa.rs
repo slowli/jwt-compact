@@ -6,7 +6,7 @@ use rand_core::{CryptoRng, RngCore};
 use rsa::{BigUint, PaddingScheme, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use core::{convert::TryFrom, fmt, str::FromStr};
+use core::{fmt, str::FromStr};
 
 use crate::{
     alg::{SecretBytes, StrongKey, WeakKeyError},

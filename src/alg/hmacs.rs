@@ -10,7 +10,7 @@ use sha2::{
 use smallvec::{smallvec, SmallVec};
 use zeroize::Zeroize;
 
-use core::{convert::TryFrom, fmt, num::NonZeroUsize};
+use core::{fmt, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, StrongKey, VerifyingKey, WeakKeyError},

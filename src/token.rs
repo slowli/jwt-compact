@@ -4,7 +4,7 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
-use core::{convert::TryFrom, fmt};
+use core::fmt;
 
 use crate::{
     alloc::{Cow, String, Vec},

@@ -6,8 +6,6 @@ use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
-use std::convert::TryFrom;
-
 use jwt_compact::{
     alg::Hs256Key,
     jwk::{JsonWebKey, JwkError, KeyType},

@@ -1,3 +1,5 @@
+//! General tests for various JWK algorithms.
+
 use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{Duration, TimeZone, Utc};
@@ -5,8 +7,6 @@ use hex_buffer_serde::{Hex as _, HexForm};
 use rand::{seq::index::sample as sample_indexes, thread_rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-
-use core::convert::TryFrom;
 
 use jwt_compact::{alg::*, prelude::*, Algorithm, AlgorithmExt, ValidationError};
 

@@ -5,11 +5,12 @@ use k256::{
         signature::{DigestSigner, DigestVerifier},
         Signature, SigningKey, VerifyingKey,
     },
-    elliptic_curve::sec1::ToEncodedPoint,
+    elliptic_curve::{sec1::ToEncodedPoint, FieldSize},
+    Secp256k1,
 };
-use sha2::{Digest, Sha256};
+use sha2::{digest::typenum::Unsigned, Digest, Sha256};
 
-use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize};
+use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize, ops::Add};
 
 use crate::{
     alg::{self, SecretBytes},
@@ -19,8 +20,8 @@ use crate::{
 };
 
 impl AlgorithmSignature for Signature {
-    // TODO: Replace the hard-coded constant
-    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(64);
+    const LENGTH: Option<NonZeroUsize> =
+        NonZeroUsize::new(<FieldSize<Secp256k1> as Add>::Output::USIZE);
 
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         Signature::try_from(slice).map_err(|err| anyhow::anyhow!(err))

@@ -2,7 +2,7 @@
 name = "jwt-compact-nostd"
 version = "0.0.0"
 authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 description = "Testing usability of `jwt-compact` in no-std env"
 repository = "https://github.com/slowli/jwt-compact"
@@ -22,12 +22,11 @@ panic-halt = "0.2.0"
 
 # RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
 getrandom = { version = "0.2", features = ["custom"], optional = true }
-once_cell = { version = "1.8.0", default-features = false, optional = true }
+once_cell = { version = "1.16.0", default-features = false, optional = true }
 rand_chacha = { version = "0.3.1", default-features = false, optional = true }
 rsa = { version = "0.7", default-features = false, optional = true }
 
 [dependencies.jwt-compact]
-version = "0.5.0"
 path = "../.."
 default-features = false
 

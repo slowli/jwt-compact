@@ -3,7 +3,7 @@
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
 
-use core::{convert::TryFrom, num::NonZeroUsize};
+use core::num::NonZeroUsize;
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

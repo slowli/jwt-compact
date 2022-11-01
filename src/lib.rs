@@ -189,7 +189,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Documentation settings.
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/jwt-compact/0.5.0")]
+#![doc(html_root_url = "https://docs.rs/jwt-compact/0.6.0")]
 // Linter settings.
 #![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
 #![warn(clippy::all, clippy::pedantic)]

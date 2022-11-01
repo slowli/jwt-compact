@@ -5,7 +5,7 @@ use ed25519_dalek::{
     SECRET_KEY_LENGTH, SIGNATURE_LENGTH,
 };
 
-use core::{convert::TryFrom, num::NonZeroUsize};
+use core::num::NonZeroUsize;
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

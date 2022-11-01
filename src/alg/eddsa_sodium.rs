@@ -6,7 +6,7 @@ use exonum_crypto::{
     SEED_LENGTH, SIGNATURE_LENGTH,
 };
 
-use core::{convert::TryFrom, num::NonZeroUsize};
+use core::num::NonZeroUsize;
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

@@ -1,4 +1,4 @@
-name: Rust
+name: CI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 env:
   msrv: "1.60"
-  nightly: nightly-2022-05-21
+  nightly: nightly-2022-09-22
 
 jobs:
   # Checks minimum supported Rust version.

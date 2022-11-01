@@ -15,7 +15,7 @@ use sha2::{
     Digest, Sha256,
 };
 
-use core::{convert::TryFrom, marker::PhantomData, num::NonZeroUsize};
+use core::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

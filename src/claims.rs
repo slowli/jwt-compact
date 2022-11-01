@@ -218,7 +218,7 @@ mod serde_timestamp {
         Deserializer, Serializer,
     };
 
-    use core::{convert::TryFrom, fmt};
+    use core::fmt;
 
     struct TimestampVisitor;
 

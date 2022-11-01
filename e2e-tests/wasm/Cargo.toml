@@ -2,7 +2,7 @@
 name = "jwt-compact-wasm"
 version = "0.0.0"
 authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 description = "Testing usability of `jwt-compact` in WASM"
 repository = "https://github.com/slowli/jwt-compact"
@@ -25,7 +25,6 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [dependencies.jwt-compact]
-version = "0.5.0"
 path = "../.."
 default-features = false
 features = ["clock", "ed25519-compact", "with_rsa", "k256", "p256"]

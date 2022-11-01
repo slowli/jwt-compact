@@ -1,6 +1,6 @@
 # Compact JWT implementation in Rust
 
-[![Build Status](https://github.com/slowli/jwt-compact/workflows/Rust/badge.svg?branch=master)](https://github.com/slowli/jwt-compact/actions)
+[![Build Status](https://github.com/slowli/jwt-compact/workflows/CI/badge.svg?branch=master)](https://github.com/slowli/jwt-compact/actions)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/jwt-compact.svg)](https://github.com/slowli/jwt-compact/blob/master/LICENSE)
 ![rust 1.60+ required](https://img.shields.io/badge/rust-1.60+-blue.svg?label=Required%20Rust)
 ![no_std supported](https://img.shields.io/badge/no__std-tested-green.svg)
@@ -17,7 +17,7 @@ Add this to your `Crate.toml`:
 
 ```toml
 [dependencies]
-jwt-compact = "0.5.0"
+jwt-compact = "0.6.0"
 ```
 
 ## Basic token lifecycle

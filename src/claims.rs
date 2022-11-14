@@ -233,7 +233,9 @@ mod serde_timestamp {
         where
             E: DeError,
         {
-            Ok(Utc.timestamp(value, 0))
+            Utc.timestamp_opt(value, 0)
+                .single()
+                .ok_or_else(|| E::custom("UTC timestamp overflow"))
         }
 
         fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
@@ -241,7 +243,9 @@ mod serde_timestamp {
             E: DeError,
         {
             let value = i64::try_from(value).map_err(DeError::custom)?;
-            Ok(Utc.timestamp(value, 0))
+            Utc.timestamp_opt(value, 0)
+                .single()
+                .ok_or_else(|| E::custom("UTC timestamp overflow"))
         }
     }
 

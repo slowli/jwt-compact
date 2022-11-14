@@ -16,7 +16,7 @@ where
     D: Digest,
     JsonWebKey<'a>: From<&'a K>,
 {
-    Base64UrlUnpadded::encode_string(&*JsonWebKey::from(key).thumbprint::<D>())
+    Base64UrlUnpadded::encode_string(&JsonWebKey::from(key).thumbprint::<D>())
 }
 
 fn assert_jwk_roundtrip(jwk: &JsonWebKey<'_>) {

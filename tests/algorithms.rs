@@ -363,7 +363,7 @@ struct CompactClaims {
 }
 
 fn create_claims() -> Claims<CompactClaims> {
-    let now = Utc.ymd(2020, 9, 1).and_hms(10, 0, 0);
+    let now = Utc.with_ymd_and_hms(2020, 9, 1, 10, 0, 0).single().unwrap();
     let now = now - Duration::nanoseconds(i64::from(now.timestamp_subsec_nanos()));
 
     let mut claims = Claims::new(CompactClaims { subject: [1; 32] });

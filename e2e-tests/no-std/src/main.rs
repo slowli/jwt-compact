@@ -59,7 +59,7 @@ mod rsa_helpers {
 /// Gets current time via a semihosting syscall.
 fn now() -> DateTime<Utc> {
     let epoch_seconds = unsafe { syscall!(TIME) };
-    Utc.timestamp(epoch_seconds as i64, 0)
+    Utc.timestamp_opt(epoch_seconds as i64, 0).unwrap()
 }
 
 /// Sample token claims.

@@ -42,7 +42,7 @@ fn hs256_jwk() {
         "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow";
 
     let key = Base64UrlUnpadded::decode_vec(KEY).unwrap();
-    let key = Hs256Key::new(&key);
+    let key = Hs256Key::new(key);
 
     let jwk = JsonWebKey::from(&key);
     assert_eq!(
@@ -385,8 +385,8 @@ mod es256k {
 
         assert_matches!(
             err,
-            JwkError::Custom(e) if e.to_string().contains("malformed public key") ||
-                e.to_string().contains("signature error")
+            JwkError::Custom(err) if err.to_string().contains("malformed public key") ||
+                err.to_string().contains("signature error")
         );
     }
 
@@ -577,8 +577,8 @@ mod es256 {
 
         assert_matches!(
             err,
-            JwkError::Custom(e) if e.to_string().contains("malformed public key") ||
-                e.to_string().contains("signature error")
+            JwkError::Custom(err) if err.to_string().contains("malformed public key") ||
+                err.to_string().contains("signature error")
         );
     }
 

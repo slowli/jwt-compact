@@ -45,7 +45,7 @@ let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
     .set_duration_and_issuance(&time_options, Duration::hours(1))
     .set_not_before(Utc::now());
 let token_string = Hs256.token(header, &claims, &key)?;
-println!("token: {}", token_string);
+println!("token: {token_string}");
 
 // Parse the token.
 let token = UntrustedToken::new(&token_string)?;

@@ -76,7 +76,7 @@ impl Algorithm for Ed25519 {
 
 impl VerifyingKey<Ed25519> for PublicKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).map_err(|e| anyhow::anyhow!(e))
+        Self::from_slice(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
@@ -86,7 +86,7 @@ impl VerifyingKey<Ed25519> for PublicKey {
 
 impl SigningKey<Ed25519> for SecretKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).map_err(|e| anyhow::anyhow!(e))
+        Self::from_slice(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn to_verifying_key(&self) -> PublicKey {

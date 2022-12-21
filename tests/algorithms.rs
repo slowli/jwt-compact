@@ -39,7 +39,7 @@ fn hs256_reference() {
     assert_eq!(token.algorithm(), "HS256");
 
     let key = Base64UrlUnpadded::decode_vec(KEY).unwrap();
-    let key = Hs256Key::new(&key);
+    let key = Hs256Key::new(key);
     let validated_token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
     assert_eq!(
         validated_token.claims().expiration.unwrap().timestamp(),
@@ -313,7 +313,7 @@ fn test_algorithm<A: Algorithm>(
             .unwrap_err();
         match err {
             ValidationError::InvalidSignature | ValidationError::MalformedSignature(_) => {}
-            err => panic!("Unexpected error: {:?}", err),
+            err => panic!("Unexpected error: {err:?}"),
         }
     }
 

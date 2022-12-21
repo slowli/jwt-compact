@@ -127,7 +127,7 @@
 //!     .set_duration_and_issuance(&time_options, Duration::days(7))
 //!     .set_not_before(Utc::now() - Duration::hours(1));
 //! let token_string = Hs256.token(header, &claims, &key)?;
-//! println!("token: {}", token_string);
+//! println!("token: {token_string}");
 //!
 //! // Parse the token.
 //! let token = UntrustedToken::new(&token_string)?;
@@ -171,9 +171,9 @@
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7));
 //! let token = Hs256.token(Header::default(), &claims, &key)?;
-//! println!("token: {}", token);
+//! println!("token: {token}");
 //! let compact_token = Hs256.compact_token(Header::default(), &claims, &key)?;
-//! println!("compact token: {}", compact_token);
+//! println!("compact token: {compact_token}");
 //! // The compact token should be ~40 chars shorter.
 //!
 //! // Parse the compact token.

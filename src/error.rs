@@ -29,11 +29,11 @@ pub enum ParseError {
 impl fmt::Display for ParseError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidTokenStructure => formatter.write_str("Invalid token structure"),
+            Self::InvalidTokenStructure => formatter.write_str("invalid token structure"),
             Self::InvalidBase64Encoding => write!(formatter, "invalid base64 decoding"),
-            Self::MalformedHeader(e) => write!(formatter, "Malformed token header: {}", e),
+            Self::MalformedHeader(err) => write!(formatter, "malformed token header: {err}"),
             Self::UnsupportedContentType(ty) => {
-                write!(formatter, "Unsupported content type: {}", ty)
+                write!(formatter, "unsupported content type: {ty}")
             }
         }
     }
@@ -43,7 +43,7 @@ impl fmt::Display for ParseError {
 impl std::error::Error for ParseError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::MalformedHeader(e) => Some(e),
+            Self::MalformedHeader(err) => Some(err),
             _ => None,
         }
     }
@@ -109,28 +109,25 @@ impl fmt::Display for ValidationError {
         match self {
             Self::AlgorithmMismatch { expected, actual } => write!(
                 formatter,
-                "Token algorithm ({actual}) differs from expected ({expected})",
+                "token algorithm ({actual}) differs from expected ({expected})",
                 expected = expected,
                 actual = actual
             ),
             Self::InvalidSignatureLen { expected, actual } => write!(
                 formatter,
-                "Invalid signature length: expected {expected} bytes, got {actual} bytes",
-                expected = expected,
-                actual = actual
+                "invalid signature length: expected {expected} bytes, got {actual} bytes"
             ),
-            Self::MalformedSignature(e) => write!(formatter, "Malformed token signature: {}", e),
-            Self::InvalidSignature => formatter.write_str("Signature has failed verification"),
-            Self::MalformedClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
+            Self::MalformedSignature(err) => write!(formatter, "malformed token signature: {err}"),
+            Self::InvalidSignature => formatter.write_str("signature has failed verification"),
+            Self::MalformedClaims(err) => write!(formatter, "cannot deserialize claims: {err}"),
             #[cfg(feature = "serde_cbor")]
-            Self::MalformedCborClaims(e) => write!(formatter, "Cannot deserialize claims: {}", e),
+            Self::MalformedCborClaims(err) => write!(formatter, "cannot deserialize claims: {err}"),
             Self::NoClaim(claim) => write!(
                 formatter,
-                "Claim `{}` requested during validation is not present in the token",
-                claim
+                "claim `{claim}` requested during validation is not present in the token"
             ),
-            Self::Expired => formatter.write_str("Token has expired"),
-            Self::NotMature => formatter.write_str("Token is not yet ready"),
+            Self::Expired => formatter.write_str("token has expired"),
+            Self::NotMature => formatter.write_str("token is not yet ready"),
         }
     }
 }
@@ -139,10 +136,10 @@ impl fmt::Display for ValidationError {
 impl std::error::Error for ValidationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::MalformedSignature(e) => Some(e.as_ref()),
-            Self::MalformedClaims(e) => Some(e),
+            Self::MalformedSignature(err) => Some(err.as_ref()),
+            Self::MalformedClaims(err) => Some(err),
             #[cfg(feature = "serde_cbor")]
-            Self::MalformedCborClaims(e) => Some(e),
+            Self::MalformedCborClaims(err) => Some(err),
             _ => None,
         }
     }
@@ -165,10 +162,10 @@ pub enum CreationError {
 impl fmt::Display for CreationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Header(e) => write!(formatter, "Cannot serialize header: {}", e),
-            Self::Claims(e) => write!(formatter, "Cannot serialize claims: {}", e),
+            Self::Header(err) => write!(formatter, "cannot serialize header: {err}"),
+            Self::Claims(err) => write!(formatter, "cannot serialize claims: {err}"),
             #[cfg(feature = "serde_cbor")]
-            Self::CborClaims(e) => write!(formatter, "Cannot serialize claims into CBOR: {}", e),
+            Self::CborClaims(err) => write!(formatter, "cannot serialize claims into CBOR: {err}"),
         }
     }
 }
@@ -177,9 +174,9 @@ impl fmt::Display for CreationError {
 impl std::error::Error for CreationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Header(e) | Self::Claims(e) => Some(e),
+            Self::Header(err) | Self::Claims(err) => Some(err),
             #[cfg(feature = "serde_cbor")]
-            Self::CborClaims(e) => Some(e),
+            Self::CborClaims(err) => Some(err),
         }
     }
 }

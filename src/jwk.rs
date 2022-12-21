@@ -113,11 +113,10 @@ impl fmt::Display for JwkError {
             Self::UnexpectedKeyType { expected, actual } => {
                 write!(
                     formatter,
-                    "unexpected key type: {} (expected {})",
-                    actual, expected
+                    "unexpected key type: {actual} (expected {expected})"
                 )
             }
-            Self::NoField(field) => write!(formatter, "field `{}` is absent from JWK", field),
+            Self::NoField(field) => write!(formatter, "field `{field}` is absent from JWK"),
             Self::UnexpectedValue {
                 field,
                 expected,
@@ -125,8 +124,7 @@ impl fmt::Display for JwkError {
             } => {
                 write!(
                     formatter,
-                    "field `{}` has unexpected value (expected: {}, got: {})",
-                    field, expected, actual
+                    "field `{field}` has unexpected value (expected: {expected}, got: {actual})"
                 )
             }
             Self::UnexpectedLen {
@@ -136,8 +134,7 @@ impl fmt::Display for JwkError {
             } => {
                 write!(
                     formatter,
-                    "field `{}` has unexpected length (expected: {}, got: {})",
-                    field, expected, actual
+                    "field `{field}` has unexpected length (expected: {expected}, got: {actual})"
                 )
             }
             Self::MismatchedKeys => {
@@ -358,7 +355,7 @@ impl fmt::Display for JsonWebKey<'_> {
         formatter.write_str("{")?;
         let field_count = json_entries.len();
         for (i, (name, value)) in json_entries.into_iter().enumerate() {
-            write!(formatter, "\"{name}\":{value}", name = name, value = value)?;
+            write!(formatter, "\"{name}\":{value}")?;
             if i + 1 < field_count {
                 formatter.write_str(",")?;
             }
@@ -590,8 +587,7 @@ mod tests {
             .to_string();
         assert!(
             missing_field_err.contains("missing field `kty`"),
-            "{}",
-            missing_field_err
+            "{missing_field_err}"
         );
 
         let base64_json = r#"{"crv":"Ed25519","kty":"OKP","x":"??"}"#;
@@ -600,13 +596,11 @@ mod tests {
             .to_string();
         assert!(
             base64_err.contains("invalid value: string \"??\""),
-            "{}",
-            base64_err
+            "{base64_err}"
         );
         assert!(
             base64_err.contains("base64url-encoded data"),
-            "{}",
-            base64_err
+            "{base64_err}"
         );
     }
 

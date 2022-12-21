@@ -91,7 +91,7 @@ impl TokenChecker {
         Ok(&token
             .claims()
             .validate_expiration(&self.time_options)
-            .map_err(|e| anyhow!(e))?
+            .map_err(|err| anyhow!(err))?
             .custom)
     }
 
@@ -101,10 +101,10 @@ impl TokenChecker {
         token: &str,
         verifying_key: &T::VerifyingKey,
     ) -> anyhow::Result<SampleClaims> {
-        let token = UntrustedToken::new(token).map_err(|e| anyhow!(e))?;
+        let token = UntrustedToken::new(token).map_err(|err| anyhow!(err))?;
         let token = alg
             .validate_integrity::<SampleClaims>(&token, verifying_key)
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|err| anyhow!(err))?;
         let claims = self.extract_claims(&token)?;
         Ok(claims.to_owned())
     }
@@ -120,7 +120,7 @@ impl TokenChecker {
 
         let token = alg
             .token(Header::default(), &claims, signing_key)
-            .map_err(|e| anyhow!(e))?;
+            .map_err(|err| anyhow!(err))?;
         Ok(token)
     }
 
@@ -138,11 +138,12 @@ impl TokenChecker {
             name: "John Doe".to_owned(),
             admin: false,
         };
-        let signing_key = <T::SigningKey>::from_slice(signing_key).map_err(|e| anyhow!(e))?;
+        let signing_key = <T::SigningKey>::from_slice(signing_key).map_err(|err| anyhow!(err))?;
         let token = self.create_token(&alg, claims.clone(), &signing_key)?;
-        hprintln!("Created token: {}", token).unwrap();
+        hprintln!("Created token: {token}").unwrap();
 
-        let verifying_key = <T::VerifyingKey>::from_slice(verifying_key).map_err(|e| anyhow!(e))?;
+        let verifying_key =
+            <T::VerifyingKey>::from_slice(verifying_key).map_err(|err| anyhow!(err))?;
         let recovered_claims = self.verify_token(&alg, &token, &verifying_key)?;
         hprintln!("Verified token").unwrap();
         assert_eq!(claims, recovered_claims);
@@ -161,9 +162,10 @@ impl TokenChecker {
             name: "John Doe".to_owned(),
             admin: false,
         };
-        let signing_key = RsaPrivateKey::from_pkcs1_der(private_key_der).map_err(|e| anyhow!(e))?;
+        let signing_key =
+            RsaPrivateKey::from_pkcs1_der(private_key_der).map_err(|err| anyhow!(err))?;
         let token = self.create_token(alg, claims.clone(), &signing_key)?;
-        hprintln!("Created token: {}", token).unwrap();
+        hprintln!("Created token: {token}").unwrap();
 
         let verifying_key = RsaPublicKey::from(signing_key);
         let recovered_claims = self.verify_token(alg, &token, &verifying_key)?;

@@ -591,7 +591,7 @@ mod tests {
         let claims_start = HS256_TOKEN.find('.').unwrap() + 1;
         let claims_end = HS256_TOKEN.rfind('.').unwrap();
         let key = Base64UrlUnpadded::decode_vec(HS256_KEY).unwrap();
-        let key = Hs256Key::new(&key);
+        let key = Hs256Key::new(key);
 
         for claims in &malformed_claims {
             let encoded_claims = Base64UrlUnpadded::encode_string(claims.as_bytes());
@@ -601,8 +601,7 @@ mod tests {
             assert_matches!(
                 Hs256.validate_integrity::<Obj>(&token, &key).unwrap_err(),
                 ValidationError::MalformedClaims(_),
-                "Failing claims: {}",
-                claims
+                "Failing claims: {claims}"
             );
         }
     }
@@ -610,7 +609,7 @@ mod tests {
     fn test_invalid_signature_len(mangled_str: &str, actual_len: usize) {
         let token = UntrustedToken::new(&mangled_str).unwrap();
         let key = Base64UrlUnpadded::decode_vec(HS256_KEY).unwrap();
-        let key = Hs256Key::new(&key);
+        let key = Hs256Key::new(key);
 
         let err = Hs256.validate_integrity::<Empty>(&token, &key).unwrap_err();
         assert_matches!(

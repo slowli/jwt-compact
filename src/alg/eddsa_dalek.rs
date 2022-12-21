@@ -18,7 +18,7 @@ impl AlgorithmSignature for Signature {
     const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(SIGNATURE_LENGTH);
 
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        Self::try_from(bytes).map_err(|e| anyhow::anyhow!(e))
+        Self::try_from(bytes).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
@@ -68,7 +68,7 @@ impl Algorithm for Ed25519 {
 
 impl VerifyingKey<Ed25519> for PublicKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_bytes(raw).map_err(|e| anyhow::anyhow!(e))
+        Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
@@ -78,7 +78,7 @@ impl VerifyingKey<Ed25519> for PublicKey {
 
 impl SigningKey<Ed25519> for Keypair {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_bytes(raw).map_err(|e| anyhow::anyhow!(e))
+        Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn to_verifying_key(&self) -> PublicKey {

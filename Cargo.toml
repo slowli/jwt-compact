@@ -54,7 +54,7 @@ features = ["ecdsa"]
 optional = true
 
 [dependencies.p256]
-version = "0.11.0"
+version = "0.12.0"
 default-features = false
 features = ["ecdsa"]
 optional = true

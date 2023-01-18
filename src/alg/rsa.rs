@@ -3,7 +3,7 @@
 pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
-use rsa::{BigUint, PaddingScheme, PublicKey, PublicKeyParts};
+use rsa::{BigUint, Pkcs1v15Sign, Pss, PublicKey, PublicKeyParts};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use core::{fmt, str::FromStr};
@@ -64,6 +64,12 @@ impl HashAlg {
 enum Padding {
     Pkcs1v15,
     Pss,
+}
+
+#[derive(Debug)]
+enum PaddingScheme {
+    Pkcs1v15(Pkcs1v15Sign),
+    Pss(Pss),
 }
 
 /// Bit length of an RSA key modulus (aka RSA key length).
@@ -164,11 +170,15 @@ impl Algorithm for Rsa {
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let digest = self.hash_alg.digest(message);
-        RsaSignature(
-            signing_key
-                .sign_blinded(&mut rand_core::OsRng, self.padding_scheme(), &digest)
-                .expect("Unexpected RSA signature failure"),
-        )
+        let signing_result = match self.padding_scheme() {
+            PaddingScheme::Pkcs1v15(padding) => {
+                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, &digest)
+            }
+            PaddingScheme::Pss(padding) => {
+                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, &digest)
+            }
+        };
+        RsaSignature(signing_result.expect("Unexpected RSA signature failure"))
     }
 
     fn verify_signature(
@@ -178,9 +188,13 @@ impl Algorithm for Rsa {
         message: &[u8],
     ) -> bool {
         let digest = self.hash_alg.digest(message);
-        verifying_key
-            .verify(self.padding_scheme(), &digest, &signature.0)
-            .is_ok()
+        let verify_result = match self.padding_scheme() {
+            PaddingScheme::Pkcs1v15(padding) => {
+                verifying_key.verify(padding, &digest, &signature.0)
+            }
+            PaddingScheme::Pss(padding) => verifying_key.verify(padding, &digest, &signature.0),
+        };
+        verify_result.is_ok()
     }
 }
 
@@ -234,25 +248,19 @@ impl Rsa {
 
     fn padding_scheme(self) -> PaddingScheme {
         match self.padding_alg {
-            Padding::Pkcs1v15 => match self.hash_alg {
-                HashAlg::Sha256 => PaddingScheme::new_pkcs1v15_sign::<Sha256>(),
-                HashAlg::Sha384 => PaddingScheme::new_pkcs1v15_sign::<Sha384>(),
-                HashAlg::Sha512 => PaddingScheme::new_pkcs1v15_sign::<Sha512>(),
-            },
+            Padding::Pkcs1v15 => PaddingScheme::Pkcs1v15(match self.hash_alg {
+                HashAlg::Sha256 => Pkcs1v15Sign::new::<Sha256>(),
+                HashAlg::Sha384 => Pkcs1v15Sign::new::<Sha384>(),
+                HashAlg::Sha512 => Pkcs1v15Sign::new::<Sha512>(),
+            }),
             Padding::Pss => {
                 // The salt length needs to be set to the size of hash function output;
                 // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
-                match self.hash_alg {
-                    HashAlg::Sha256 => {
-                        PaddingScheme::new_pss_with_salt::<Sha256>(Sha256::output_size())
-                    }
-                    HashAlg::Sha384 => {
-                        PaddingScheme::new_pss_with_salt::<Sha384>(Sha384::output_size())
-                    }
-                    HashAlg::Sha512 => {
-                        PaddingScheme::new_pss_with_salt::<Sha512>(Sha512::output_size())
-                    }
-                }
+                PaddingScheme::Pss(match self.hash_alg {
+                    HashAlg::Sha256 => Pss::new_with_salt::<Sha256>(Sha256::output_size()),
+                    HashAlg::Sha384 => Pss::new_with_salt::<Sha384>(Sha384::output_size()),
+                    HashAlg::Sha512 => Pss::new_with_salt::<Sha512>(Sha512::output_size()),
+                })
             }
         }
     }

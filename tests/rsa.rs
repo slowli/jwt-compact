@@ -4,7 +4,9 @@ use assert_matches::assert_matches;
 use rand::thread_rng;
 use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
 
-use super::{create_claims, test_algorithm, CompactClaims, SampleClaims};
+mod shared;
+
+use crate::shared::{create_claims, test_algorithm, CompactClaims, SampleClaims};
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 
 const RSA_PRIVATE_KEY: &str = "\

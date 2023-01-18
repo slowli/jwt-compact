@@ -5,7 +5,7 @@ use k256::{
         signature::{DigestSigner, DigestVerifier},
         Signature, SigningKey, VerifyingKey,
     },
-    elliptic_curve::{sec1::ToEncodedPoint, FieldSize},
+    elliptic_curve::FieldSize,
     Secp256k1,
 };
 use sha2::{digest::typenum::Unsigned, Digest, Sha256};
@@ -28,7 +28,7 @@ impl AlgorithmSignature for Signature {
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Borrowed(self.as_ref())
+        Cow::Owned(self.to_bytes().to_vec())
     }
 }
 
@@ -107,7 +107,7 @@ impl alg::SigningKey<Es256k> for SigningKey {
     }
 
     fn to_verifying_key(&self) -> VerifyingKey {
-        self.verifying_key()
+        *self.verifying_key()
     }
 
     fn as_bytes(&self) -> SecretBytes<'_> {
@@ -122,7 +122,8 @@ impl alg::VerifyingKey<Es256k> for VerifyingKey {
 
     /// Serializes the key as a 33-byte compressed form.
     fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Owned(self.to_bytes().to_vec())
+        let bytes = self.to_encoded_point(true).as_bytes().to_vec();
+        Cow::Owned(bytes)
     }
 }
 
@@ -168,7 +169,7 @@ impl TryFrom<&JsonWebKey<'_>> for VerifyingKey {
 
 impl<'a> From<&'a SigningKey> for JsonWebKey<'a> {
     fn from(key: &'a SigningKey) -> JsonWebKey<'a> {
-        create_jwk(&key.verifying_key(), Some(key))
+        create_jwk(key.verifying_key(), Some(key))
     }
 }
 

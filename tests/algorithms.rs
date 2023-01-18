@@ -502,7 +502,7 @@ fn high_s_in_signature_is_successfully_validated() {
          kb2VAZXhhbXBsZS5jb20ifQ.\
          h2LqgiD_K_jYPzwU1g28hmB-zfwJ94eU_M7BvrRfxTv7Mr92ueHIe52_8HJBzZmzZeELqFsQDgJb3ppTRUYdfQ";
 
-    let jwk = serde_json::json!({
+    let jwk = json!({
         "kty": "EC",
         "crv": "secp256k1",
         "x": "95MHYo69A7OwsGFDf7rvPgv3HDXUgUwpyPi2nJnAXD0",

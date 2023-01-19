@@ -45,16 +45,16 @@ subtle = { version = "2.4.0", default-features = false }
 zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 # Crypto backends (all public dependencies).
-secp256k1 = { version = "0.25", optional = true }
+secp256k1 = { version = "0.26", optional = true }
 
 [dependencies.k256]
-version = "0.11.0"
+version = "0.12.0"
 default-features = false
 features = ["ecdsa"]
 optional = true
 
 [dependencies.p256]
-version = "0.11.0"
+version = "0.12.0"
 default-features = false
 features = ["ecdsa"]
 optional = true
@@ -78,7 +78,7 @@ default-features = false
 features = ["random"]
 
 [dependencies.rsa]
-version = "0.7"
+version = "0.8"
 optional = true
 default-features = false
 
@@ -115,8 +115,8 @@ path = "benches/encoding.rs"
 required-features = ["std", "clock"]
 
 [[test]]
-name = "algorithms"
-path = "tests/algorithms.rs"
+name = "rsa"
+path = "tests/rsa.rs"
 required-features = ["rsa/pem"]
 
 [workspace]

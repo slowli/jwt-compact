@@ -23,7 +23,7 @@ impl AlgorithmSignature for Signature {
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
-        Cow::Borrowed(self.as_ref())
+        Cow::Owned(self.to_bytes().to_vec())
     }
 }
 
@@ -67,7 +67,7 @@ impl alg::SigningKey<Es256> for SigningKey {
     }
 
     fn to_verifying_key(&self) -> VerifyingKey {
-        self.verifying_key()
+        *self.verifying_key()
     }
 
     fn as_bytes(&self) -> SecretBytes<'_> {
@@ -129,7 +129,7 @@ impl TryFrom<&JsonWebKey<'_>> for VerifyingKey {
 
 impl<'a> From<&'a SigningKey> for JsonWebKey<'a> {
     fn from(key: &'a SigningKey) -> JsonWebKey<'a> {
-        create_jwk(&key.verifying_key(), Some(key))
+        create_jwk(key.verifying_key(), Some(key))
     }
 }
 

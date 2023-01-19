@@ -186,6 +186,11 @@ impl<T> Token<T> {
     pub fn claims(&self) -> &Claims<T> {
         &self.claims
     }
+
+    /// Splits the `Token` into the respective `Header` and `Claims` while consuming it.
+    pub fn into_parts(self) -> (Header, Claims<T>) {
+        (self.header, self.claims)
+    }
 }
 
 /// `Token` together with the validated token signature.

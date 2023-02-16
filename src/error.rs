@@ -109,9 +109,7 @@ impl fmt::Display for ValidationError {
         match self {
             Self::AlgorithmMismatch { expected, actual } => write!(
                 formatter,
-                "token algorithm ({actual}) differs from expected ({expected})",
-                expected = expected,
-                actual = actual
+                "token algorithm ({actual}) differs from expected ({expected})"
             ),
             Self::InvalidSignatureLen { expected, actual } => write!(
                 formatter,

@@ -175,12 +175,10 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let (x, y) = if let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk {
-            JsonWebKey::ensure_curve(curve, "secp256k1")?;
-            (x.as_ref(), y.as_ref())
-        } else {
+        let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
         };
+        JsonWebKey::ensure_curve(curve, "secp256k1")?;
         JsonWebKey::ensure_len("x", x, COORDINATE_SIZE)?;
         JsonWebKey::ensure_len("y", y, COORDINATE_SIZE)?;
 
@@ -202,11 +200,10 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let sk_bytes = if let JsonWebKey::EllipticCurve { secret, .. } = jwk {
-            secret.as_deref()
-        } else {
+        let JsonWebKey::EllipticCurve { secret, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
         };
+        let sk_bytes = secret.as_deref();
         let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
         JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_SIZE)?;
 

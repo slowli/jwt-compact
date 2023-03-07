@@ -104,9 +104,7 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let (curve, x) = if let JsonWebKey::KeyPair { curve, x, .. } = jwk {
-            (curve, x)
-        } else {
+        let JsonWebKey::KeyPair { curve, x, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
 
@@ -130,11 +128,10 @@ impl TryFrom<&JsonWebKey<'_>> for Keypair {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let sk_bytes = if let JsonWebKey::KeyPair { secret, .. } = jwk {
-            secret.as_deref()
-        } else {
+        let JsonWebKey::KeyPair { secret, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
+        let sk_bytes = secret.as_deref();
         let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
         JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_LENGTH)?;
 

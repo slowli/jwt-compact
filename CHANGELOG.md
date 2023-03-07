@@ -7,7 +7,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- Update dependencies.
+- Update dependencies and bump minimum supported Rust version to 1.65.
 
 ## 0.6.0 - 2022-11-01
 

@@ -5,7 +5,7 @@ use k256::{
         signature::{DigestSigner, DigestVerifier},
         Signature, SigningKey, VerifyingKey,
     },
-    elliptic_curve::FieldSize,
+    elliptic_curve::FieldBytesSize,
     Secp256k1,
 };
 use sha2::{digest::typenum::Unsigned, Digest, Sha256};
@@ -21,7 +21,7 @@ use crate::{
 
 impl AlgorithmSignature for Signature {
     const LENGTH: Option<NonZeroUsize> =
-        NonZeroUsize::new(<FieldSize<Secp256k1> as Add>::Output::USIZE);
+        NonZeroUsize::new(<FieldBytesSize<Secp256k1> as Add>::Output::USIZE);
 
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         Signature::try_from(slice).map_err(|err| anyhow::anyhow!(err))
@@ -103,7 +103,7 @@ where
 
 impl alg::SigningKey<Es256k> for SigningKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
+        Self::from_slice(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn to_verifying_key(&self) -> VerifyingKey {
@@ -149,12 +149,10 @@ impl TryFrom<&JsonWebKey<'_>> for VerifyingKey {
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
         const COORDINATE_SIZE: usize = 32;
 
-        let (x, y) = if let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk {
-            JsonWebKey::ensure_curve(curve, "secp256k1")?;
-            (x.as_ref(), y.as_ref())
-        } else {
+        let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
         };
+        JsonWebKey::ensure_curve(curve, "secp256k1")?;
         JsonWebKey::ensure_len("x", x, COORDINATE_SIZE)?;
         JsonWebKey::ensure_len("y", y, COORDINATE_SIZE)?;
 
@@ -177,16 +175,15 @@ impl TryFrom<&JsonWebKey<'_>> for SigningKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let sk_bytes = if let JsonWebKey::EllipticCurve { secret, .. } = jwk {
-            secret.as_deref()
-        } else {
+        let JsonWebKey::EllipticCurve { secret, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
         };
+        let sk_bytes = secret.as_deref();
         let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
         JsonWebKey::ensure_len("d", sk_bytes, 32)?;
 
         let sk =
-            Self::from_bytes(sk_bytes).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;
+            Self::from_slice(sk_bytes).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;
         jwk.ensure_key_match(sk)
     }
 }

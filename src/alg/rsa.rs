@@ -362,19 +362,16 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let (n, e) = if let JsonWebKey::Rsa {
+        let JsonWebKey::Rsa {
             modulus,
             public_exponent,
             ..
-        } = jwk
-        {
-            (modulus, public_exponent)
-        } else {
+        } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 
-        let e = BigUint::from_bytes_be(e);
-        let n = BigUint::from_bytes_be(n);
+        let e = BigUint::from_bytes_be(public_exponent);
+        let n = BigUint::from_bytes_be(modulus);
         Self::new(n, e).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
     }
 }
@@ -424,14 +421,11 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let (n, e, private_parts) = if let JsonWebKey::Rsa {
+        let JsonWebKey::Rsa {
             modulus,
             public_exponent,
             private_parts,
-        } = jwk
-        {
-            (modulus, public_exponent, private_parts.as_ref())
-        } else {
+        } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 
@@ -441,10 +435,12 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
             prime_factor_q,
             other_prime_factors,
             ..
-        } = private_parts.ok_or_else(|| JwkError::NoField("d".into()))?;
+        } = private_parts
+            .as_ref()
+            .ok_or_else(|| JwkError::NoField("d".into()))?;
 
-        let e = BigUint::from_bytes_be(e);
-        let n = BigUint::from_bytes_be(n);
+        let e = BigUint::from_bytes_be(public_exponent);
+        let n = BigUint::from_bytes_be(modulus);
         let d = BigUint::from_bytes_be(d);
 
         let mut factors = Vec::with_capacity(2 + other_prime_factors.len());

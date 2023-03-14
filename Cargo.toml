@@ -20,7 +20,7 @@ exclude = ["e2e-tests"]
 
 [package.metadata.docs.rs]
 # Enable non-conflicting additional algorithms in documentation on `docs.rs`.
-features = ["exonum-crypto", "es256k", "p256", "with_rsa"]
+features = ["exonum-crypto", "es256k", "p256", "rsa"]
 # Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
 rustdoc-args = ["--cfg", "docsrs"]
 
@@ -94,10 +94,6 @@ version-sync = "0.9"
 
 [features]
 default = ["std", "clock", "serde_cbor"]
-# `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
-es256k = ["secp256k1", "lazy_static"]
-# RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
-with_rsa = ["rsa", "rand_core/getrandom", "sha2/oid"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
 std = ["anyhow/std", "serde_json/std", "serde_cbor?/std"]
@@ -107,6 +103,10 @@ std = ["anyhow/std", "serde_json/std", "serde_cbor?/std"]
 # with an excplicitly specified clock function, or to set / verify
 # time-related `Claims` fields manually.
 clock = ["chrono/clock"]
+# `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
+es256k = ["secp256k1", "lazy_static"]
+# RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
+rsa = ["dep:rsa", "rand_core/getrandom", "sha2/oid"]
 
 [[bench]]
 name = "encoding"

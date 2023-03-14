@@ -23,7 +23,7 @@ mod eddsa_sodium;
 #[cfg(feature = "p256")]
 mod p256;
 // RSA implementation.
-#[cfg(feature = "with_rsa")]
+#[cfg(feature = "rsa")]
 mod rsa;
 
 #[cfg(feature = "ed25519-compact")]
@@ -40,8 +40,8 @@ pub use self::hmacs::*;
 pub use self::k256::Es256k;
 #[cfg(feature = "p256")]
 pub use self::p256::Es256;
-#[cfg(feature = "with_rsa")]
-#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+#[cfg(feature = "rsa")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub use self::rsa::{
     ModulusBits, ModulusBitsError, Rsa, RsaParseError, RsaPrivateKey, RsaPublicKey, RsaSignature,
 };

@@ -43,7 +43,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: -p jwt-compact --lib --features exonum-crypto,p256,es256k,with_rsa
+          args: -p jwt-compact --lib --features exonum-crypto,p256,es256k,rsa
       - name: Build with ed25519-compact
         uses: actions-rs/cargo@v1
         with:
@@ -100,7 +100,7 @@ jobs:
           # The corresponding deps don't include `serde/std`; thus, we test that it's valid
           # to enable `std` and `serde_cbor` without enabling `serde/std`.
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features p256,es256k,with_rsa,rsa/pem --all-targets -- -D warnings
+          args: -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
@@ -136,7 +136,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -p jwt-compact --features exonum-crypto,p256,es256k,with_rsa,rsa/pem
+          args: -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
       - name: Test dalek crypto
         uses: actions-rs/cargo@v1
         with:
@@ -242,7 +242,7 @@ jobs:
       - name: Run binary (ed25519)
         run: cargo run --release --features ed25519
       - name: Run binary (rsa)
-        run: cargo run --release --features with_rsa
+        run: cargo run --release --features rsa
 
   document:
     needs:
@@ -283,7 +283,7 @@ jobs:
       - name: Build docs
         run: |
           cargo clean --doc && \
-          cargo rustdoc -p jwt-compact --features exonum-crypto,p256,es256k,with_rsa -- \
+          cargo rustdoc -p jwt-compact --features exonum-crypto,p256,es256k,rsa -- \
             --cfg docsrs -Z unstable-options \
             --extern-html-root-url base64ct=https://docs.rs/base64ct/1.5.2 \
             --extern-html-root-url exonum-crypto=https://docs.rs/exonum-crypto/1.0.0 \

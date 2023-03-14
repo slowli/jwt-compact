@@ -87,7 +87,7 @@ fn hs256_incorrect_key_type() {
     );
 }
 
-#[cfg(feature = "with_rsa")]
+#[cfg(feature = "rsa")]
 mod rsa_jwk {
     use super::*;
 

@@ -16,7 +16,7 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 
 # Cortex-M dependencies.
 cortex-m-rt = "0.7"
-cortex-m-semihosting = "0.3.7"
+cortex-m-semihosting = "0.5"
 alloc-cortex-m = "0.4.1"
 panic-halt = "0.2.0"
 
@@ -38,7 +38,7 @@ lto = true
 # flash memory of the (emulated) microcontroller.
 [features]
 ed25519 = ["getrandom", "once_cell", "rand_chacha", "jwt-compact/ed25519-compact"]
-with_rsa = ["getrandom", "once_cell", "rand_chacha", "rsa", "jwt-compact/with_rsa"]
+rsa = ["getrandom", "once_cell", "rand_chacha", "dep:rsa", "jwt-compact/rsa"]
 
 [workspace]
 # ^-- Needed to prevent setting the `std` flag for crates (is this a cargo bug?).

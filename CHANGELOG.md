@@ -5,9 +5,12 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.7.0 - 2023-03-14
+
 ### Changed
 
 - Update dependencies and bump minimum supported Rust version to 1.65.
+- Rename the `with_rsa` feature to `rsa`.
 
 ## 0.6.0 - 2022-11-01
 
@@ -55,7 +58,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 - Fix datetime overflow when validating the expiration claim.
 
 - Fix `no_std` support for RSA-based JWS algorithms. As a part of the fix,
-  to enable RSA, you should now use the `with_rsa` feature instead of `rsa`.
+  to enable RSA, you should now use the `rsa` feature instead of `rsa`.
 
 ### Security
 

@@ -20,7 +20,7 @@ In fact, Cargo is configured to run qemu when using `cargo run`.
   which sets up necessary `rustc` flags and the qemu wrapper for `cargo run`.
 
 By default, the binary only tests the `HS*` algorithms. You may run the binary
-with `--features ed25519` or `--features with_rsa` in order to test additional algorithms.
+with `--features ed25519` or `--features rsa` in order to test additional algorithms.
 
 [ARM Cortex-M3]: https://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M3
 [qemu]: https://www.qemu.org/

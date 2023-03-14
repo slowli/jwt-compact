@@ -33,7 +33,7 @@
 //! | `ES256K` | `es256k` | [Rust binding][`secp256k1`] for [`libsecp256k1`] |
 //! | `ES256K` | [`k256`] | Pure Rust implementation |
 //! | `ES256`  | [`p256`] | Pure Rust implementation |
-//! | `RS*`, `PS*` (RSA) | `with_rsa` | Uses pure Rust [`rsa`] crate with blinding |
+//! | `RS*`, `PS*` (RSA) | `rsa` | Uses pure Rust [`rsa`] crate with blinding |
 //!
 //! `EdDSA` and `ES256K` algorithms are somewhat less frequently supported by JWT implementations
 //! than others since they are recent additions to the JSON Web Algorithms (JWA) suit.
@@ -189,7 +189,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Documentation settings.
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/jwt-compact/0.6.0")]
+#![doc(html_root_url = "https://docs.rs/jwt-compact/0.7.0")]
 // Linter settings.
 #![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
 #![warn(clippy::all, clippy::pedantic)]
@@ -209,16 +209,8 @@ mod traits;
 // Polyfill for `alloc` types.
 mod alloc {
     #[cfg(not(feature = "std"))]
-    extern crate alloc;
+    extern crate alloc as std;
 
-    #[cfg(not(feature = "std"))]
-    pub use alloc::{
-        borrow::{Cow, ToOwned},
-        boxed::Box,
-        string::{String, ToString},
-        vec::Vec,
-    };
-    #[cfg(feature = "std")]
     pub use std::{
         borrow::{Cow, ToOwned},
         boxed::Box,

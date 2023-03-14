@@ -27,4 +27,4 @@ getrandom = { version = "0.2", features = ["js"] }
 [dependencies.jwt-compact]
 path = "../.."
 default-features = false
-features = ["clock", "ed25519-compact", "with_rsa", "k256", "p256"]
+features = ["clock", "ed25519-compact", "rsa", "k256", "p256"]

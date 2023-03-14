@@ -17,7 +17,7 @@ use crate::{
 
 /// RSA signature.
 #[derive(Debug)]
-#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct RsaSignature(Vec<u8>);
 
 impl AlgorithmSignature for RsaSignature {
@@ -75,7 +75,7 @@ enum PaddingScheme {
 /// Bit length of an RSA key modulus (aka RSA key length).
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
-#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub enum ModulusBits {
     /// 2048 bits. This is the minimum recommended key length as of 2020.
     TwoKibibytes,
@@ -115,7 +115,7 @@ impl TryFrom<usize> for ModulusBits {
 
 /// Error type returned when a conversion of an integer into `ModulusBits` fails.
 #[derive(Debug)]
-#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct ModulusBitsError(());
 
 impl fmt::Display for ModulusBitsError {
@@ -153,7 +153,7 @@ impl std::error::Error for ModulusBitsError {}
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct Rsa {
     hash_alg: HashAlg,
     padding_alg: Padding,
@@ -305,7 +305,7 @@ impl FromStr for Rsa {
 
 /// Errors that can occur when parsing an [`Rsa`] algorithm from a string.
 #[derive(Debug)]
-#[cfg_attr(docsrs, doc(cfg(feature = "with_rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
 pub struct RsaParseError(String);
 
 impl fmt::Display for RsaParseError {

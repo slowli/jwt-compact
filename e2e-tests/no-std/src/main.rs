@@ -18,7 +18,7 @@ use alloc::{borrow::ToOwned, string::String};
 
 #[cfg(feature = "ed25519")]
 use jwt_compact::alg::Ed25519;
-#[cfg(feature = "with_rsa")]
+#[cfg(feature = "rsa")]
 use jwt_compact::alg::Rsa;
 use jwt_compact::{
     alg::{Hs256, Hs384, Hs512, SigningKey, VerifyingKey},
@@ -29,7 +29,7 @@ use jwt_compact::{
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
-#[cfg(any(feature = "ed25519", feature = "with_rsa"))]
+#[cfg(any(feature = "ed25519", feature = "rsa"))]
 mod rsa_helpers {
     use getrandom::{register_custom_getrandom, Error as RandomError};
     use once_cell::unsync::Lazy;
@@ -131,7 +131,7 @@ impl TokenChecker {
         T::VerifyingKey: VerifyingKey<T>,
     {
         let alg = T::default();
-        hprintln!("Testing algorithm: {}", alg.name()).unwrap();
+        hprintln!("Testing algorithm: {}", alg.name());
 
         let claims = SampleClaims {
             subject: "j.doe@example.com".to_owned(),
@@ -140,22 +140,22 @@ impl TokenChecker {
         };
         let signing_key = <T::SigningKey>::from_slice(signing_key).map_err(|err| anyhow!(err))?;
         let token = self.create_token(&alg, claims.clone(), &signing_key)?;
-        hprintln!("Created token: {token}").unwrap();
+        hprintln!("Created token: {}", token);
 
         let verifying_key =
             <T::VerifyingKey>::from_slice(verifying_key).map_err(|err| anyhow!(err))?;
         let recovered_claims = self.verify_token(&alg, &token, &verifying_key)?;
-        hprintln!("Verified token").unwrap();
+        hprintln!("Verified token");
         assert_eq!(claims, recovered_claims);
         Ok(())
     }
 
-    #[cfg(feature = "with_rsa")]
+    #[cfg(feature = "rsa")]
     fn roundtrip_rsa(&self, alg: &Rsa, private_key_der: &[u8]) -> anyhow::Result<()> {
         use jwt_compact::alg::{RsaPrivateKey, RsaPublicKey};
         use rsa::pkcs1::DecodeRsaPrivateKey;
 
-        hprintln!("Testing algorithm: {}", alg.name()).unwrap();
+        hprintln!("Testing algorithm: {}", alg.name());
 
         let claims = SampleClaims {
             subject: "j.doe@example.com".to_owned(),
@@ -165,11 +165,11 @@ impl TokenChecker {
         let signing_key =
             RsaPrivateKey::from_pkcs1_der(private_key_der).map_err(|err| anyhow!(err))?;
         let token = self.create_token(alg, claims.clone(), &signing_key)?;
-        hprintln!("Created token: {token}").unwrap();
+        hprintln!("Created token: {}", token);
 
         let verifying_key = RsaPublicKey::from(signing_key);
         let recovered_claims = self.verify_token(alg, &token, &verifying_key)?;
-        hprintln!("Verified token").unwrap();
+        hprintln!("Verified token");
         assert_eq!(claims, recovered_claims);
         Ok(())
     }
@@ -185,7 +185,7 @@ const ED_PRIVATE_KEY: [u8; 64] = const_decoder::Decoder::Hex.decode(
      06fac1f22240cffd637ead6647188429fafda9c9cb7eae43386ac17f61115075",
 );
 
-#[cfg(feature = "with_rsa")]
+#[cfg(feature = "rsa")]
 const RSA_PRIVATE_KEY: [u8; 1190] = const_decoder::Pem::decode(
     br"-----BEGIN RSA PRIVATE KEY-----
        MIIEogIBAAKCAQEAnzyis1ZjfNB0bBgKFMSvvkTtwlvBsaJq7S5wA+kzeVOVpVWw
@@ -224,7 +224,7 @@ fn main_inner() -> anyhow::Result<()> {
 
     #[cfg(feature = "ed25519")]
     token_checker.roundtrip_alg::<Ed25519>(&ED_PRIVATE_KEY, &ED_PRIVATE_KEY[32..])?;
-    #[cfg(feature = "with_rsa")]
+    #[cfg(feature = "rsa")]
     token_checker.roundtrip_rsa(&Rsa::rs256(), &RSA_PRIVATE_KEY)?;
 
     Ok(())

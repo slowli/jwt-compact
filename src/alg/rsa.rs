@@ -3,7 +3,10 @@
 pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 
 use rand_core::{CryptoRng, RngCore};
-use rsa::{BigUint, Pkcs1v15Sign, Pss, PublicKey, PublicKeyParts};
+use rsa::{
+    traits::{PrivateKeyParts, PublicKeyParts},
+    BigUint, Pkcs1v15Sign, Pss,
+};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use core::{fmt, str::FromStr};

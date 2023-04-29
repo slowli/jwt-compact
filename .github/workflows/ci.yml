@@ -8,7 +8,7 @@ on:
 
 env:
   msrv: "1.65"
-  nightly: nightly-2022-11-24
+  nightly: nightly-2023-04-29
 
 jobs:
   # Checks minimum supported Rust version.
@@ -172,7 +172,7 @@ jobs:
         with:
           node-version: '18'
       - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
+        uses: jetli/wasm-pack-action@v0.4.0
         with:
           version: 'latest'
       - name: Generate lockfile

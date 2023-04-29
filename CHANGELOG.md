@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Update `secp256k1` and `rsa` dependencies.
+
 ## 0.7.0 - 2023-03-14
 
 ### Changed

@@ -91,11 +91,69 @@ fn hs256_incorrect_key_type() {
 mod rsa_jwk {
     use super::*;
 
-    use rand::thread_rng;
-    use rsa::{
-        algorithms::generate_multi_prime_key, errors::Error as RsaError, BigUint, RsaPrivateKey,
-        RsaPublicKey,
-    };
+    use num_bigint::{ModInverse, RandPrime};
+    use rand::{thread_rng, Rng};
+    use rsa::{errors::Error as RsaError, BigUint, RsaPrivateKey, RsaPublicKey};
+
+    // This code is taken from the `rsa` crate, where it was made private in v0.9
+    // because of high possibility of misuse.
+    fn generate_multi_prime_key(
+        rng: &mut impl Rng,
+        nprimes: usize,
+        bit_size: usize,
+    ) -> RsaPrivateKey {
+        assert!(nprimes > 2);
+
+        let mut primes = vec![BigUint::from(0_u32); nprimes];
+        let n_final: BigUint;
+        let d_final: BigUint;
+        let exp = BigUint::from(65_537_u32);
+
+        'next: loop {
+            let mut todo = bit_size;
+            if nprimes >= 7 {
+                todo += (nprimes - 2) / 5;
+            }
+
+            for (i, prime) in primes.iter_mut().enumerate() {
+                *prime = rng.gen_prime(todo / (nprimes - i));
+                todo -= prime.bits();
+            }
+
+            // Makes sure that primes is pairwise unequal.
+            for (i, prime1) in primes.iter().enumerate() {
+                for prime2 in primes.iter().take(i) {
+                    if prime1 == prime2 {
+                        continue 'next;
+                    }
+                }
+            }
+
+            let mut n = BigUint::from(1_u32);
+            let mut totient = BigUint::from(1_u32);
+
+            for prime in &primes {
+                n *= prime;
+                totient *= prime - BigUint::from(1_u32);
+            }
+
+            if n.bits() != bit_size {
+                continue 'next;
+            }
+
+            if let Some(d) = (&exp).mod_inverse(totient) {
+                n_final = n;
+                d_final = d.to_biguint().unwrap();
+                break;
+            }
+        }
+
+        let key = RsaPrivateKey::from_components(n_final, exp, d_final, primes)
+            .expect("failed creating multi-prime key");
+        key.validate()
+            .expect("generated multi-prime key is invalid");
+        key
+    }
 
     // Taken from https://tools.ietf.org/html/rfc7638#section-3.1
     const RSA_N: &str = "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2\
@@ -187,7 +245,7 @@ mod rsa_jwk {
 
     #[test]
     fn signing_jwk_for_multi_prime_key() {
-        let private_key = generate_multi_prime_key(&mut thread_rng(), 3, 2_048).unwrap();
+        let private_key = generate_multi_prime_key(&mut thread_rng(), 3, 2_048);
 
         let jwk = JsonWebKey::from(&private_key);
         let private_key_copy = RsaPrivateKey::try_from(&jwk).unwrap();

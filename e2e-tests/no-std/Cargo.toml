@@ -24,7 +24,7 @@ panic-halt = "0.2.0"
 getrandom = { version = "0.2", features = ["custom"], optional = true }
 once_cell = { version = "1.16.0", default-features = false, optional = true }
 rand_chacha = { version = "0.3.1", default-features = false, optional = true }
-rsa = { version = "0.8", default-features = false, optional = true }
+rsa = { version = "0.9", default-features = false, optional = true }
 
 [dependencies.jwt-compact]
 path = "../.."

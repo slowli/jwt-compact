@@ -3,7 +3,7 @@
 use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{de::DeserializeOwned, Serialize};
 
-use core::num::NonZeroUsize;
+use core::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
     alloc::{Cow, String, ToOwned, Vec},
@@ -130,7 +130,7 @@ pub trait AlgorithmExt: Algorithm {
     /// Creates a new token and serializes it to string.
     fn token<T>(
         &self,
-        header: Header,
+        header: Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
@@ -142,14 +142,19 @@ pub trait AlgorithmExt: Algorithm {
     #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
     fn compact_token<T>(
         &self,
-        header: Header,
+        header: Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
     where
         T: Serialize;
 
+    /// Creates a JWT validator for the specified verifying key and the claims type.
+    /// The validator can then be used to validate one or more tokens.
+    fn validator<'a, T>(&'a self, verifying_key: &'a Self::VerifyingKey) -> Validator<'a, Self, T>;
+
     /// Validates the token integrity against the provided `verifying_key`.
+    #[deprecated = "Use `.validator().validate()` for added flexibility"]
     fn validate_integrity<T>(
         &self,
         token: &UntrustedToken<'_>,
@@ -162,6 +167,7 @@ pub trait AlgorithmExt: Algorithm {
     ///
     /// Unlike [`validate_integrity`](#tymethod.validate_integrity), this method retains more
     /// information about the original token, in particular, its signature.
+    #[deprecated = "Use `.validator().validate_for_signed_token()` for added flexibility"]
     fn validate_for_signed_token<T>(
         &self,
         token: &UntrustedToken<'_>,
@@ -174,7 +180,7 @@ pub trait AlgorithmExt: Algorithm {
 impl<A: Algorithm> AlgorithmExt for A {
     fn token<T>(
         &self,
-        header: Header,
+        header: Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
@@ -205,7 +211,7 @@ impl<A: Algorithm> AlgorithmExt for A {
     #[cfg(feature = "serde_cbor")]
     fn compact_token<T>(
         &self,
-        header: Header,
+        header: Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
@@ -233,6 +239,14 @@ impl<A: Algorithm> AlgorithmExt for A {
         Ok(unsafe { String::from_utf8_unchecked(buffer) })
     }
 
+    fn validator<'a, T>(&'a self, verifying_key: &'a Self::VerifyingKey) -> Validator<'a, Self, T> {
+        Validator {
+            algorithm: self,
+            verifying_key,
+            _claims: PhantomData,
+        }
+    }
+
     fn validate_integrity<T>(
         &self,
         token: &UntrustedToken<'_>,
@@ -241,8 +255,7 @@ impl<A: Algorithm> AlgorithmExt for A {
     where
         T: DeserializeOwned,
     {
-        self.validate_for_signed_token(token, verifying_key)
-            .map(|wrapper| wrapper.token)
+        self.validator::<T>(verifying_key).validate(token)
     }
 
     fn validate_for_signed_token<T>(
@@ -253,7 +266,49 @@ impl<A: Algorithm> AlgorithmExt for A {
     where
         T: DeserializeOwned,
     {
-        let expected_alg = self.name();
+        self.validator::<T>(verifying_key)
+            .validate_for_signed_token(token)
+    }
+}
+
+/// Validator for a certain signing [`Algorithm`] associated with a specific verifying key
+/// and a claims type. Produced by the [`AlgorithmExt::validator()`] method.
+#[derive(Debug)]
+pub struct Validator<'a, A: Algorithm + ?Sized, T> {
+    algorithm: &'a A,
+    verifying_key: &'a A::VerifyingKey,
+    _claims: PhantomData<fn() -> T>,
+}
+
+impl<A: Algorithm + ?Sized, T> Clone for Validator<'_, A, T> {
+    fn clone(&self) -> Self {
+        Self {
+            algorithm: self.algorithm,
+            verifying_key: self.verifying_key,
+            _claims: PhantomData,
+        }
+    }
+}
+
+impl<A: Algorithm + ?Sized, T> Copy for Validator<'_, A, T> {}
+
+impl<A: Algorithm + ?Sized, T: DeserializeOwned> Validator<'_, A, T> {
+    /// Validates the token integrity against a verifying key enclosed in this validator.
+    pub fn validate<H: Clone>(
+        self,
+        token: &UntrustedToken<'_, H>,
+    ) -> Result<Token<T, H>, ValidationError> {
+        self.validate_for_signed_token(token)
+            .map(|signed| signed.token)
+    }
+
+    /// Validates the token integrity against a verifying key enclosed in this validator,
+    /// and returns the validated [`Token`] together with its signature.
+    pub fn validate_for_signed_token<H: Clone>(
+        self,
+        token: &UntrustedToken<'_, H>,
+    ) -> Result<SignedToken<A, T, H>, ValidationError> {
+        let expected_alg = self.algorithm.name();
         if expected_alg != token.algorithm() {
             return Err(ValidationError::AlgorithmMismatch {
                 expected: expected_alg.into_owned(),
@@ -262,7 +317,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         }
 
         let signature = token.signature_bytes();
-        if let Some(expected_len) = Self::Signature::LENGTH {
+        if let Some(expected_len) = A::Signature::LENGTH {
             if signature.len() != expected_len.get() {
                 return Err(ValidationError::InvalidSignatureLen {
                     expected: expected_len.get(),
@@ -271,12 +326,15 @@ impl<A: Algorithm> AlgorithmExt for A {
             }
         }
 
-        let signature = Self::Signature::try_from_slice(signature)
-            .map_err(ValidationError::MalformedSignature)?;
+        let signature =
+            A::Signature::try_from_slice(signature).map_err(ValidationError::MalformedSignature)?;
         // We assume that parsing claims is less computationally demanding than
         // validating a signature.
         let claims = token.deserialize_claims_unchecked::<T>()?;
-        if !self.verify_signature(&signature, verifying_key, &token.signed_data) {
+        if !self
+            .algorithm
+            .verify_signature(&signature, self.verifying_key, &token.signed_data)
+        {
             return Err(ValidationError::InvalidSignature);
         }
 

@@ -229,7 +229,7 @@ pub use crate::{
     claims::{Claims, Empty, TimeOptions},
     error::{Claim, CreationError, ParseError, ValidationError},
     token::{Header, SignedToken, Token, UntrustedToken},
-    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed},
+    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed, Validator},
 };
 
 #[cfg(doctest)]

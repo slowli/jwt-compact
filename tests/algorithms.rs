@@ -1,13 +1,15 @@
 //! General tests for various JWK algorithms.
 
+use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::thread_rng;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 mod shared;
 
-use crate::shared::{test_algorithm, Obj, SampleClaims};
-use jwt_compact::{alg::*, prelude::*, Algorithm, AlgorithmExt};
+use crate::shared::{create_claims, test_algorithm, Obj, SampleClaims};
+use jwt_compact::{alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, ValidationError};
 
 #[test]
 fn hs256_reference() {
@@ -432,4 +434,95 @@ fn es256_algorithm() {
     assert_eq!(verifying_key_bytes.len(), 33);
     let verifying_key_copy: PublicKey = VerifyingKey::from_slice(&verifying_key_bytes).unwrap();
     assert_eq!(verifying_key, verifying_key_copy);
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct HeaderExtensions {
+    custom: String,
+}
+
+fn create_header() -> Header<HeaderExtensions> {
+    Header::empty()
+        .with_token_type("JWT")
+        .with_key_id("test_key")
+        .with_other_fields(HeaderExtensions {
+            custom: "custom".to_owned(),
+        })
+}
+
+fn test_algorithm_with_custom_header<A: Algorithm>(
+    algorithm: &A,
+    signing_key: &A::SigningKey,
+    verifying_key: &A::VerifyingKey,
+) {
+    type Untrusted<'a> = UntrustedToken<'a, HeaderExtensions>;
+
+    let header = create_header();
+    let claims = create_claims();
+
+    // Successful case with a compact token.
+    #[cfg(feature = "serde_cbor")]
+    {
+        let token_string = algorithm
+            .compact_token(header.clone(), &claims, signing_key)
+            .unwrap();
+        let token = Untrusted::try_from(token_string.as_str()).unwrap();
+        assert_eq!(token.header().other_fields.custom, "custom");
+        let token = algorithm.validator(verifying_key).validate(&token).unwrap();
+        assert_eq!(token.header().other_fields.custom, "custom");
+        assert_eq!(*token.claims(), claims);
+    }
+
+    // Successful case.
+    let token_string = algorithm.token(header, &claims, signing_key).unwrap();
+    let token = Untrusted::try_from(token_string.as_str()).unwrap();
+    assert_eq!(token.header().other_fields.custom, "custom");
+    let token = algorithm.validator(verifying_key).validate(&token).unwrap();
+    assert_eq!(token.header().other_fields.custom, "custom");
+    assert_eq!(*token.claims(), claims);
+
+    // Mutate header.
+    let mangled_header = format!(
+        r#"{{"alg":"{}","typ":"JWT","custom":"?"}}"#,
+        algorithm.name()
+    );
+    let mangled_header = Base64UrlUnpadded::encode_string(mangled_header.as_bytes());
+    let header_end = token_string.find('.').unwrap();
+    assert_ne!(mangled_header, &token_string[..header_end]);
+    let mut mangled_str = token_string.clone();
+    mangled_str.replace_range(..header_end, &mangled_header);
+    let token = UntrustedToken::new(&mangled_str).unwrap();
+    let err = algorithm
+        .validator::<Obj>(verifying_key)
+        .validate(&token)
+        .unwrap_err();
+    assert_matches!(err, ValidationError::InvalidSignature);
+
+    // Check that token validation fails if the mandatory field is missing from the header.
+    let bogus_token_string = algorithm
+        .token(Header::empty(), &claims, signing_key)
+        .unwrap();
+    let err = Untrusted::try_from(bogus_token_string.as_str()).unwrap_err();
+    let ParseError::MalformedHeader(err) = err else {
+        panic!("unexpected parse error: {err}");
+    };
+    assert!(err.to_string().contains("custom"), "{err}");
+}
+
+#[test]
+fn hs256_algorithm_with_custom_header() {
+    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
+    test_algorithm_with_custom_header(&Hs256, &key, &key);
+}
+
+#[test]
+fn hs384_algorithm_with_custom_header() {
+    let key = Hs384Key::generate(&mut thread_rng()).into_inner();
+    test_algorithm_with_custom_header(&Hs384, &key, &key);
+}
+
+#[test]
+fn hs512_algorithm_with_custom_header() {
+    let key = Hs512Key::generate(&mut thread_rng()).into_inner();
+    test_algorithm_with_custom_header(&Hs512, &key, &key);
 }

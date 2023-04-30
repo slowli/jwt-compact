@@ -72,16 +72,16 @@ pub trait Algorithm {
 /// # fn main() -> anyhow::Result<()> {
 /// let alg = Renamed::new(Hs256, "HS2");
 /// let key = Hs256Key::new(b"super_secret_key_donut_steel");
-/// let token_string = alg.token(Header::default(), &Claims::empty(), &key)?;
+/// let token_string = alg.token(Header::empty(), &Claims::empty(), &key)?;
 ///
 /// let token = UntrustedToken::new(&token_string)?;
 /// assert_eq!(token.algorithm(), "HS2");
 /// // Note that the created token cannot be verified against the original algorithm
 /// // since the algorithm name recorded in the token header doesn't match.
-/// assert!(Hs256.validate_integrity::<Empty>(&token, &key).is_err());
+/// assert!(Hs256.validator::<Empty>(&key).validate(&token).is_err());
 ///
 /// // ...but the modified alg is working as expected.
-/// assert!(alg.validate_integrity::<Empty>(&token, &key).is_ok());
+/// assert!(alg.validator::<Empty>(&key).validate(&token).is_ok());
 /// # Ok(())
 /// # }
 /// ```
@@ -150,7 +150,7 @@ pub trait AlgorithmExt: Algorithm {
         T: Serialize;
 
     /// Creates a JWT validator for the specified verifying key and the claims type.
-    /// The validator can then be used to validate one or more tokens.
+    /// The validator can then be used to validate integrity of one or more tokens.
     fn validator<'a, T>(&'a self, verifying_key: &'a Self::VerifyingKey) -> Validator<'a, Self, T>;
 
     /// Validates the token integrity against the provided `verifying_key`.

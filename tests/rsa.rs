@@ -84,7 +84,7 @@ fn ps256_checked_len_fails_on_undersized_key() {
     let small_private_key = RsaPrivateKey::new(&mut thread_rng(), 1_024).unwrap();
     let claims = create_claims();
     let token = Rsa::ps256()
-        .token(Header::default(), &claims, &small_private_key)
+        .token(Header::empty(), &claims, &small_private_key)
         .unwrap();
     let token = UntrustedToken::new(&token).unwrap();
 
@@ -97,7 +97,8 @@ fn ps256_checked_len_fails_on_undersized_key() {
     let public_key = StrongKey::try_from(public_key).unwrap();
 
     let err = StrongAlg(Rsa::ps256())
-        .validate_integrity::<CompactClaims>(&token, &public_key)
+        .validator::<CompactClaims>(&public_key)
+        .validate(&token)
         .unwrap_err();
     assert_matches!(err, ValidationError::InvalidSignature);
 }
@@ -148,7 +149,8 @@ fn test_rsa_reference(rsa: Rsa, token: &str) {
     assert_eq!(token.algorithm(), rsa.name());
 
     let validated_token = rsa
-        .validate_integrity::<SampleClaims>(&token, &public_key)
+        .validator::<SampleClaims>(&public_key)
+        .validate(&token)
         .unwrap();
     assert_eq!(
         validated_token.claims().issued_at.unwrap().timestamp(),
@@ -166,7 +168,8 @@ fn test_rsa_reference(rsa: Rsa, token: &str) {
     // A version with checked key length should work as well.
     let public_key = StrongKey::try_from(public_key).unwrap();
     StrongAlg(rsa)
-        .validate_integrity::<SampleClaims>(&token, &public_key)
+        .validator::<SampleClaims>(&public_key)
+        .validate(&token)
         .unwrap();
 }
 

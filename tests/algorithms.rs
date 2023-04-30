@@ -25,7 +25,10 @@ fn hs256_reference() {
 
     let key = Base64UrlUnpadded::decode_vec(KEY).unwrap();
     let key = Hs256Key::new(key);
-    let validated_token = Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
+    #[allow(deprecated)] // Check that the deprecated API still works
+    Hs256.validate_integrity::<Obj>(&token, &key).unwrap();
+
+    let validated_token = Hs256.validator::<Obj>(&key).validate(&token).unwrap();
     assert_eq!(
         validated_token.claims().expiration.unwrap().timestamp(),
         1_300_819_380
@@ -37,8 +40,13 @@ fn hs256_reference() {
     );
 
     let checked_key = StrongKey::try_from(key).unwrap();
+    #[allow(deprecated)] // Check that the deprecated API still works
     StrongAlg(Hs256)
         .validate_integrity::<Obj>(&token, &checked_key)
+        .unwrap();
+    StrongAlg(Hs256)
+        .validator::<Obj>(&checked_key)
+        .validate(&token)
         .unwrap();
 }
 
@@ -65,8 +73,13 @@ fn hs384_reference() {
     assert_eq!(token.header().token_type, Some("JWT".to_owned()));
 
     let key = Hs384Key::from(KEY);
-    let token = Hs384
+    #[allow(deprecated)] // Check that the deprecated API still works
+    Hs384
         .validate_integrity::<SampleClaims>(&token, &key)
+        .unwrap();
+    let token = Hs384
+        .validator::<SampleClaims>(&key)
+        .validate(&token)
         .unwrap();
     assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_516_239_022);
     assert_eq!(
@@ -95,7 +108,8 @@ fn hs512_reference() {
 
     let key = Hs512Key::from(KEY);
     let token = Hs512
-        .validate_integrity::<SampleClaims>(&token, &key)
+        .validator::<SampleClaims>(&key)
+        .validate(&token)
         .unwrap();
     assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_516_239_122);
     assert_eq!(
@@ -136,7 +150,8 @@ fn es256_reference() {
     assert_eq!(token.algorithm(), "ES256");
 
     let token = Es256
-        .validate_integrity::<Obj>(&token, &public_key)
+        .validator::<Obj>(&public_key)
+        .validate(&token)
         .unwrap();
     assert_eq!(
         token.claims().expiration.unwrap().timestamp(),
@@ -176,7 +191,8 @@ fn es256k_reference() {
     assert_eq!(token.algorithm(), "ES256K");
 
     let token = es256k
-        .validate_integrity::<Obj>(&token, &public_key)
+        .validator::<Obj>(&public_key)
+        .validate(&token)
         .unwrap();
     assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_561_814_788);
     let expected_claims = json!({
@@ -233,7 +249,8 @@ fn ed25519_reference() {
     assert_eq!(token.algorithm(), "Ed25519");
 
     let token = Ed25519::with_specific_name()
-        .validate_integrity::<Obj>(&token, &public_key)
+        .validator::<Obj>(&public_key)
+        .validate(&token)
         .unwrap();
     assert_eq!(token.claims().issued_at.unwrap().timestamp(), 1_561_815_526);
     let expected_claims = json!({
@@ -266,10 +283,8 @@ fn hs512_algorithm() {
 fn compact_token_hs256() {
     let claims = shared::create_claims();
     let key = Hs256Key::generate(&mut thread_rng()).into_inner();
-    let long_token_str = Hs256.token(Header::default(), &claims, &key).unwrap();
-    let token_str = Hs256
-        .compact_token(Header::default(), &claims, &key)
-        .unwrap();
+    let long_token_str = Hs256.token(Header::empty(), &claims, &key).unwrap();
+    let token_str = Hs256.compact_token(Header::empty(), &claims, &key).unwrap();
     assert!(
         token_str.len() < long_token_str.len() - 40,
         "Full token length = {}, compact token length = {}",
@@ -277,7 +292,7 @@ fn compact_token_hs256() {
         token_str.len(),
     );
     let untrusted_token = UntrustedToken::new(&token_str).unwrap();
-    let token = Hs256.validate_integrity(&untrusted_token, &key).unwrap();
+    let token = Hs256.validator(&key).validate(&untrusted_token).unwrap();
     assert_eq!(*token.claims(), claims);
 
     // Check that we can collect unknown / hard to parse claims into `Claims.custom`.
@@ -287,7 +302,7 @@ fn compact_token_hs256() {
         use std::collections::HashMap;
 
         let generic_token: Token<HashMap<String, serde_cbor::Value>> =
-            Hs256.validate_integrity(&untrusted_token, &key).unwrap();
+            Hs256.validator(&key).validate(&untrusted_token).unwrap();
         assert_matches::assert_matches!(
             generic_token.claims().custom["sub"],
             serde_cbor::Value::Bytes(_)
@@ -384,7 +399,8 @@ fn high_s_in_signature_is_successfully_validated() {
 
     let token = UntrustedToken::new(TOKEN).unwrap();
     <Es256k>::default()
-        .validate_integrity::<serde_json::Value>(&token, &public_key)
+        .validator::<serde_json::Value>(&public_key)
+        .validate(&token)
         .unwrap();
 }
 

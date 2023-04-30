@@ -31,7 +31,7 @@ const SIGNATURE_SIZE: usize = 128;
 ///
 /// let my_key_cert = // DER-encoded key certificate
 /// #   b"Hello, world!";
-/// let header = Header::default()
+/// let header = Header::empty()
 ///     .with_key_id("my-key-id")
 ///     .with_certificate_thumbprint(Sha256::digest(my_key_cert).into());
 /// ```
@@ -254,9 +254,10 @@ impl<T, H> Token<T, H> {
 /// # let claims = Claims::new(MyClaims {})
 /// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
-/// #   Hs256.token(Header::default(), &claims, &key)?;
+/// #   Hs256.token(Header::empty(), &claims, &key)?;
 /// let token = UntrustedToken::new(&token_string)?;
-/// let signed = Hs256.validate_for_signed_token::<MyClaims>(&token, &key)?;
+/// let signed = Hs256.validator::<MyClaims>(&key)
+///     .validate_for_signed_token(&token)?;
 ///
 /// // `signature` is strongly typed.
 /// let signature: Hs256Signature = signed.signature;
@@ -660,7 +661,7 @@ mod tests {
             mangled_str.replace_range(claims_start..claims_end, &encoded_claims);
             let token = UntrustedToken::new(&mangled_str).unwrap();
             assert_matches!(
-                Hs256.validate_integrity::<Obj>(&token, &key).unwrap_err(),
+                Hs256.validator::<Obj>(&key).validate(&token).unwrap_err(),
                 ValidationError::MalformedClaims(_),
                 "Failing claims: {claims}"
             );
@@ -672,7 +673,7 @@ mod tests {
         let key = Base64UrlUnpadded::decode_vec(HS256_KEY).unwrap();
         let key = Hs256Key::new(key);
 
-        let err = Hs256.validate_integrity::<Empty>(&token, &key).unwrap_err();
+        let err = Hs256.validator::<Empty>(&key).validate(&token).unwrap_err();
         assert_matches!(
             err,
             ValidationError::InvalidSignatureLen { actual, expected: 32 }

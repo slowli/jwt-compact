@@ -122,7 +122,7 @@
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
 //! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! // Create a token.
-//! let header = Header::default().with_key_id("my-key");
+//! let header = Header::empty().with_key_id("my-key");
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7))
 //!     .set_not_before(Utc::now() - Duration::hours(1));
@@ -135,7 +135,7 @@
 //! // using the `Header.key_id` field.
 //! assert_eq!(token.header().key_id, Some("my-key".to_owned()));
 //! // Validate the token integrity.
-//! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
+//! let token: Token<CustomClaims> = Hs256.validator(&key).validate(&token)?;
 //! // Validate additional conditions.
 //! token.claims()
 //!     .validate_expiration(&time_options)?
@@ -170,15 +170,15 @@
 //! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7));
-//! let token = Hs256.token(Header::default(), &claims, &key)?;
+//! let token = Hs256.token(Header::empty(), &claims, &key)?;
 //! println!("token: {token}");
-//! let compact_token = Hs256.compact_token(Header::default(), &claims, &key)?;
+//! let compact_token = Hs256.compact_token(Header::empty(), &claims, &key)?;
 //! println!("compact token: {compact_token}");
 //! // The compact token should be ~40 chars shorter.
 //!
 //! // Parse the compact token.
 //! let token = UntrustedToken::new(&compact_token)?;
-//! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
+//! let token: Token<CustomClaims> = Hs256.validator(&key).validate(&token)?;
 //! token.claims().validate_expiration(&time_options)?;
 //! // Now, we can extract information from the token (e.g., its subject).
 //! assert_eq!(token.claims().custom.subject, [111; 32]);

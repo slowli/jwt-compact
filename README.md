@@ -44,7 +44,7 @@ let header = Header::empty().with_key_id("my-key");
 let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
     .set_duration_and_issuance(&time_options, Duration::hours(1))
     .set_not_before(Utc::now());
-let token_string = Hs256.token(header, &claims, &key)?;
+let token_string = Hs256.token(&header, &claims, &key)?;
 println!("token: {token_string}");
 
 // Parse the token.

@@ -84,7 +84,7 @@ fn ps256_checked_len_fails_on_undersized_key() {
     let small_private_key = RsaPrivateKey::new(&mut thread_rng(), 1_024).unwrap();
     let claims = create_claims();
     let token = Rsa::ps256()
-        .token(Header::empty(), &claims, &small_private_key)
+        .token(&Header::empty(), &claims, &small_private_key)
         .unwrap();
     let token = UntrustedToken::new(&token).unwrap();
 

@@ -72,7 +72,7 @@ pub trait Algorithm {
 /// # fn main() -> anyhow::Result<()> {
 /// let alg = Renamed::new(Hs256, "HS2");
 /// let key = Hs256Key::new(b"super_secret_key_donut_steel");
-/// let token_string = alg.token(Header::empty(), &Claims::empty(), &key)?;
+/// let token_string = alg.token(&Header::empty(), &Claims::empty(), &key)?;
 ///
 /// let token = UntrustedToken::new(&token_string)?;
 /// assert_eq!(token.algorithm(), "HS2");
@@ -130,7 +130,7 @@ pub trait AlgorithmExt: Algorithm {
     /// Creates a new token and serializes it to string.
     fn token<T>(
         &self,
-        header: Header<impl Serialize>,
+        header: &Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
@@ -142,7 +142,7 @@ pub trait AlgorithmExt: Algorithm {
     #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
     fn compact_token<T>(
         &self,
-        header: Header<impl Serialize>,
+        header: &Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
@@ -180,7 +180,7 @@ pub trait AlgorithmExt: Algorithm {
 impl<A: Algorithm> AlgorithmExt for A {
     fn token<T>(
         &self,
-        header: Header<impl Serialize>,
+        header: &Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>
@@ -211,7 +211,7 @@ impl<A: Algorithm> AlgorithmExt for A {
     #[cfg(feature = "serde_cbor")]
     fn compact_token<T>(
         &self,
-        header: Header<impl Serialize>,
+        header: &Header<impl Serialize>,
         claims: &Claims<T>,
         signing_key: &Self::SigningKey,
     ) -> Result<String, CreationError>

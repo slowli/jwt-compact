@@ -119,7 +119,7 @@ impl TokenChecker {
             .set_duration_and_issuance(&self.time_options, Duration::minutes(10));
 
         let token = alg
-            .token(Header::empty(), &claims, signing_key)
+            .token(&Header::empty(), &claims, signing_key)
             .map_err(|err| anyhow!(err))?;
         Ok(token)
     }

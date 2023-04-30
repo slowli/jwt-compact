@@ -285,8 +285,10 @@ fn hs512_algorithm() {
 fn compact_token_hs256() {
     let claims = shared::create_claims();
     let key = Hs256Key::generate(&mut thread_rng()).into_inner();
-    let long_token_str = Hs256.token(Header::empty(), &claims, &key).unwrap();
-    let token_str = Hs256.compact_token(Header::empty(), &claims, &key).unwrap();
+    let long_token_str = Hs256.token(&Header::empty(), &claims, &key).unwrap();
+    let token_str = Hs256
+        .compact_token(&Header::empty(), &claims, &key)
+        .unwrap();
     assert!(
         token_str.len() < long_token_str.len() - 40,
         "Full token length = {}, compact token length = {}",
@@ -464,7 +466,7 @@ fn test_algorithm_with_custom_header<A: Algorithm>(
     #[cfg(feature = "serde_cbor")]
     {
         let token_string = algorithm
-            .compact_token(header.clone(), &claims, signing_key)
+            .compact_token(&header, &claims, signing_key)
             .unwrap();
         let token = Untrusted::try_from(token_string.as_str()).unwrap();
         assert_eq!(token.header().other_fields.custom, "custom");
@@ -474,7 +476,7 @@ fn test_algorithm_with_custom_header<A: Algorithm>(
     }
 
     // Successful case.
-    let token_string = algorithm.token(header, &claims, signing_key).unwrap();
+    let token_string = algorithm.token(&header, &claims, signing_key).unwrap();
     let token = Untrusted::try_from(token_string.as_str()).unwrap();
     assert_eq!(token.header().other_fields.custom, "custom");
     let token = algorithm.validator(verifying_key).validate(&token).unwrap();
@@ -500,7 +502,7 @@ fn test_algorithm_with_custom_header<A: Algorithm>(
 
     // Check that token validation fails if the mandatory field is missing from the header.
     let bogus_token_string = algorithm
-        .token(Header::empty(), &claims, signing_key)
+        .token(&Header::empty(), &claims, signing_key)
         .unwrap();
     let err = Untrusted::try_from(bogus_token_string.as_str()).unwrap_err();
     let ParseError::MalformedHeader(err) = err else {

@@ -183,7 +183,7 @@ pub(crate) struct CompleteHeader<'a, T> {
     #[serde(rename = "cty", default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
     #[serde(flatten)]
-    pub inner: Header<T>,
+    pub inner: T,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -254,7 +254,7 @@ impl<T, H> Token<T, H> {
 /// # let claims = Claims::new(MyClaims {})
 /// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
-/// #   Hs256.token(Header::empty(), &claims, &key)?;
+/// #   Hs256.token(&Header::empty(), &claims, &key)?;
 /// let token = UntrustedToken::new(&token_string)?;
 /// let signed = Hs256.validator::<MyClaims>(&key)
 ///     .validate_for_signed_token(&token)?;
@@ -545,7 +545,7 @@ mod tests {
     #[test]
     fn header_with_x5t_field() {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
-        let header: CompleteHeader<Empty> = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.unwrap();
 
         assert_eq!(thumbprint[0], 0x94);
@@ -564,7 +564,7 @@ mod tests {
     #[test]
     fn header_with_x5t_sha256_field() {
         let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
-        let header: CompleteHeader<Empty> = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_thumbprint.unwrap();
 
         assert_eq!(thumbprint[0], 0x31);
@@ -629,7 +629,7 @@ mod tests {
     #[test]
     fn extracting_custom_header_fields() {
         let header = r#"{"alg":"HS256","custom":[1,"field"],"x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
-        let header: CompleteHeader<Obj> = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<Header<Obj>> = serde_json::from_str(header).unwrap();
         assert_eq!(header.algorithm, "HS256");
         assert!(header.inner.certificate_sha1_thumbprint.is_some());
         assert_eq!(header.inner.other_fields.len(), 1);

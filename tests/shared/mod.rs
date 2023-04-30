@@ -53,7 +53,7 @@ pub fn test_algorithm<A: Algorithm>(
     #[cfg(feature = "serde_cbor")]
     {
         let token_string = algorithm
-            .compact_token(Header::empty(), &claims, signing_key)
+            .compact_token(&Header::empty(), &claims, signing_key)
             .unwrap();
         let token = UntrustedToken::new(&token_string).unwrap();
         let token = algorithm.validator(verifying_key).validate(&token).unwrap();
@@ -62,7 +62,7 @@ pub fn test_algorithm<A: Algorithm>(
 
     // Successful case.
     let token_string = algorithm
-        .token(Header::empty(), &claims, signing_key)
+        .token(&Header::empty(), &claims, signing_key)
         .unwrap();
     let token = UntrustedToken::new(&token_string).unwrap();
     let token = algorithm.validator(verifying_key).validate(&token).unwrap();

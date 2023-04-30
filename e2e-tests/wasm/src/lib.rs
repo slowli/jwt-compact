@@ -94,7 +94,7 @@ where
     let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
 
     let token = alg
-        .token(Header::empty(), &claims, &secret_key)
+        .token(&Header::empty(), &claims, &secret_key)
         .map_err(to_js_error)?;
     Ok(token)
 }

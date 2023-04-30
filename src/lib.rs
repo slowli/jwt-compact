@@ -126,7 +126,7 @@
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7))
 //!     .set_not_before(Utc::now() - Duration::hours(1));
-//! let token_string = Hs256.token(header, &claims, &key)?;
+//! let token_string = Hs256.token(&header, &claims, &key)?;
 //! println!("token: {token_string}");
 //!
 //! // Parse the token.
@@ -170,9 +170,9 @@
 //! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7));
-//! let token = Hs256.token(Header::empty(), &claims, &key)?;
+//! let token = Hs256.token(&Header::empty(), &claims, &key)?;
 //! println!("token: {token}");
-//! let compact_token = Hs256.compact_token(Header::empty(), &claims, &key)?;
+//! let compact_token = Hs256.compact_token(&Header::empty(), &claims, &key)?;
 //! println!("compact token: {compact_token}");
 //! // The compact token should be ~40 chars shorter.
 //!

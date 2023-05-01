@@ -8,6 +8,20 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Changed
 
 - Update `secp256k1` and `rsa` dependencies.
+- Make JWT `Header` generic similar to `Claims`, so that it contain custom fields
+  as per [Section 4.2 of RFC 7515](https://www.rfc-editor.org/rfc/rfc7515#section-4.2).
+  Since `Default` is now implemented for all `Header<T: Default>`, one should use
+  a new `Header::empty()` method to create an empty header, and `Header::new()` to create
+  a header with custom fields.
+- Take `Header<_>` by reference in `AlgorithmExt` methods creating tokens (previously,
+  it was taken by value).
+
+### Deprecated
+
+- Deprecate `validate_integrity` and `validate_for_signed_token` methods in `AlgorithmExt`.
+  An extended version of this functionality, which can validate tokens with custom headers,
+  is now encapsulated in the new `Validator` type, which is returned
+  by the new `AlgorithmExt::validator()` method.
 
 ## 0.7.0 - 2023-03-14
 

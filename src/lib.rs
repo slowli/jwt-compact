@@ -185,6 +185,42 @@
 //! # Ok(())
 //! # } // end main()
 //! ```
+//!
+//! ## JWT with custom header fields
+//!
+//! ```
+//! # use chrono::Duration;
+//! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
+//! # use serde::{Deserialize, Serialize};
+//! #[derive(Debug, PartialEq, Serialize, Deserialize)]
+//! struct CustomClaims { subject: [u8; 32] }
+//!
+//! /// Additional fields in the token header.
+//! #[derive(Debug, Clone, Serialize, Deserialize)]
+//! struct HeaderExtensions { custom: bool }
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let time_options = TimeOptions::default();
+//! let key = Hs256Key::new(b"super_secret_key_donut_steel");
+//! let claims = Claims::new(CustomClaims { subject: [111; 32] })
+//!     .set_duration_and_issuance(&time_options, Duration::days(7));
+//! let header = Header::new(HeaderExtensions { custom: true })
+//!     .with_key_id("my-key");
+//! let token = Hs256.token(&header, &claims, &key)?;
+//! print!("token: {token}");
+//!
+//! // Parse the token.
+//! let token: UntrustedToken<HeaderExtensions> =
+//!     token.as_str().try_into()?;
+//! // Token header (incl. custom fields) can be accessed right away.
+//! assert_eq!(token.header().key_id.as_deref(), Some("my-key"));
+//! assert!(token.header().other_fields.custom);
+//! // Token can then be validated as usual.
+//! let token = Hs256.validator::<CustomClaims>(&key).validate(&token)?;
+//! assert_eq!(token.claims().custom.subject, [111; 32]);
+//! # Ok(())
+//! # } // end main()
+//! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // Documentation settings.

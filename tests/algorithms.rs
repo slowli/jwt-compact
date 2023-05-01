@@ -444,12 +444,11 @@ struct HeaderExtensions {
 }
 
 fn create_header() -> Header<HeaderExtensions> {
-    Header::empty()
-        .with_token_type("JWT")
-        .with_key_id("test_key")
-        .with_other_fields(HeaderExtensions {
-            custom: "custom".to_owned(),
-        })
+    Header::new(HeaderExtensions {
+        custom: "custom".to_owned(),
+    })
+    .with_token_type("JWT")
+    .with_key_id("test_key")
 }
 
 fn test_algorithm_with_custom_header<A: Algorithm>(

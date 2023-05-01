@@ -117,22 +117,22 @@ impl Header {
             other_fields: Empty {},
         }
     }
-
-    /// Provides custom fields for the header.
-    pub fn with_other_fields<T>(self, fields: T) -> Header<T> {
-        Header {
-            key_set_url: self.key_set_url,
-            key_id: self.key_id,
-            certificate_url: self.certificate_url,
-            certificate_sha1_thumbprint: self.certificate_sha1_thumbprint,
-            certificate_thumbprint: self.certificate_thumbprint,
-            token_type: self.token_type,
-            other_fields: fields,
-        }
-    }
 }
 
 impl<T> Header<T> {
+    /// Creates a header with the specified custom fields.
+    pub const fn new(fields: T) -> Header<T> {
+        Header {
+            key_set_url: None,
+            key_id: None,
+            certificate_url: None,
+            certificate_sha1_thumbprint: None,
+            certificate_thumbprint: None,
+            token_type: None,
+            other_fields: fields,
+        }
+    }
+
     /// Sets the `key_set_url` field for this header.
     #[must_use]
     pub fn with_key_set_url(mut self, key_set_url: impl Into<String>) -> Self {
@@ -194,6 +194,52 @@ enum ContentType {
 }
 
 /// Parsed, but unvalidated token.
+///
+/// The type param ([`Empty`] by default) corresponds to the [additional information] enclosed
+/// in the token [`Header`].
+///
+/// An `UntrustedToken` can be parsed from a string using the [`TryFrom`] implementation.
+/// This checks that a token is well-formed (has a header, claims and a signature),
+/// but does not validate the signature.
+/// As a shortcut, a token without additional header info can be created using [`Self::new()`].
+///
+/// [additional information]: Header#other_fields
+///
+/// # Examples
+///
+/// ```
+/// # use jwt_compact::UntrustedToken;
+/// let token_str = "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJp\
+///     c3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leG\
+///     FtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ.dBjftJeZ4CVP-mB92K27uhbUJ\
+///     U1p1r_wW1gFWFOEjXk";
+/// let token: UntrustedToken = token_str.try_into()?;
+/// // The same operation using a shortcut:
+/// let same_token = UntrustedToken::new(token_str)?;
+/// // Token header can be accessed to select the verifying key etc.
+/// let key_id: Option<&str> = token.header().key_id.as_deref();
+/// # Ok::<_, anyhow::Error>(())
+/// ```
+///
+/// ## Handling tokens with custom header fields
+///
+/// ```
+/// # use serde::Deserialize;
+/// # use jwt_compact::UntrustedToken;
+/// #[derive(Debug, Clone, Deserialize)]
+/// struct HeaderExtensions {
+///     custom: String,
+/// }
+///
+/// let token_str = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3Rfa2V5Iiwid\
+///     HlwIjoiSldUIiwiY3VzdG9tIjoiY3VzdG9tIn0.eyJzdWIiOiIxMjM0NTY\
+///     3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9._27Fb6nF\
+///     Tg-HSt3vO4ylaLGcU_ZV2VhMJR4HL7KaQik";
+/// let token: UntrustedToken<HeaderExtensions> = token_str.try_into()?;
+/// let extensions = &token.header().other_fields;
+/// println!("{}", extensions.custom);
+/// # Ok::<_, anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone)]
 pub struct UntrustedToken<'a, H = Empty> {
     pub(crate) signed_data: Cow<'a, [u8]>,

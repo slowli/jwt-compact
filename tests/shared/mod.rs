@@ -53,19 +53,19 @@ pub fn test_algorithm<A: Algorithm>(
     #[cfg(feature = "serde_cbor")]
     {
         let token_string = algorithm
-            .compact_token(Header::default(), &claims, signing_key)
+            .compact_token(&Header::empty(), &claims, signing_key)
             .unwrap();
-        let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
-        let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
+        let token = UntrustedToken::new(&token_string).unwrap();
+        let token = algorithm.validator(verifying_key).validate(&token).unwrap();
         assert_eq!(*token.claims(), claims);
     }
 
     // Successful case.
     let token_string = algorithm
-        .token(Header::default(), &claims, signing_key)
+        .token(&Header::empty(), &claims, signing_key)
         .unwrap();
-    let token = UntrustedToken::try_from(token_string.as_str()).unwrap();
-    let token = algorithm.validate_integrity(&token, verifying_key).unwrap();
+    let token = UntrustedToken::new(&token_string).unwrap();
+    let token = algorithm.validator(verifying_key).validate(&token).unwrap();
     assert_eq!(*token.claims(), claims);
 
     // Mutate signature bits.
@@ -88,9 +88,10 @@ pub fn test_algorithm<A: Algorithm>(
 
         let mut mangled_str = token_string.clone();
         mangled_str.replace_range(signature_start.., &mangled_signature);
-        let token = UntrustedToken::try_from(mangled_str.as_str()).unwrap();
+        let token = UntrustedToken::new(&mangled_str).unwrap();
         let err = algorithm
-            .validate_integrity::<Obj>(&token, verifying_key)
+            .validator::<Obj>(verifying_key)
+            .validate(&token)
             .unwrap_err();
         match err {
             ValidationError::InvalidSignature | ValidationError::MalformedSignature(_) => {}
@@ -105,9 +106,10 @@ pub fn test_algorithm<A: Algorithm>(
     assert_ne!(mangled_header, &token_string[..header_end]);
     let mut mangled_str = token_string.clone();
     mangled_str.replace_range(..header_end, &mangled_header);
-    let token = UntrustedToken::try_from(mangled_str.as_str()).unwrap();
+    let token = UntrustedToken::new(&mangled_str).unwrap();
     let err = algorithm
-        .validate_integrity::<Obj>(&token, verifying_key)
+        .validator::<Obj>(verifying_key)
+        .validate(&token)
         .unwrap_err();
     assert_matches!(err, ValidationError::InvalidSignature);
 
@@ -127,9 +129,10 @@ pub fn test_algorithm<A: Algorithm>(
     );
     let mut mangled_str = token_string.clone();
     mangled_str.replace_range((header_end + 1)..(signature_start - 1), &claims_string);
-    let token = UntrustedToken::try_from(mangled_str.as_str()).unwrap();
+    let token = UntrustedToken::new(&mangled_str).unwrap();
     let err = algorithm
-        .validate_integrity::<Obj>(&token, verifying_key)
+        .validator::<Obj>(verifying_key)
+        .validate(&token)
         .unwrap_err();
     assert_matches!(err, ValidationError::InvalidSignature);
 }

@@ -102,7 +102,8 @@ impl TokenChecker {
     ) -> anyhow::Result<SampleClaims> {
         let token = UntrustedToken::new(token).map_err(|err| anyhow!(err))?;
         let token = alg
-            .validate_integrity::<SampleClaims>(&token, verifying_key)
+            .validator::<SampleClaims>(verifying_key)
+            .validate(&token)
             .map_err(|err| anyhow!(err))?;
         let claims = self.extract_claims(&token)?;
         Ok(claims.to_owned())
@@ -118,7 +119,7 @@ impl TokenChecker {
             .set_duration_and_issuance(&self.time_options, Duration::minutes(10));
 
         let token = alg
-            .token(Header::default(), &claims, signing_key)
+            .token(&Header::empty(), &claims, signing_key)
             .map_err(|err| anyhow!(err))?;
         Ok(token)
     }

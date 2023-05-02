@@ -115,7 +115,7 @@ impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
 /// let claims = // ...
 /// #   Claims::empty();
 /// let token = StrongAlg(Hs256)
-///     .token(Header::default(), &claims, &strong_key)?;
+///     .token(&Header::empty(), &claims, &strong_key)?;
 /// # Ok(())
 /// # }
 /// ```

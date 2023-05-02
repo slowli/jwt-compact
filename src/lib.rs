@@ -122,11 +122,11 @@
 //! // Create a symmetric HMAC key, which will be used both to create and verify tokens.
 //! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! // Create a token.
-//! let header = Header::default().with_key_id("my-key");
+//! let header = Header::empty().with_key_id("my-key");
 //! let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7))
 //!     .set_not_before(Utc::now() - Duration::hours(1));
-//! let token_string = Hs256.token(header, &claims, &key)?;
+//! let token_string = Hs256.token(&header, &claims, &key)?;
 //! println!("token: {token_string}");
 //!
 //! // Parse the token.
@@ -135,7 +135,7 @@
 //! // using the `Header.key_id` field.
 //! assert_eq!(token.header().key_id, Some("my-key".to_owned()));
 //! // Validate the token integrity.
-//! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
+//! let token: Token<CustomClaims> = Hs256.validator(&key).validate(&token)?;
 //! // Validate additional conditions.
 //! token.claims()
 //!     .validate_expiration(&time_options)?
@@ -170,17 +170,53 @@
 //! let key = Hs256Key::new(b"super_secret_key_donut_steel");
 //! let claims = Claims::new(CustomClaims { subject: [111; 32] })
 //!     .set_duration_and_issuance(&time_options, Duration::days(7));
-//! let token = Hs256.token(Header::default(), &claims, &key)?;
+//! let token = Hs256.token(&Header::empty(), &claims, &key)?;
 //! println!("token: {token}");
-//! let compact_token = Hs256.compact_token(Header::default(), &claims, &key)?;
+//! let compact_token = Hs256.compact_token(&Header::empty(), &claims, &key)?;
 //! println!("compact token: {compact_token}");
 //! // The compact token should be ~40 chars shorter.
 //!
 //! // Parse the compact token.
 //! let token = UntrustedToken::new(&compact_token)?;
-//! let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
+//! let token: Token<CustomClaims> = Hs256.validator(&key).validate(&token)?;
 //! token.claims().validate_expiration(&time_options)?;
 //! // Now, we can extract information from the token (e.g., its subject).
+//! assert_eq!(token.claims().custom.subject, [111; 32]);
+//! # Ok(())
+//! # } // end main()
+//! ```
+//!
+//! ## JWT with custom header fields
+//!
+//! ```
+//! # use chrono::Duration;
+//! # use jwt_compact::{prelude::*, alg::{Hs256, Hs256Key}};
+//! # use serde::{Deserialize, Serialize};
+//! #[derive(Debug, PartialEq, Serialize, Deserialize)]
+//! struct CustomClaims { subject: [u8; 32] }
+//!
+//! /// Additional fields in the token header.
+//! #[derive(Debug, Clone, Serialize, Deserialize)]
+//! struct HeaderExtensions { custom: bool }
+//!
+//! # fn main() -> anyhow::Result<()> {
+//! let time_options = TimeOptions::default();
+//! let key = Hs256Key::new(b"super_secret_key_donut_steel");
+//! let claims = Claims::new(CustomClaims { subject: [111; 32] })
+//!     .set_duration_and_issuance(&time_options, Duration::days(7));
+//! let header = Header::new(HeaderExtensions { custom: true })
+//!     .with_key_id("my-key");
+//! let token = Hs256.token(&header, &claims, &key)?;
+//! print!("token: {token}");
+//!
+//! // Parse the token.
+//! let token: UntrustedToken<HeaderExtensions> =
+//!     token.as_str().try_into()?;
+//! // Token header (incl. custom fields) can be accessed right away.
+//! assert_eq!(token.header().key_id.as_deref(), Some("my-key"));
+//! assert!(token.header().other_fields.custom);
+//! // Token can then be validated as usual.
+//! let token = Hs256.validator::<CustomClaims>(&key).validate(&token)?;
 //! assert_eq!(token.claims().custom.subject, [111; 32]);
 //! # Ok(())
 //! # } // end main()
@@ -229,7 +265,7 @@ pub use crate::{
     claims::{Claims, Empty, TimeOptions},
     error::{Claim, CreationError, ParseError, ValidationError},
     token::{Header, SignedToken, Token, UntrustedToken},
-    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed},
+    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed, Validator},
 };
 
 #[cfg(doctest)]

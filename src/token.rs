@@ -8,7 +8,7 @@ use core::fmt;
 
 use crate::{
     alloc::{Cow, String, Vec},
-    Algorithm, Claims, ParseError, ValidationError,
+    Algorithm, Claims, Empty, ParseError, ValidationError,
 };
 
 /// Maximum "reasonable" signature size in bytes.
@@ -31,13 +31,13 @@ const SIGNATURE_SIZE: usize = 128;
 ///
 /// let my_key_cert = // DER-encoded key certificate
 /// #   b"Hello, world!";
-/// let header = Header::default()
+/// let header = Header::empty()
 ///     .with_key_id("my-key-id")
 ///     .with_certificate_thumbprint(Sha256::digest(my_key_cert).into());
 /// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct Header {
+pub struct Header<T = Empty> {
     /// URL of the JSON Web Key Set containing the key that has signed the token.
     /// This field is renamed to [`jku`] for serialization.
     ///
@@ -88,9 +88,51 @@ pub struct Header {
     /// [token type]: https://tools.ietf.org/html/rfc7519#section-5.1
     #[serde(rename = "typ", default, skip_serializing_if = "Option::is_none")]
     pub token_type: Option<String>,
+
+    /// Other fields encoded in the header. These fields may be used by agreement between
+    /// the producer and consumer of the token to pass additional information.
+    /// See Sections 4.2 and 4.3 of [RFC 7515](https://www.rfc-editor.org/rfc/rfc7515#section-4.2)
+    /// for details.
+    ///
+    /// For the token creation and validation to work properly, the fields type must [`Serialize`]
+    /// to a JSON object.
+    ///
+    /// Note that these fields do not include the signing algorithm (`alg`) and the token
+    /// content type (`cty`) since both these fields have predefined semantics and are used
+    /// internally by the crate logic.
+    #[serde(flatten)]
+    pub other_fields: T,
 }
 
 impl Header {
+    /// Creates an empty header.
+    pub const fn empty() -> Self {
+        Self {
+            key_set_url: None,
+            key_id: None,
+            certificate_url: None,
+            certificate_sha1_thumbprint: None,
+            certificate_thumbprint: None,
+            token_type: None,
+            other_fields: Empty {},
+        }
+    }
+}
+
+impl<T> Header<T> {
+    /// Creates a header with the specified custom fields.
+    pub const fn new(fields: T) -> Header<T> {
+        Header {
+            key_set_url: None,
+            key_id: None,
+            certificate_url: None,
+            certificate_sha1_thumbprint: None,
+            certificate_thumbprint: None,
+            token_type: None,
+            other_fields: fields,
+        }
+    }
+
     /// Sets the `key_set_url` field for this header.
     #[must_use]
     pub fn with_key_set_url(mut self, key_set_url: impl Into<String>) -> Self {
@@ -135,13 +177,13 @@ impl Header {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct CompleteHeader<'a> {
+pub(crate) struct CompleteHeader<'a, T> {
     #[serde(rename = "alg")]
     pub algorithm: Cow<'a, str>,
     #[serde(rename = "cty", default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
     #[serde(flatten)]
-    pub inner: Header,
+    pub inner: T,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -152,10 +194,56 @@ enum ContentType {
 }
 
 /// Parsed, but unvalidated token.
+///
+/// The type param ([`Empty`] by default) corresponds to the [additional information] enclosed
+/// in the token [`Header`].
+///
+/// An `UntrustedToken` can be parsed from a string using the [`TryFrom`] implementation.
+/// This checks that a token is well-formed (has a header, claims and a signature),
+/// but does not validate the signature.
+/// As a shortcut, a token without additional header info can be created using [`Self::new()`].
+///
+/// [additional information]: Header#other_fields
+///
+/// # Examples
+///
+/// ```
+/// # use jwt_compact::UntrustedToken;
+/// let token_str = "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJp\
+///     c3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leG\
+///     FtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ.dBjftJeZ4CVP-mB92K27uhbUJ\
+///     U1p1r_wW1gFWFOEjXk";
+/// let token: UntrustedToken = token_str.try_into()?;
+/// // The same operation using a shortcut:
+/// let same_token = UntrustedToken::new(token_str)?;
+/// // Token header can be accessed to select the verifying key etc.
+/// let key_id: Option<&str> = token.header().key_id.as_deref();
+/// # Ok::<_, anyhow::Error>(())
+/// ```
+///
+/// ## Handling tokens with custom header fields
+///
+/// ```
+/// # use serde::Deserialize;
+/// # use jwt_compact::UntrustedToken;
+/// #[derive(Debug, Clone, Deserialize)]
+/// struct HeaderExtensions {
+///     custom: String,
+/// }
+///
+/// let token_str = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3Rfa2V5Iiwid\
+///     HlwIjoiSldUIiwiY3VzdG9tIjoiY3VzdG9tIn0.eyJzdWIiOiIxMjM0NTY\
+///     3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9._27Fb6nF\
+///     Tg-HSt3vO4ylaLGcU_ZV2VhMJR4HL7KaQik";
+/// let token: UntrustedToken<HeaderExtensions> = token_str.try_into()?;
+/// let extensions = &token.header().other_fields;
+/// println!("{}", extensions.custom);
+/// # Ok::<_, anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone)]
-pub struct UntrustedToken<'a> {
+pub struct UntrustedToken<'a, H = Empty> {
     pub(crate) signed_data: Cow<'a, [u8]>,
-    header: Header,
+    header: Header<H>,
     algorithm: String,
     content_type: ContentType,
     serialized_claims: Vec<u8>,
@@ -167,18 +255,18 @@ pub struct UntrustedToken<'a> {
 /// Claims encoded in the token can be verified by invoking [`Claims`] methods
 /// via [`Self::claims()`].
 #[derive(Debug, Clone)]
-pub struct Token<T> {
-    header: Header,
+pub struct Token<T, H = Empty> {
+    header: Header<H>,
     claims: Claims<T>,
 }
 
-impl<T> Token<T> {
-    pub(crate) fn new(header: Header, claims: Claims<T>) -> Self {
+impl<T, H> Token<T, H> {
+    pub(crate) fn new(header: Header<H>, claims: Claims<T>) -> Self {
         Self { header, claims }
     }
 
     /// Gets token header.
-    pub fn header(&self) -> &Header {
+    pub fn header(&self) -> &Header<H> {
         &self.header
     }
 
@@ -188,7 +276,7 @@ impl<T> Token<T> {
     }
 
     /// Splits the `Token` into the respective `Header` and `Claims` while consuming it.
-    pub fn into_parts(self) -> (Header, Claims<T>) {
+    pub fn into_parts(self) -> (Header<H>, Claims<T>) {
         (self.header, self.claims)
     }
 }
@@ -212,9 +300,10 @@ impl<T> Token<T> {
 /// # let claims = Claims::new(MyClaims {})
 /// #     .set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
 /// let token_string: String = // token from an external source
-/// #   Hs256.token(Header::default(), &claims, &key)?;
+/// #   Hs256.token(&Header::empty(), &claims, &key)?;
 /// let token = UntrustedToken::new(&token_string)?;
-/// let signed = Hs256.validate_for_signed_token::<MyClaims>(&token, &key)?;
+/// let signed = Hs256.validator::<MyClaims>(&key)
+///     .validate_for_signed_token(&token)?;
 ///
 /// // `signature` is strongly typed.
 /// let signature: Hs256Signature = signed.signature;
@@ -226,18 +315,19 @@ impl<T> Token<T> {
 /// # } // end main()
 /// ```
 #[non_exhaustive]
-pub struct SignedToken<A: Algorithm + ?Sized, T> {
+pub struct SignedToken<A: Algorithm + ?Sized, T, H = Empty> {
     /// Token signature.
     pub signature: A::Signature,
     /// Verified token.
-    pub token: Token<T>,
+    pub token: Token<T, H>,
 }
 
-impl<A, T> fmt::Debug for SignedToken<A, T>
+impl<A, T, H> fmt::Debug for SignedToken<A, T, H>
 where
     A: Algorithm,
     A::Signature: fmt::Debug,
     T: fmt::Debug,
+    H: fmt::Debug,
 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
@@ -248,11 +338,12 @@ where
     }
 }
 
-impl<A, T> Clone for SignedToken<A, T>
+impl<A, T, H> Clone for SignedToken<A, T, H>
 where
     A: Algorithm,
     A::Signature: Clone,
     T: Clone,
+    H: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -262,7 +353,7 @@ where
     }
 }
 
-impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
+impl<'a, H: DeserializeOwned> TryFrom<&'a str> for UntrustedToken<'a, H> {
     type Error = ParseError;
 
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
@@ -281,7 +372,7 @@ impl<'a> TryFrom<&'a str> for UntrustedToken<'a> {
                         .len();
                 decoded_signature.truncate(signature_len);
 
-                let header: CompleteHeader<'_> =
+                let header: CompleteHeader<_> =
                     serde_json::from_slice(&header).map_err(ParseError::MalformedHeader)?;
                 let content_type = match header.content_type {
                     None => ContentType::Json,
@@ -311,9 +402,11 @@ impl<'a> UntrustedToken<'a> {
     pub fn new<S: AsRef<str> + ?Sized>(s: &'a S) -> Result<Self, ParseError> {
         Self::try_from(s.as_ref())
     }
+}
 
+impl<H> UntrustedToken<'_, H> {
     /// Converts this token to an owned form.
-    pub fn into_owned(self) -> UntrustedToken<'static> {
+    pub fn into_owned(self) -> UntrustedToken<'static, H> {
         UntrustedToken {
             signed_data: Cow::Owned(self.signed_data.into_owned()),
             header: self.header,
@@ -325,7 +418,7 @@ impl<'a> UntrustedToken<'a> {
     }
 
     /// Gets the token header.
-    pub fn header(&self) -> &Header {
+    pub fn header(&self) -> &Header<H> {
         &self.header
     }
 
@@ -425,15 +518,15 @@ mod base64url {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+    use base64ct::{Base64UrlUnpadded, Encoding};
+
     use super::*;
     use crate::{
         alg::{Hs256, Hs256Key},
         alloc::ToOwned,
         AlgorithmExt, Empty,
     };
-
-    use assert_matches::assert_matches;
-    use base64ct::{Base64UrlUnpadded, Encoding};
 
     type Obj = serde_json::Map<String, serde_json::Value>;
 
@@ -490,7 +583,7 @@ mod tests {
 
     #[test]
     fn header_fields_are_not_serialized_if_not_present() {
-        let header = Header::default();
+        let header = Header::empty();
         let json = serde_json::to_string(&header).unwrap();
         assert_eq!(json, "{}");
     }
@@ -498,7 +591,7 @@ mod tests {
     #[test]
     fn header_with_x5t_field() {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
-        let header: CompleteHeader<'_> = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.unwrap();
 
         assert_eq!(thumbprint[0], 0x94);
@@ -517,7 +610,7 @@ mod tests {
     #[test]
     fn header_with_x5t_sha256_field() {
         let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
-        let header: CompleteHeader<'_> = serde_json::from_str(header).unwrap();
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_thumbprint.unwrap();
 
         assert_eq!(thumbprint[0], 0x31);
@@ -580,6 +673,16 @@ mod tests {
     }
 
     #[test]
+    fn extracting_custom_header_fields() {
+        let header = r#"{"alg":"HS256","custom":[1,"field"],"x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
+        let header: CompleteHeader<Header<Obj>> = serde_json::from_str(header).unwrap();
+        assert_eq!(header.algorithm, "HS256");
+        assert!(header.inner.certificate_sha1_thumbprint.is_some());
+        assert_eq!(header.inner.other_fields.len(), 1);
+        assert!(header.inner.other_fields["custom"].is_array());
+    }
+
+    #[test]
     fn malformed_json_claims() {
         let malformed_claims = [
             // Missing closing brace
@@ -604,7 +707,7 @@ mod tests {
             mangled_str.replace_range(claims_start..claims_end, &encoded_claims);
             let token = UntrustedToken::new(&mangled_str).unwrap();
             assert_matches!(
-                Hs256.validate_integrity::<Obj>(&token, &key).unwrap_err(),
+                Hs256.validator::<Obj>(&key).validate(&token).unwrap_err(),
                 ValidationError::MalformedClaims(_),
                 "Failing claims: {claims}"
             );
@@ -616,7 +719,7 @@ mod tests {
         let key = Base64UrlUnpadded::decode_vec(HS256_KEY).unwrap();
         let key = Hs256Key::new(key);
 
-        let err = Hs256.validate_integrity::<Empty>(&token, &key).unwrap_err();
+        let err = Hs256.validator::<Empty>(&key).validate(&token).unwrap_err();
         assert_matches!(
             err,
             ValidationError::InvalidSignatureLen { actual, expected: 32 }

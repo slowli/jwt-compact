@@ -53,29 +53,29 @@ fn encoding_benches(criterion: &mut Criterion) {
 
     criterion.bench_function("encoding/full", |bencher| {
         bencher.iter(|| {
-            let header = Header::default().with_key_id(&key_id);
+            let header = Header::empty().with_key_id(&key_id);
             let claims = Claims::new(&claims)
                 .set_duration_and_issuance(&time_options, Duration::minutes(10))
                 .set_not_before(Utc::now() - Duration::minutes(10));
-            Hs256.token(header, &claims, &key).unwrap()
+            Hs256.token(&header, &claims, &key).unwrap()
         });
     });
 
     #[cfg(feature = "serde_cbor")]
     criterion.bench_function("encoding_cbor/full", |bencher| {
         bencher.iter(|| {
-            let header = Header::default().with_key_id(&key_id);
+            let header = Header::empty().with_key_id(&key_id);
             let claims = Claims::new(&claims)
                 .set_duration_and_issuance(&time_options, Duration::minutes(10))
                 .set_not_before(Utc::now() - Duration::minutes(10));
-            Hs256.compact_token(header, &claims, &key).unwrap()
+            Hs256.compact_token(&header, &claims, &key).unwrap()
         });
     });
 }
 
 fn decoding_benches(criterion: &mut Criterion) {
     let key = Hs256Key::new(b"super_secret_key_donut_steel");
-    let header = Header::default().with_key_id(Uuid::new_v4().to_string());
+    let header = Header::empty().with_key_id(Uuid::new_v4().to_string());
     let time_options = TimeOptions::default();
     let claims = Claims::new(CustomClaims::default())
         .set_duration_and_issuance(&time_options, Duration::minutes(10))
@@ -83,7 +83,7 @@ fn decoding_benches(criterion: &mut Criterion) {
 
     #[cfg(feature = "serde_cbor")]
     {
-        let compact_token = Hs256.compact_token(header.clone(), &claims, &key).unwrap();
+        let compact_token = Hs256.compact_token(&header, &claims, &key).unwrap();
         criterion.bench_function("decoding_cbor", |bencher| {
             bencher.iter(|| UntrustedToken::new(&compact_token).unwrap())
         });
@@ -91,13 +91,14 @@ fn decoding_benches(criterion: &mut Criterion) {
             bencher.iter(|| {
                 let token = UntrustedToken::new(&compact_token).unwrap();
                 Hs256
-                    .validate_integrity::<CustomClaims>(&token, &key)
+                    .validator::<CustomClaims>(&key)
+                    .validate(&token)
                     .unwrap()
             });
         });
     }
 
-    let token = Hs256.token(header, &claims, &key).unwrap();
+    let token = Hs256.token(&header, &claims, &key).unwrap();
     criterion.bench_function("decoding", |bencher| {
         bencher.iter(|| UntrustedToken::new(&token).unwrap())
     });
@@ -105,7 +106,8 @@ fn decoding_benches(criterion: &mut Criterion) {
         bencher.iter(|| {
             let token = UntrustedToken::new(&token).unwrap();
             Hs256
-                .validate_integrity::<CustomClaims>(&token, &key)
+                .validator::<CustomClaims>(&key)
+                .validate(&token)
                 .unwrap()
         });
     });

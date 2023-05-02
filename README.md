@@ -40,11 +40,11 @@ let time_options = TimeOptions::default();
 // Create a symmetric HMAC key, which will be used both to create and verify tokens.
 let key = Hs256Key::new(b"super_secret_key_donut_steel");
 // Create a token.
-let header = Header::default().with_key_id("my-key");
+let header = Header::empty().with_key_id("my-key");
 let claims = Claims::new(CustomClaims { subject: "alice".to_owned() })
     .set_duration_and_issuance(&time_options, Duration::hours(1))
     .set_not_before(Utc::now());
-let token_string = Hs256.token(header, &claims, &key)?;
+let token_string = Hs256.token(&header, &claims, &key)?;
 println!("token: {token_string}");
 
 // Parse the token.
@@ -53,7 +53,7 @@ let token = UntrustedToken::new(&token_string)?;
 // using the `Header.key_id` field.
 assert_eq!(token.header().key_id.as_deref(), Some("my-key"));
 // Validate the token integrity.
-let token: Token<CustomClaims> = Hs256.validate_integrity(&token, &key)?;
+let token: Token<CustomClaims> = Hs256.validator(&key).validate(&token)?;
 // Validate additional conditions.
 token.claims()
     .validate_expiration(&time_options)?

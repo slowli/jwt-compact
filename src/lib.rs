@@ -250,6 +250,7 @@ mod alloc {
     pub use std::{
         borrow::{Cow, ToOwned},
         boxed::Box,
+        format,
         string::{String, ToString},
         vec::Vec,
     };

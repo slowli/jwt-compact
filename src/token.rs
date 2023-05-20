@@ -10,7 +10,7 @@ use smallvec::{smallvec, SmallVec};
 use core::{cmp, fmt};
 
 use crate::{
-    alloc::{Cow, String, Vec},
+    alloc::{format, Cow, String, Vec},
     Algorithm, Claims, Empty, ParseError, ValidationError,
 };
 
@@ -591,7 +591,7 @@ mod tests {
     use super::*;
     use crate::{
         alg::{Hs256, Hs256Key},
-        alloc::ToOwned,
+        alloc::{ToOwned, ToString},
         AlgorithmExt, Empty,
     };
 

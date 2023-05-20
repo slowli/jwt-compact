@@ -17,9 +17,54 @@ use crate::{
 /// Maximum "reasonable" signature size in bytes.
 const SIGNATURE_SIZE: usize = 128;
 
+/// Representation of a X.509 certificate thumbprint (`x5t` and `x5t#S256` fields in
+/// the JWT [`Header`]).
+///
+/// As per the JWS spec in [RFC 7515], a certificate thumbprint (i.e., the SHA-1 / SHA-256
+/// digest of the certificate) must be base64url-encoded. Some JWS implementations however
+/// encode not the thumbprint itself, but rather its hex encoding, sometimes even
+/// with additional chars spliced within. To account for these implementations,
+/// a thumbprint is represented as an enum – either a properly encoded hash digest,
+/// or an opaque base64-encoded string.
+///
+/// [RFC 7515]: https://www.rfc-editor.org/rfc/rfc7515.html
+///
+/// # Examples
+///
+/// ```
+/// # use assert_matches::assert_matches;
+/// # use jwt_compact::{
+/// #     alg::{Hs256, Hs256Key}, AlgorithmExt, Claims, Header, Thumbprint, UntrustedToken,
+/// # };
+/// # fn main() -> anyhow::Result<()> {
+/// let key = Hs256Key::new(b"super_secret_key_donut_steel");
+///
+/// // Creates a token with a custom-encoded SHA-1 thumbprint.
+/// let thumbprint = "65:AF:69:09:B1:B0:75:8E:06:C6:E0:48:C4:60:02:B5:C6:95:E3:6B";
+/// let header = Header::empty()
+///     .with_key_id("my_key")
+///     .with_certificate_sha1_thumbprint(thumbprint);
+/// let token = Hs256.token(&header, &Claims::empty(), &key)?;
+/// println!("{token}");
+///
+/// // Deserialize the token and check that its header fields are readable.
+/// let token = UntrustedToken::new(&token)?;
+/// let deserialized_thumbprint =
+///     token.header().certificate_sha1_thumbprint.as_ref();
+/// assert_matches!(
+///     deserialized_thumbprint,
+///     Some(Thumbprint::String(s)) if s == thumbprint
+/// );
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Thumbprint<const N: usize> {
+    /// Byte representation of a SHA-1 or SHA-256 digest.
     Bytes([u8; N]),
+    /// Opaque string representation of the thumbprint. It is the responsibility
+    /// of an application to verify that this value is valid.
     String(String),
 }
 
@@ -32,6 +77,12 @@ impl<const N: usize> From<[u8; N]> for Thumbprint<N> {
 impl<const N: usize> From<String> for Thumbprint<N> {
     fn from(s: String) -> Self {
         Self::String(s)
+    }
+}
+
+impl<const N: usize> From<&str> for Thumbprint<N> {
+    fn from(s: &str) -> Self {
+        Self::String(s.into())
     }
 }
 
@@ -116,9 +167,10 @@ impl<'de, const N: usize> Deserialize<'de> for Thumbprint<N> {
 ///
 /// let my_key_cert = // DER-encoded key certificate
 /// #   b"Hello, world!";
+/// let thumbprint: [u8; 32] = Sha256::digest(my_key_cert).into();
 /// let header = Header::empty()
 ///     .with_key_id("my-key-id")
-///     .with_certificate_thumbprint(Sha256::digest(my_key_cert).into());
+///     .with_certificate_thumbprint(thumbprint);
 /// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -231,15 +283,21 @@ impl<T> Header<T> {
 
     /// Sets the `certificate_sha1_thumbprint` field for this header.
     #[must_use]
-    pub fn with_certificate_sha1_thumbprint(mut self, certificate_thumbprint: [u8; 20]) -> Self {
-        self.certificate_sha1_thumbprint = Some(Thumbprint::Bytes(certificate_thumbprint));
+    pub fn with_certificate_sha1_thumbprint(
+        mut self,
+        certificate_thumbprint: impl Into<Thumbprint<20>>,
+    ) -> Self {
+        self.certificate_sha1_thumbprint = Some(certificate_thumbprint.into());
         self
     }
 
     /// Sets the `certificate_thumbprint` field for this header.
     #[must_use]
-    pub fn with_certificate_thumbprint(mut self, certificate_thumbprint: [u8; 32]) -> Self {
-        self.certificate_thumbprint = Some(Thumbprint::Bytes(certificate_thumbprint));
+    pub fn with_certificate_thumbprint(
+        mut self,
+        certificate_thumbprint: impl Into<Thumbprint<32>>,
+    ) -> Self {
+        self.certificate_thumbprint = Some(certificate_thumbprint.into());
         self
     }
 

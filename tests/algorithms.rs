@@ -2,6 +2,7 @@
 
 use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
+use chrono::{TimeZone, Utc};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -9,7 +10,9 @@ use serde_json::json;
 mod shared;
 
 use crate::shared::{create_claims, test_algorithm, Obj, SampleClaims};
-use jwt_compact::{alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, ValidationError};
+use jwt_compact::{
+    alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, Thumbprint, ValidationError,
+};
 
 #[test]
 fn hs256_reference() {
@@ -263,6 +266,38 @@ fn ed25519_reference() {
 }
 
 #[test]
+fn wso2_reference() {
+    const TOKEN: &str = "eyJhbGciOiJSUzI1NiIsIng1dCI6Ik5tSm1PR1V4TXpabFlqTTJaRFJoTlRabFlU\
+        QTFZemRoWlRSaU9XRTBOV0kyTTJKbU9UYzFaQSJ9.eyJodHRwOlwvXC93c28yLm9\
+        yZ1wvZ2F0ZXdheVwvYXBwbGljYXRpb25uYW1lIjoiT2F1dGg3IiwiZXhwIjoxNDU\
+        yNTk0ODkyLCJzdWIiOiJhZG1pbkBjYXJib24uc3VwZXIiLCJodHRwOlwvXC93c28\
+        yLm9yZ1wvZ2F0ZXdheVwvc3Vic2NyaWJlciI6ImFkbWluQGNhcmJvbi5zdXBlciI\
+        sImlzcyI6Imh0dHA6XC9cL3dzbzIub3JnXC9nYXRld2F5IiwiaHR0cDpcL1wvd3N\
+        vMi5vcmdcL2dhdGV3YXlcL2VuZHVzZXIiOiJhZG1pbkBjYXJib24uc3VwZXIiLCJ\
+        odHRwOlwvXC93c28yLm9yZ1wvY2xhaW1zXC9yb2xlIjoiYWRtaW4sQXBwbGljYXR\
+        pb25cL2Rld3ZkZXcsQXBwbGljYXRpb25cL09hdXRoNyxJbnRlcm5hbFwvZXZlcnl\
+        vbmUiLCJodHRwOlwvXC93c28yLm9yZ1wvY2xhaW1zXC9lbWFpbGFkZHJlc3MiOiJ\
+        hZG1pbkB3c28yLmNvbSIsImlhdCI6MTQ1MjU5MzI1NCwiaHR0cDpcL1wvd3NvMi5\
+        vcmdcL2NsYWltc1wvb3JnYW5pemF0aW9uIjoiV1NPMiJ9.WRo2p92f-pt1vH9xfL\
+        gmrPWNKJfmST2QSPYcth7gXKz64LdP9zAMUtfAk9DVRdHTIQR3gX0jF4Ohb4UbNN\
+        4Oo97a35oTL1iRxIRTKUkh8L1dpt3H03Z0Ze7Q2giHGZikMIQv3gavHRYKjNMoU_\
+        1MuB90jiK7";
+
+    let token = UntrustedToken::new(TOKEN).unwrap();
+    assert_eq!(token.algorithm(), "RS256");
+    assert_matches!(
+        token.header().certificate_sha1_thumbprint.as_ref(),
+        Some(Thumbprint::String(s)) if s == "6bf8e136eb36d4a56ea05c7ae4b9a45b63bf975d"
+    );
+    let claims = token.deserialize_claims_unchecked::<Obj>().unwrap();
+
+    let exp = Utc.timestamp_opt(1452594892, 0).unwrap();
+    assert_eq!(claims.expiration, Some(exp));
+    assert_eq!(claims.custom["sub"], "admin@carbon.super");
+    assert_eq!(claims.custom["http://wso2.org/claims/organization"], "WSO2");
+}
+
+#[test]
 fn hs256_algorithm() {
     let key = Hs256Key::generate(&mut thread_rng()).into_inner();
     test_algorithm(&Hs256, &key, &key);
@@ -283,7 +318,7 @@ fn hs512_algorithm() {
 #[cfg(feature = "serde_cbor")]
 #[test]
 fn compact_token_hs256() {
-    let claims = shared::create_claims();
+    let claims = create_claims();
     let key = Hs256Key::generate(&mut thread_rng()).into_inner();
     let long_token_str = Hs256.token(&Header::empty(), &claims, &key).unwrap();
     let token_str = Hs256

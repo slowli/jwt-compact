@@ -1,18 +1,154 @@
 //! `Token` and closely related types.
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{
+    de::{DeserializeOwned, Error as DeError, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use smallvec::{smallvec, SmallVec};
 
-use core::fmt;
+use core::{cmp, fmt};
 
 use crate::{
-    alloc::{Cow, String, Vec},
+    alloc::{format, Cow, String, Vec},
     Algorithm, Claims, Empty, ParseError, ValidationError,
 };
 
 /// Maximum "reasonable" signature size in bytes.
 const SIGNATURE_SIZE: usize = 128;
+
+/// Representation of a X.509 certificate thumbprint (`x5t` and `x5t#S256` fields in
+/// the JWT [`Header`]).
+///
+/// As per the JWS spec in [RFC 7515], a certificate thumbprint (i.e., the SHA-1 / SHA-256
+/// digest of the certificate) must be base64url-encoded. Some JWS implementations however
+/// encode not the thumbprint itself, but rather its hex encoding, sometimes even
+/// with additional chars spliced within. To account for these implementations,
+/// a thumbprint is represented as an enum – either a properly encoded hash digest,
+/// or an opaque base64-encoded string.
+///
+/// [RFC 7515]: https://www.rfc-editor.org/rfc/rfc7515.html
+///
+/// # Examples
+///
+/// ```
+/// # use assert_matches::assert_matches;
+/// # use jwt_compact::{
+/// #     alg::{Hs256, Hs256Key}, AlgorithmExt, Claims, Header, Thumbprint, UntrustedToken,
+/// # };
+/// # fn main() -> anyhow::Result<()> {
+/// let key = Hs256Key::new(b"super_secret_key_donut_steel");
+///
+/// // Creates a token with a custom-encoded SHA-1 thumbprint.
+/// let thumbprint = "65:AF:69:09:B1:B0:75:8E:06:C6:E0:48:C4:60:02:B5:C6:95:E3:6B";
+/// let header = Header::empty()
+///     .with_key_id("my_key")
+///     .with_certificate_sha1_thumbprint(thumbprint);
+/// let token = Hs256.token(&header, &Claims::empty(), &key)?;
+/// println!("{token}");
+///
+/// // Deserialize the token and check that its header fields are readable.
+/// let token = UntrustedToken::new(&token)?;
+/// let deserialized_thumbprint =
+///     token.header().certificate_sha1_thumbprint.as_ref();
+/// assert_matches!(
+///     deserialized_thumbprint,
+///     Some(Thumbprint::String(s)) if s == thumbprint
+/// );
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Thumbprint<const N: usize> {
+    /// Byte representation of a SHA-1 or SHA-256 digest.
+    Bytes([u8; N]),
+    /// Opaque string representation of the thumbprint. It is the responsibility
+    /// of an application to verify that this value is valid.
+    String(String),
+}
+
+impl<const N: usize> From<[u8; N]> for Thumbprint<N> {
+    fn from(value: [u8; N]) -> Self {
+        Self::Bytes(value)
+    }
+}
+
+impl<const N: usize> From<String> for Thumbprint<N> {
+    fn from(s: String) -> Self {
+        Self::String(s)
+    }
+}
+
+impl<const N: usize> From<&str> for Thumbprint<N> {
+    fn from(s: &str) -> Self {
+        Self::String(s.into())
+    }
+}
+
+impl<const N: usize> Serialize for Thumbprint<N> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let input = match self {
+            Self::Bytes(bytes) => bytes.as_slice(),
+            Self::String(s) => s.as_bytes(),
+        };
+        serializer.serialize_str(&Base64UrlUnpadded::encode_string(input))
+    }
+}
+
+impl<'de, const N: usize> Deserialize<'de> for Thumbprint<N> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Base64Visitor<const L: usize>;
+
+        impl<const L: usize> Visitor<'_> for Base64Visitor<L> {
+            type Value = Thumbprint<L>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(formatter, "base64url-encoded thumbprint")
+            }
+
+            fn visit_str<E: DeError>(self, mut value: &str) -> Result<Self::Value, E> {
+                // Allow for padding. RFC 7515 defines base64url encoding as one without padding:
+                //
+                // > Base64url Encoding: Base64 encoding using the URL- and filename-safe
+                // > character set defined in Section 5 of RFC 4648 [RFC4648], with all trailing '='
+                // > characters omitted [...]
+                //
+                // ...but it's easy to trim the padding, so we support it anyway.
+                //
+                // See: https://www.rfc-editor.org/rfc/rfc7515.html#section-2
+                for _ in 0..2 {
+                    if value.as_bytes().last() == Some(&b'=') {
+                        value = &value[..value.len() - 1];
+                    }
+                }
+
+                let decoded_len = value.len() * 3 / 4;
+                match decoded_len.cmp(&L) {
+                    cmp::Ordering::Less => Err(E::custom(format!(
+                        "thumbprint must contain at least {L} bytes"
+                    ))),
+                    cmp::Ordering::Equal => {
+                        let mut bytes = [0_u8; L];
+                        let len = Base64UrlUnpadded::decode(value, &mut bytes)
+                            .map_err(E::custom)?
+                            .len();
+                        debug_assert_eq!(len, L);
+                        Ok(bytes.into())
+                    }
+                    cmp::Ordering::Greater => {
+                        let decoded = Base64UrlUnpadded::decode_vec(value).map_err(E::custom)?;
+                        let decoded = String::from_utf8(decoded)
+                            .map_err(|err| E::custom(err.utf8_error()))?;
+                        Ok(decoded.into())
+                    }
+                }
+            }
+        }
+
+        deserializer.deserialize_str(Base64Visitor)
+    }
+}
 
 /// JWT header.
 ///
@@ -31,9 +167,10 @@ const SIGNATURE_SIZE: usize = 128;
 ///
 /// let my_key_cert = // DER-encoded key certificate
 /// #   b"Hello, world!";
+/// let thumbprint: [u8; 32] = Sha256::digest(my_key_cert).into();
 /// let header = Header::empty()
 ///     .with_key_id("my-key-id")
-///     .with_certificate_thumbprint(Sha256::digest(my_key_cert).into());
+///     .with_certificate_thumbprint(thumbprint);
 /// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -63,25 +200,15 @@ pub struct Header<T = Empty> {
     /// This field is renamed to [`x5t`] for serialization.
     ///
     /// [`x5t`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.7
-    #[serde(
-        rename = "x5t",
-        with = "base64url",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub certificate_sha1_thumbprint: Option<[u8; 20]>,
+    #[serde(rename = "x5t", default, skip_serializing_if = "Option::is_none")]
+    pub certificate_sha1_thumbprint: Option<Thumbprint<20>>,
 
     /// SHA-256 thumbprint of the X.509 certificate for the signing key.
     /// This field is renamed to [`x5t#S256`] for serialization.
     ///
     /// [`x5t#S256`]: https://www.rfc-editor.org/rfc/rfc7515.html#section-4.1.8
-    #[serde(
-        rename = "x5t#S256",
-        with = "base64url",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub certificate_thumbprint: Option<[u8; 32]>,
+    #[serde(rename = "x5t#S256", default, skip_serializing_if = "Option::is_none")]
+    pub certificate_thumbprint: Option<Thumbprint<32>>,
 
     /// Application-specific [token type]. This field is renamed to `typ` for serialization.
     ///
@@ -156,15 +283,21 @@ impl<T> Header<T> {
 
     /// Sets the `certificate_sha1_thumbprint` field for this header.
     #[must_use]
-    pub fn with_certificate_sha1_thumbprint(mut self, certificate_thumbprint: [u8; 20]) -> Self {
-        self.certificate_sha1_thumbprint = Some(certificate_thumbprint);
+    pub fn with_certificate_sha1_thumbprint(
+        mut self,
+        certificate_thumbprint: impl Into<Thumbprint<20>>,
+    ) -> Self {
+        self.certificate_sha1_thumbprint = Some(certificate_thumbprint.into());
         self
     }
 
     /// Sets the `certificate_thumbprint` field for this header.
     #[must_use]
-    pub fn with_certificate_thumbprint(mut self, certificate_thumbprint: [u8; 32]) -> Self {
-        self.certificate_thumbprint = Some(certificate_thumbprint);
+    pub fn with_certificate_thumbprint(
+        mut self,
+        certificate_thumbprint: impl Into<Thumbprint<32>>,
+    ) -> Self {
+        self.certificate_thumbprint = Some(certificate_thumbprint.into());
         self
     }
 
@@ -450,72 +583,6 @@ impl<H> UntrustedToken<'_, H> {
     }
 }
 
-mod base64url {
-    use base64ct::{Base64UrlUnpadded, Encoding};
-    use serde::{
-        de::{Error as DeError, Visitor},
-        Deserializer, Serializer,
-    };
-
-    use core::{fmt, marker::PhantomData};
-
-    #[allow(clippy::option_if_let_else)] // false positive; `serializer` is moved into both clauses
-    pub fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        T: AsRef<[u8]>,
-        S: Serializer,
-    {
-        if let Some(value) = value {
-            let bytes = value.as_ref();
-            serializer.serialize_str(&Base64UrlUnpadded::encode_string(bytes))
-        } else {
-            serializer.serialize_none()
-        }
-    }
-
-    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
-    where
-        T: Default + AsMut<[u8]>,
-        D: Deserializer<'de>,
-    {
-        struct Base64Visitor<V>(PhantomData<V>);
-
-        impl<V> Visitor<'_> for Base64Visitor<V>
-        where
-            V: Default + AsMut<[u8]>,
-        {
-            type Value = V;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(formatter, "base64url-encoded digest")
-            }
-
-            fn visit_str<E: DeError>(self, value: &str) -> Result<Self::Value, E> {
-                let mut bytes = V::default();
-                let expected_len = bytes.as_mut().len();
-
-                let decoded_len = value.len() * 3 / 4;
-                if decoded_len != expected_len {
-                    return Err(E::invalid_length(decoded_len, &self));
-                }
-
-                let len = Base64UrlUnpadded::decode(value, bytes.as_mut())
-                    .map_err(E::custom)?
-                    .len();
-                if len != expected_len {
-                    return Err(E::invalid_length(len, &self));
-                }
-
-                Ok(bytes)
-            }
-        }
-
-        deserializer
-            .deserialize_str(Base64Visitor(PhantomData))
-            .map(Some)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -524,7 +591,7 @@ mod tests {
     use super::*;
     use crate::{
         alg::{Hs256, Hs256Key},
-        alloc::ToOwned,
+        alloc::{ToOwned, ToString},
         AlgorithmExt, Empty,
     };
 
@@ -592,7 +659,8 @@ mod tests {
     fn header_with_x5t_field() {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
-        let thumbprint = header.inner.certificate_sha1_thumbprint.unwrap();
+        let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
+        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
 
         assert_eq!(thumbprint[0], 0x94);
         assert_eq!(thumbprint[19], 0x99);
@@ -608,10 +676,77 @@ mod tests {
     }
 
     #[test]
+    fn header_with_padded_x5t_field() {
+        let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk=="}"#;
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
+        let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
+        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+
+        assert_eq!(thumbprint[0], 0x94);
+        assert_eq!(thumbprint[19], 0x99);
+    }
+
+    #[test]
+    fn header_with_hex_x5t_field() {
+        let header =
+            r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg"}"#;
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
+        let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
+        let Thumbprint::String(thumbprint) = thumbprint else { unreachable!() };
+
+        assert_eq!(thumbprint, "65AF6909B1B0758E06C6E048C46002B5C695E36B");
+
+        let json = serde_json::to_value(header).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "alg": "HS256",
+                "x5t": "NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg",
+            })
+        );
+    }
+
+    #[test]
+    fn header_with_padded_hex_x5t_field() {
+        let header =
+            r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg=="}"#;
+        let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
+        let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
+        let Thumbprint::String(thumbprint) = thumbprint else { unreachable!() };
+
+        assert_eq!(thumbprint, "65AF6909B1B0758E06C6E048C46002B5C695E36B");
+    }
+
+    #[test]
+    fn header_with_overly_short_x5t_field() {
+        let header = r#"{"alg":"HS256","x5t":"aGk="}"#;
+        let err = serde_json::from_str::<CompleteHeader<Header<Empty>>>(header).unwrap_err();
+        let err = err.to_string();
+        assert!(
+            err.contains("thumbprint must contain at least 20 bytes"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn header_with_non_base64_x5t_field() {
+        let headers = [
+            r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1p?"}"#,
+            r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk!RTM2Qg"}"#,
+        ];
+        for header in headers {
+            let err = serde_json::from_str::<CompleteHeader<Header<Empty>>>(header).unwrap_err();
+            let err = err.to_string();
+            assert!(err.contains("Base64"), "{err}");
+        }
+    }
+
+    #[test]
     fn header_with_x5t_sha256_field() {
         let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
-        let thumbprint = header.inner.certificate_thumbprint.unwrap();
+        let thumbprint = header.inner.certificate_thumbprint.as_ref().unwrap();
+        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
 
         assert_eq!(thumbprint[0], 0x31);
         assert_eq!(thumbprint[31], 0xd3);

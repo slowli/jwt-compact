@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Support padding in base64url encoding of certificate thumbprints in the JWT header.
+
 ### Changed
 
 - Update `secp256k1` and `rsa` dependencies.
@@ -15,6 +19,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
   a header with custom fields.
 - Take `Header<_>` by reference in `AlgorithmExt` methods creating tokens (previously,
   it was taken by value).
+- Support custom-encoded certificate thumbprints in JWT `Header` by replacing types
+  of the corresponding fields with a new `Thumbprint` enum. As an example,
+  this allows hex-encoded thumbprints (which are then additionally base64url-encoded)
+  produced by some software.
 
 ### Deprecated
 

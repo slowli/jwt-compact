@@ -103,6 +103,10 @@ See the crate docs for more examples of usage.
 
 Licensed under the [Apache-2.0 license](LICENSE).
 
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in `jwt-compact` by you, as defined in the Apache-2.0 license,
+shall be licensed as above, without any additional terms or conditions.
+
 [JWT]: https://jwt.io/
 [JWK]: https://tools.ietf.org/html/rfc7517.html
 [key thumbprints]: https://tools.ietf.org/html/rfc7638

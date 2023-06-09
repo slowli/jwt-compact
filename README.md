@@ -17,7 +17,7 @@ Add this to your `Crate.toml`:
 
 ```toml
 [dependencies]
-jwt-compact = "0.7.0"
+jwt-compact = "0.8.0-beta.1"
 ```
 
 ## Basic token lifecycle
@@ -102,6 +102,10 @@ See the crate docs for more examples of usage.
 ## License
 
 Licensed under the [Apache-2.0 license](LICENSE).
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in `jwt-compact` by you, as defined in the Apache-2.0 license,
+shall be licensed as above, without any additional terms or conditions.
 
 [JWT]: https://jwt.io/
 [JWK]: https://tools.ietf.org/html/rfc7517.html

@@ -5,6 +5,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## 0.8.0-beta.1 - 2023-06-09
+
 ### Added
 
 - Support padding in base64url encoding of certificate thumbprints in the JWT header.

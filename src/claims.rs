@@ -247,6 +247,15 @@ mod serde_timestamp {
                 .single()
                 .ok_or_else(|| E::custom("UTC timestamp overflow"))
         }
+
+        fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+        where
+            E: DeError,
+        {
+            Utc.timestamp_opt(value as _, 0)
+                .single()
+                .ok_or_else(|| E::custom("UTC timestamp overflow"))
+        }
     }
 
     pub fn serialize<S: Serializer>(
@@ -268,6 +277,7 @@ mod serde_timestamp {
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
+    use chrono::TimeZone;
 
     #[test]
     fn empty_claims_can_be_serialized() {
@@ -352,5 +362,14 @@ mod tests {
                 .unwrap_err(),
             ValidationError::NotMature
         );
+    }
+    #[test]
+    fn float_timestamp() {
+        let claims = "{\"exp\": 1.691203462e+9}";
+        let claims: Result<Claims<Empty>, _> = serde_json::from_str(claims);
+        assert!(claims.is_ok());
+        let timestamp = Utc.timestamp_opt(1_691_203_462, 0).single();
+        assert!(timestamp.is_some());
+        assert_eq!(claims.unwrap().expiration, timestamp);
     }
 }

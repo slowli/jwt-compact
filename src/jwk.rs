@@ -649,18 +649,19 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     fn jwk_with_cbor() {
         let key = JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),
             x: Cow::Borrowed(b"public"),
             secret: Some(SecretBytes::borrowed(b"private")),
         };
-        let bytes = serde_cbor::to_vec(&key).unwrap();
+        let mut bytes = vec![];
+        ciborium::into_writer(&key, &mut bytes).unwrap();
         assert!(bytes.windows(6).any(|window| window == b"public"));
         assert!(bytes.windows(7).any(|window| window == b"private"));
 
-        let restored: JsonWebKey<'_> = serde_cbor::from_slice(&bytes).unwrap();
+        let restored: JsonWebKey<'_> = ciborium::from_reader(&bytes[..]).unwrap();
         assert_eq!(restored, key);
     }
 }

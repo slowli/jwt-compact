@@ -9,6 +9,8 @@ use smallvec::{smallvec, SmallVec};
 
 use core::{cmp, fmt};
 
+#[cfg(feature = "ciborium")]
+use crate::error::CborDeError;
 use crate::{
     alloc::{format, Cow, String, Vec},
     Algorithm, Claims, Empty, ParseError, ValidationError,
@@ -322,7 +324,7 @@ pub(crate) struct CompleteHeader<'a, T> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ContentType {
     Json,
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     Cbor,
 }
 
@@ -509,9 +511,9 @@ impl<'a, H: DeserializeOwned> TryFrom<&'a str> for UntrustedToken<'a, H> {
                     serde_json::from_slice(&header).map_err(ParseError::MalformedHeader)?;
                 let content_type = match header.content_type {
                     None => ContentType::Json,
-                    Some(ref s) if s.eq_ignore_ascii_case("json") => ContentType::Json,
-                    #[cfg(feature = "serde_cbor")]
-                    Some(ref s) if s.eq_ignore_ascii_case("cbor") => ContentType::Cbor,
+                    Some(s) if s.eq_ignore_ascii_case("json") => ContentType::Json,
+                    #[cfg(feature = "ciborium")]
+                    Some(s) if s.eq_ignore_ascii_case("cbor") => ContentType::Cbor,
                     Some(s) => return Err(ParseError::UnsupportedContentType(s)),
                 };
                 let signed_data = s.rsplit_once('.').unwrap().0.as_bytes();
@@ -576,9 +578,21 @@ impl<H> UntrustedToken<'_, H> {
             ContentType::Json => serde_json::from_slice(&self.serialized_claims)
                 .map_err(ValidationError::MalformedClaims),
 
-            #[cfg(feature = "serde_cbor")]
-            ContentType::Cbor => serde_cbor::from_slice(&self.serialized_claims)
-                .map_err(ValidationError::MalformedCborClaims),
+            #[cfg(feature = "ciborium")]
+            ContentType::Cbor => {
+                ciborium::from_reader(&self.serialized_claims[..]).map_err(|err| {
+                    ValidationError::MalformedCborClaims(match err {
+                        CborDeError::Io(err) => CborDeError::Io(anyhow::anyhow!(err)),
+                        // ^ In order to be able to use `anyhow!` in both std and no-std envs,
+                        // we inline the error transform directly here.
+                        CborDeError::Syntax(offset) => CborDeError::Syntax(offset),
+                        CborDeError::Semantic(offset, description) => {
+                            CborDeError::Semantic(offset, description)
+                        }
+                        CborDeError::RecursionLimitExceeded => CborDeError::RecursionLimitExceeded,
+                    })
+                })
+            }
         }
     }
 }
@@ -813,7 +827,7 @@ mod tests {
         mangled_str.replace_range(..mangled_str.find('.').unwrap(), &mangled_header);
         assert_matches!(
             UntrustedToken::new(&mangled_str).unwrap_err(),
-            ParseError::UnsupportedContentType(ref s) if s == "txt"
+            ParseError::UnsupportedContentType(s) if s == "txt"
         );
     }
 

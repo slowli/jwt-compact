@@ -5,6 +5,8 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use core::{marker::PhantomData, num::NonZeroUsize};
 
+#[cfg(feature = "ciborium")]
+use crate::error::CborSerError;
 use crate::{
     alloc::{Cow, String, ToOwned, Vec},
     token::CompleteHeader,
@@ -138,8 +140,8 @@ pub trait AlgorithmExt: Algorithm {
         T: Serialize;
 
     /// Creates a new token with CBOR-encoded claims and serializes it to string.
-    #[cfg(feature = "serde_cbor")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
+    #[cfg(feature = "ciborium")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "ciborium")))]
     fn compact_token<T>(
         &self,
         header: &Header<impl Serialize>,
@@ -208,7 +210,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         Ok(unsafe { String::from_utf8_unchecked(buffer) })
     }
 
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     fn compact_token<T>(
         &self,
         header: &Header<impl Serialize>,
@@ -227,9 +229,15 @@ impl<A: Algorithm> AlgorithmExt for A {
         let mut buffer = Vec::new();
         encode_base64_buf(&header, &mut buffer);
 
-        let claims = serde_cbor::to_vec(claims).map_err(CreationError::CborClaims)?;
+        let mut serialized_claims = vec![];
+        ciborium::into_writer(claims, &mut serialized_claims).map_err(|err| {
+            CreationError::CborClaims(match err {
+                CborSerError::Value(message) => CborSerError::Value(message),
+                CborSerError::Io(_) => unreachable!(), // writing to a `Vec` always succeeds
+            })
+        })?;
         buffer.push(b'.');
-        encode_base64_buf(&claims, &mut buffer);
+        encode_base64_buf(&serialized_claims, &mut buffer);
 
         let signature = self.sign(signing_key, &buffer);
         buffer.push(b'.');

@@ -13,9 +13,6 @@ unsound = "deny"
 yanked = "deny"
 notice = "warn"
 severity-threshold = "Medium"
-ignore = [
-  "RUSTSEC-2021-0127", # FIXME: `serde_cbor` crate is unmaintained
-]
 
 [licenses]
 unlicensed = "deny"

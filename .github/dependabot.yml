@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: daily
       time: "03:00"
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+      minor-changes:
+        update-types:
+          - "minor"
+          - "patch"
     open-pull-requests-limit: 10
     assignees:
       - slowli
@@ -14,6 +21,11 @@ updates:
     schedule:
       interval: daily
       time: "03:00"
+    groups:
+      minor-changes:
+        update-types:
+          - "minor"
+          - "patch"
     open-pull-requests-limit: 10
     assignees:
       - slowli

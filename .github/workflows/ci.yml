@@ -58,6 +58,11 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deny
+          version: "^0.14"
 
       - name: Cache cargo build
         uses: actions/cache@v3
@@ -80,6 +85,9 @@ jobs:
         run: cargo clippy -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
       - name: Clippy WASM crate
         run: cargo clippy -p jwt-compact-wasm --all-targets -- -D warnings
+
+      - name: Check dependencies
+        run: cargo deny check
 
       - name: Run tests
         run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem

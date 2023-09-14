@@ -23,14 +23,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.msrv }}
-          override: true
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
 
       - name: Cache cargo build
         uses: actions/cache@v3
@@ -40,25 +35,13 @@ jobs:
           restore-keys: ${{ runner.os }}-msrv-cargo
 
       - name: Build with ES256, ES256K & RSA
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --lib --features exonum-crypto,p256,es256k,rsa
+        run: cargo build -p jwt-compact --lib --features exonum-crypto,p256,es256k,rsa
       - name: Build with ed25519-compact
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib
+        run: cargo build -p jwt-compact --no-default-features --features std,ed25519-compact --lib
       - name: Build with dalek crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
+        run: cargo build -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
       - name: Build with k256 crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features k256 --lib
+        run: cargo build -p jwt-compact --no-default-features --features k256 --lib
 
   build:
     runs-on: ubuntu-latest
@@ -71,15 +54,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          override: true
           components: rustfmt, clippy
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
 
       - name: Cache cargo build
         uses: actions/cache@v3
@@ -89,69 +67,28 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo
 
       - name: Format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
       - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: p256, es256k, rsa"
-          # The corresponding deps don't include `serde/std`; thus, we test that it's valid
-          # to enable `std` and `serde_cbor` without enabling `serde/std`.
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
       - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: exonum-crypto"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
       - name: Clippy dalek crypto
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: ed25519-dalek"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: ed25519-compact"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
       - name: Clippy k256
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: k256"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
       - name: Clippy WASM crate
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: WASM"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact-wasm --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact-wasm --all-targets -- -D warnings
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
+        run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
       - name: Test dalek crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
+        run: cargo test -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
       - name: Test ed25519-compact
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
+        run: cargo test -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
       - name: Test k256
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,k256 --lib --tests
+        run: cargo test -p jwt-compact --no-default-features --features std,k256 --lib --tests
 
   build-wasm:
     needs:
@@ -163,10 +100,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          override: true
       - name: Install Node.js
         uses: actions/setup-node@v1
         with:
@@ -175,10 +111,6 @@ jobs:
         uses: jetli/wasm-pack-action@v0.4.0
         with:
           version: 'latest'
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
 
       - name: Cache cargo build
         uses: actions/cache@v3
@@ -213,17 +145,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends qemu-system-arm
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.nightly }}
-          override: true
           components: rustfmt, clippy
-          target: thumbv7m-none-eabi
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-          args: --manifest-path=e2e-tests/no-std/Cargo.toml
+          targets: thumbv7m-none-eabi
 
       - name: Cache cargo build
         uses: actions/cache@v3
@@ -263,15 +189,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.nightly }}
-          profile: minimal
-          override: true
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
 
       - name: Cache cargo build
         uses: actions/cache@v3

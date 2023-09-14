@@ -135,7 +135,7 @@ impl TryFrom<&JsonWebKey<'_>> for SigningKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
-        let JsonWebKey::EllipticCurve { secret, .. } = jwk  else {
+        let JsonWebKey::EllipticCurve { secret, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
         };
         let sk_bytes = secret.as_deref();

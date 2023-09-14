@@ -282,11 +282,7 @@ pub struct Validator<'a, A: Algorithm + ?Sized, T> {
 
 impl<A: Algorithm + ?Sized, T> Clone for Validator<'_, A, T> {
     fn clone(&self) -> Self {
-        Self {
-            algorithm: self.algorithm,
-            verifying_key: self.verifying_key,
-            _claims: PhantomData,
-        }
+        *self
     }
 }
 

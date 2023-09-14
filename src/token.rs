@@ -660,7 +660,9 @@ mod tests {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::Bytes(thumbprint) = thumbprint else {
+            unreachable!();
+        };
 
         assert_eq!(thumbprint[0], 0x94);
         assert_eq!(thumbprint[19], 0x99);
@@ -680,7 +682,9 @@ mod tests {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk=="}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::Bytes(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint[0], 0x94);
         assert_eq!(thumbprint[19], 0x99);
@@ -692,7 +696,9 @@ mod tests {
             r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::String(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::String(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint, "65AF6909B1B0758E06C6E048C46002B5C695E36B");
 
@@ -712,7 +718,9 @@ mod tests {
             r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg=="}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::String(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::String(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint, "65AF6909B1B0758E06C6E048C46002B5C695E36B");
     }
@@ -746,7 +754,9 @@ mod tests {
         let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_thumbprint.as_ref().unwrap();
-        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::Bytes(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint[0], 0x31);
         assert_eq!(thumbprint[31], 0xd3);

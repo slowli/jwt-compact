@@ -8,7 +8,7 @@ on:
 
 env:
   msrv: "1.65"
-  nightly: nightly-2023-04-29
+  nightly: nightly-2023-09-09
 
 jobs:
   # Checks minimum supported Rust version.
@@ -23,14 +23,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.msrv }}
-          override: true
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
 
       - name: Cache cargo build
         uses: actions/cache@v3
@@ -40,216 +35,23 @@ jobs:
           restore-keys: ${{ runner.os }}-msrv-cargo
 
       - name: Build with ES256, ES256K & RSA
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --lib --features exonum-crypto,p256,es256k,rsa
+        run: cargo build -p jwt-compact --lib --features exonum-crypto,p256,es256k,rsa
       - name: Build with ed25519-compact
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib
+        run: cargo build -p jwt-compact --no-default-features --features std,ed25519-compact --lib
       - name: Build with dalek crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
+        run: cargo build -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
       - name: Build with k256 crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: -p jwt-compact --no-default-features --features k256 --lib
+        run: cargo build -p jwt-compact --no-default-features --features k256 --lib
 
   build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-
-      - name: Cache cargo build
-        uses: actions/cache@v3
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo
-
-      - name: Format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-      - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: p256, es256k, rsa"
-          # The corresponding deps don't include `serde/std`; thus, we test that it's valid
-          # to enable `std` and `serde_cbor` without enabling `serde/std`.
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
-      - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: exonum-crypto"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
-      - name: Clippy dalek crypto
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: ed25519-dalek"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
-      - name: Clippy ed25519-compact
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: ed25519-compact"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
-      - name: Clippy k256
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: k256"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
-      - name: Clippy WASM crate
-        uses: actions-rs/clippy-check@v1
-        with:
-          name: "Clippy: WASM"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jwt-compact-wasm --all-targets -- -D warnings
-
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
-      - name: Test dalek crypto
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
-      - name: Test ed25519-compact
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
-      - name: Test k256
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jwt-compact --no-default-features --features std,k256 --lib --tests
-
-  build-wasm:
-    needs:
-      - build
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Install Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: '18'
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-
-      - name: Cache cargo build
-        uses: actions/cache@v3
-        with:
-          path: target
-          key: ${{ runner.os }}-wasm-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-wasm-cargo
-
-      - name: Compile WASM
-        # The profile config must be placed in the root workspace manifest,
-        # where we don't want to commit it.
-        run: |
-          echo $'[profile.release]\nlto = true\nopt-level = "s"' >> Cargo.toml;
-          (cd e2e-tests/wasm; npm run build && npm ci)
-      - name: Run WASM
-        run: (cd e2e-tests/wasm; npm test)
-
-  build-nostd:
-    needs:
-      - build
-
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: e2e-tests/no-std
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install qemu
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-suggests --no-install-recommends qemu-system-arm
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.nightly }}
-          override: true
-          components: rustfmt, clippy
-          target: thumbv7m-none-eabi
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-          args: --manifest-path=e2e-tests/no-std/Cargo.toml
-
-      - name: Cache cargo build
-        uses: actions/cache@v3
-        with:
-          path: e2e-tests/no-std/target
-          key: ${{ runner.os }}-nostd-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-nostd-cargo
-
-      # Since it's impossible to include the `nostd` crate into the common workspace,
-      # we need to perform fmt / clippy checks for it separately.
-      - name: Format
-        run: cargo fmt -- --check
-      - name: Clippy
-        run: cargo clippy --bin jwt-compact-nostd --all-features -- -D warnings
-
-      - name: Run binary (ed25519)
-        run: cargo run --release --features ed25519
-      - name: Run binary (rsa)
-        run: cargo run --release --features rsa
+    uses: ./.github/workflows/build-reusable.yml
+    with:
+      nightly_rust_version: nightly-2023-09-09
 
   document:
     needs:
       - build
       - build-msrv
-      - build-wasm
-      - build-nostd
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -263,15 +65,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.nightly }}
-          profile: minimal
-          override: true
-      - name: Generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
 
       - name: Cache cargo build
         uses: actions/cache@v3

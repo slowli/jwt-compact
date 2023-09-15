@@ -1,0 +1,150 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      rust_version:
+        type: string
+        description: Rust version to use in the build
+        required: false
+        default: stable
+      nightly_rust_version:
+        type: string
+        description: Nightly Rust version to use in the build
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-suggests --no-install-recommends libsodium-dev
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust_version }}
+          components: rustfmt, clippy
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deny
+          version: "^0.14"
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo
+
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
+      - name: Clippy
+        run: cargo clippy -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
+      - name: Clippy dalek crypto
+        run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
+      - name: Clippy ed25519-compact
+        run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
+      - name: Clippy k256
+        run: cargo clippy -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
+      - name: Clippy WASM crate
+        run: cargo clippy -p jwt-compact-wasm --all-targets -- -D warnings
+
+      - name: Check dependencies
+        run: cargo deny check
+
+      - name: Run tests
+        run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
+      - name: Test dalek crypto
+        run: cargo test -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
+      - name: Test ed25519-compact
+        run: cargo test -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
+      - name: Test k256
+        run: cargo test -p jwt-compact --no-default-features --features std,k256 --lib --tests
+
+  build-wasm:
+    needs:
+      - build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Install Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '18'
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-wasm-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-wasm-cargo
+
+      - name: Compile WASM
+        # The profile config must be placed in the root workspace manifest,
+        # where we don't want to commit it.
+        run: |
+          echo $'[profile.release]\nlto = true\nopt-level = "s"' >> Cargo.toml;
+          (cd e2e-tests/wasm; npm run build && npm ci)
+      - name: Run WASM
+        run: (cd e2e-tests/wasm; npm test)
+
+  build-nostd:
+    needs:
+      - build
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e-tests/no-std
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install qemu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-suggests --no-install-recommends qemu-system-arm
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.nightly_rust_version }}
+          components: rustfmt, clippy
+          targets: thumbv7m-none-eabi
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: e2e-tests/no-std/target
+          key: ${{ runner.os }}-nostd-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-nostd-cargo
+
+      # Since it's impossible to include the `nostd` crate into the common workspace,
+      # we need to perform fmt / clippy checks for it separately.
+      - name: Format
+        run: cargo fmt -- --check
+      - name: Clippy
+        run: cargo clippy --bin jwt-compact-nostd --all-features -- -D warnings
+
+      - name: Run binary (ed25519)
+        run: cargo run --release --features ed25519
+      - name: Run binary (rsa)
+        run: cargo run --release --features rsa

@@ -1,0 +1,39 @@
+# `cargo-deny` configuration.
+
+feature-depth = 1
+# Check all features except for `exonum-crypto`, which is morally outdated.
+# Since the crate isn't actually built for the check, we don't care about conflicting features.
+features = ["ed25519-dalek", "ed25519-compact", "rsa", "p256", "k256", "es256k"]
+
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+vulnerability = "deny"
+unmaintained = "deny"
+unsound = "deny"
+yanked = "deny"
+notice = "warn"
+severity-threshold = "Medium"
+
+[licenses]
+unlicensed = "deny"
+allow = [
+  # Permissive open-source licenses
+  "MIT",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "Unicode-DFS-2016",
+  # Creative Commons licenses (FSF-approved, not OSI-approved); used by `secp256k1-sys`
+  "CC0-1.0",
+]
+copyleft = "deny"
+allow-osi-fsf-free = "neither"
+default = "deny"
+confidence-threshold = 0.8
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

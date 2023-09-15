@@ -15,7 +15,7 @@
 //! # Additional features
 //!
 //! - The crate supports more compact [CBOR] encoding of the claims. This feature is enabled
-//!   via the [`serde_cbor` feature](#cbor-support).
+//!   via the [`ciborium` feature](#cbor-support).
 //! - The crate supports `EdDSA` algorithm with the Ed25519 elliptic curve, and `ES256K` algorithm
 //!   with the secp256k1 elliptic curve.
 //! - Supports basic [JSON Web Key](https://tools.ietf.org/html/rfc7517.html) functionality,
@@ -51,13 +51,13 @@
 //!
 //! ## CBOR support
 //!
-//! If the `serde_cbor` crate feature is enabled (and it is enabled by default), token claims can
+//! If the `ciborium` crate feature is enabled (and it is enabled by default), token claims can
 //! be encoded using [CBOR] with the [`AlgorithmExt::compact_token()`] method.
 //! The compactly encoded JWTs have the [`cty` field] (content type) in their header
 //! set to `"CBOR"`. Tokens with such encoding can be verified in the same way as ordinary tokens;
 //! see [examples below](#examples).
 //!
-//! If the `serde_cbor` feature is disabled, `AlgorithmExt::compact_token()` is not available.
+//! If the `ciborium` feature is disabled, `AlgorithmExt::compact_token()` is not available.
 //! Verifying CBOR-encoded tokens in this case is not supported either;
 //! a [`ParseError::UnsupportedContentType`] will be returned when creating an [`UntrustedToken`]
 //! from the token string.

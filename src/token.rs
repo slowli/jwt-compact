@@ -9,6 +9,8 @@ use smallvec::{smallvec, SmallVec};
 
 use core::{cmp, fmt};
 
+#[cfg(feature = "ciborium")]
+use crate::error::CborDeError;
 use crate::{
     alloc::{format, Cow, String, Vec},
     Algorithm, Claims, Empty, ParseError, ValidationError,
@@ -322,7 +324,7 @@ pub(crate) struct CompleteHeader<'a, T> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ContentType {
     Json,
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     Cbor,
 }
 
@@ -509,9 +511,9 @@ impl<'a, H: DeserializeOwned> TryFrom<&'a str> for UntrustedToken<'a, H> {
                     serde_json::from_slice(&header).map_err(ParseError::MalformedHeader)?;
                 let content_type = match header.content_type {
                     None => ContentType::Json,
-                    Some(ref s) if s.eq_ignore_ascii_case("json") => ContentType::Json,
-                    #[cfg(feature = "serde_cbor")]
-                    Some(ref s) if s.eq_ignore_ascii_case("cbor") => ContentType::Cbor,
+                    Some(s) if s.eq_ignore_ascii_case("json") => ContentType::Json,
+                    #[cfg(feature = "ciborium")]
+                    Some(s) if s.eq_ignore_ascii_case("cbor") => ContentType::Cbor,
                     Some(s) => return Err(ParseError::UnsupportedContentType(s)),
                 };
                 let signed_data = s.rsplit_once('.').unwrap().0.as_bytes();
@@ -576,9 +578,21 @@ impl<H> UntrustedToken<'_, H> {
             ContentType::Json => serde_json::from_slice(&self.serialized_claims)
                 .map_err(ValidationError::MalformedClaims),
 
-            #[cfg(feature = "serde_cbor")]
-            ContentType::Cbor => serde_cbor::from_slice(&self.serialized_claims)
-                .map_err(ValidationError::MalformedCborClaims),
+            #[cfg(feature = "ciborium")]
+            ContentType::Cbor => {
+                ciborium::from_reader(&self.serialized_claims[..]).map_err(|err| {
+                    ValidationError::MalformedCborClaims(match err {
+                        CborDeError::Io(err) => CborDeError::Io(anyhow::anyhow!(err)),
+                        // ^ In order to be able to use `anyhow!` in both std and no-std envs,
+                        // we inline the error transform directly here.
+                        CborDeError::Syntax(offset) => CborDeError::Syntax(offset),
+                        CborDeError::Semantic(offset, description) => {
+                            CborDeError::Semantic(offset, description)
+                        }
+                        CborDeError::RecursionLimitExceeded => CborDeError::RecursionLimitExceeded,
+                    })
+                })
+            }
         }
     }
 }
@@ -660,7 +674,9 @@ mod tests {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::Bytes(thumbprint) = thumbprint else {
+            unreachable!();
+        };
 
         assert_eq!(thumbprint[0], 0x94);
         assert_eq!(thumbprint[19], 0x99);
@@ -680,7 +696,9 @@ mod tests {
         let header = r#"{"alg":"HS256","x5t":"lDpwLQbzRZmu4fjajvn3KWAx1pk=="}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::Bytes(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint[0], 0x94);
         assert_eq!(thumbprint[19], 0x99);
@@ -692,7 +710,9 @@ mod tests {
             r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::String(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::String(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint, "65AF6909B1B0758E06C6E048C46002B5C695E36B");
 
@@ -712,7 +732,9 @@ mod tests {
             r#"{"alg":"HS256","x5t":"NjVBRjY5MDlCMUIwNzU4RTA2QzZFMDQ4QzQ2MDAyQjVDNjk1RTM2Qg=="}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_sha1_thumbprint.as_ref().unwrap();
-        let Thumbprint::String(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::String(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint, "65AF6909B1B0758E06C6E048C46002B5C695E36B");
     }
@@ -746,7 +768,9 @@ mod tests {
         let header = r#"{"alg":"HS256","x5t#S256":"MV9b23bQeMQ7isAGTkoBZGErH853yGk0W_yUx1iU7dM"}"#;
         let header: CompleteHeader<Header<Empty>> = serde_json::from_str(header).unwrap();
         let thumbprint = header.inner.certificate_thumbprint.as_ref().unwrap();
-        let Thumbprint::Bytes(thumbprint) = thumbprint else { unreachable!() };
+        let Thumbprint::Bytes(thumbprint) = thumbprint else {
+            unreachable!()
+        };
 
         assert_eq!(thumbprint[0], 0x31);
         assert_eq!(thumbprint[31], 0xd3);
@@ -803,7 +827,7 @@ mod tests {
         mangled_str.replace_range(..mangled_str.find('.').unwrap(), &mangled_header);
         assert_matches!(
             UntrustedToken::new(&mangled_str).unwrap_err(),
-            ParseError::UnsupportedContentType(ref s) if s == "txt"
+            ParseError::UnsupportedContentType(s) if s == "txt"
         );
     }
 

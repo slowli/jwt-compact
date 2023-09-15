@@ -369,7 +369,8 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
             modulus,
             public_exponent,
             ..
-        } = jwk else {
+        } = jwk
+        else {
             return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 
@@ -428,7 +429,8 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
             modulus,
             public_exponent,
             private_parts,
-        } = jwk else {
+        } = jwk
+        else {
             return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 

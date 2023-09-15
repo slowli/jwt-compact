@@ -1,8 +1,15 @@
 //! Error handling.
 
+#[cfg(feature = "ciborium")]
+use core::convert::Infallible;
 use core::fmt;
 
 use crate::alloc::String;
+
+#[cfg(feature = "ciborium")]
+pub(crate) type CborDeError<E = anyhow::Error> = ciborium::de::Error<E>;
+#[cfg(feature = "ciborium")]
+pub(crate) type CborSerError<E = Infallible> = ciborium::ser::Error<E>;
 
 /// Errors that may occur during token parsing.
 #[derive(Debug)]
@@ -19,7 +26,7 @@ pub enum ParseError {
     MalformedHeader(serde_json::Error),
     /// [Content type][cty] mentioned in the token header is not supported.
     ///
-    /// Supported content types are JSON (used by default) and CBOR (only if the `serde_cbor`
+    /// Supported content types are JSON (used by default) and CBOR (only if the `ciborium`
     /// crate feature is enabled, which it is by default).
     ///
     /// [cty]: https://tools.ietf.org/html/rfc7515#section-4.1.10
@@ -74,9 +81,9 @@ pub enum ValidationError {
     /// Token claims cannot be deserialized from JSON.
     MalformedClaims(serde_json::Error),
     /// Token claims cannot be deserialized from CBOR.
-    #[cfg(feature = "serde_cbor")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
-    MalformedCborClaims(serde_cbor::error::Error),
+    #[cfg(feature = "ciborium")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "ciborium")))]
+    MalformedCborClaims(CborDeError),
     /// Claim requested during validation is not present in the token.
     NoClaim(Claim),
     /// Token has expired.
@@ -118,7 +125,7 @@ impl fmt::Display for ValidationError {
             Self::MalformedSignature(err) => write!(formatter, "malformed token signature: {err}"),
             Self::InvalidSignature => formatter.write_str("signature has failed verification"),
             Self::MalformedClaims(err) => write!(formatter, "cannot deserialize claims: {err}"),
-            #[cfg(feature = "serde_cbor")]
+            #[cfg(feature = "ciborium")]
             Self::MalformedCborClaims(err) => write!(formatter, "cannot deserialize claims: {err}"),
             Self::NoClaim(claim) => write!(
                 formatter,
@@ -136,7 +143,7 @@ impl std::error::Error for ValidationError {
         match self {
             Self::MalformedSignature(err) => Some(err.as_ref()),
             Self::MalformedClaims(err) => Some(err),
-            #[cfg(feature = "serde_cbor")]
+            #[cfg(feature = "ciborium")]
             Self::MalformedCborClaims(err) => Some(err),
             _ => None,
         }
@@ -152,9 +159,9 @@ pub enum CreationError {
     /// Token claims cannot be serialized into JSON.
     Claims(serde_json::Error),
     /// Token claims cannot be serialized into CBOR.
-    #[cfg(feature = "serde_cbor")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "serde_cbor")))]
-    CborClaims(serde_cbor::error::Error),
+    #[cfg(feature = "ciborium")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "ciborium")))]
+    CborClaims(CborSerError),
 }
 
 impl fmt::Display for CreationError {
@@ -162,7 +169,7 @@ impl fmt::Display for CreationError {
         match self {
             Self::Header(err) => write!(formatter, "cannot serialize header: {err}"),
             Self::Claims(err) => write!(formatter, "cannot serialize claims: {err}"),
-            #[cfg(feature = "serde_cbor")]
+            #[cfg(feature = "ciborium")]
             Self::CborClaims(err) => write!(formatter, "cannot serialize claims into CBOR: {err}"),
         }
     }
@@ -173,7 +180,7 @@ impl std::error::Error for CreationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Header(err) | Self::Claims(err) => Some(err),
-            #[cfg(feature = "serde_cbor")]
+            #[cfg(feature = "ciborium")]
             Self::CborClaims(err) => Some(err),
         }
     }

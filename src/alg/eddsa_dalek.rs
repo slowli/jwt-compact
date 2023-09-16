@@ -68,9 +68,9 @@ impl Algorithm for Ed25519 {
 
 impl VerifyingKey<Ed25519> for ed25519_dalek::VerifyingKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        let raw: &[u8; PUBLIC_KEY_LENGTH] = raw
-            .try_into()
-            .map_err(|err: core::array::TryFromSliceError| anyhow::anyhow!(err))?;
+        let raw = <&[u8; PUBLIC_KEY_LENGTH]>::try_from(raw).map_err(|err| {
+            anyhow::anyhow!(err).context("Ed25519 public key has unexpected length")
+        })?;
         Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
     }
 

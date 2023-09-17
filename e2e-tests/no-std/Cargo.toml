@@ -30,15 +30,8 @@ rsa = { version = "0.9", default-features = false, optional = true }
 path = "../.."
 default-features = false
 
-[profile.release]
-opt-level = "z" # Optimize for size, rather than speed
-lto = true
-
 # Crypto backends are included as features in order to not overflow
 # flash memory of the (emulated) microcontroller.
 [features]
 ed25519 = ["getrandom", "once_cell", "rand_chacha", "jwt-compact/ed25519-compact"]
 rsa = ["getrandom", "once_cell", "rand_chacha", "dep:rsa", "jwt-compact/rsa"]
-
-[workspace]
-# ^-- Needed to prevent setting the `std` flag for crates (is this a cargo bug?).

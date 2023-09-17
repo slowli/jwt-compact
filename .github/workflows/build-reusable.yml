@@ -68,6 +68,8 @@ jobs:
         run: cargo test -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
       - name: Test k256
         run: cargo test -p jwt-compact --no-default-features --features std,k256 --lib --tests
+      - name: Clippy dalek crypto (no-std)
+        run: cargo clippy -p jwt-compact --no-default-features --features ed25519-dalek --all-targets -- -D warnings
 
   build-wasm:
     needs:

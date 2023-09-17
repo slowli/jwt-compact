@@ -1,6 +1,5 @@
 //! `EdDSA` algorithm implementation using the `ed25519-dalek` crate.
 
-use anyhow::Context;
 use ed25519_dalek::{
     SecretKey, Signature, Signer, Verifier, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH,
     SIGNATURE_LENGTH,
@@ -69,9 +68,9 @@ impl Algorithm for Ed25519 {
 
 impl VerifyingKey<Ed25519> for ed25519_dalek::VerifyingKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        let raw: &[u8; PUBLIC_KEY_LENGTH] = raw
-            .try_into()
-            .context("Ed25519 public key has unexpected length")?;
+        let raw = <&[u8; PUBLIC_KEY_LENGTH]>::try_from(raw).map_err(|err| {
+            anyhow::anyhow!(err).context("Ed25519 public key has unexpected length")
+        })?;
         Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
     }
 

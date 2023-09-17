@@ -50,6 +50,8 @@ jobs:
         run: cargo clippy -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
       - name: Clippy dalek crypto
         run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-dalek --all-targets -- -D warnings
+      - name: Clippy dalek crypto (no-std)
+        run: cargo clippy -p jwt-compact --no-default-features --features ed25519-dalek --all-targets -- -D warnings
       - name: Clippy ed25519-compact
         run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
       - name: Clippy k256
@@ -58,7 +60,7 @@ jobs:
         run: cargo clippy -p jwt-compact-wasm --all-targets -- -D warnings
 
       - name: Check dependencies
-        run: cargo deny check
+        run: cargo deny --workspace check
 
       - name: Run tests
         run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
@@ -68,8 +70,6 @@ jobs:
         run: cargo test -p jwt-compact --no-default-features --features std,ed25519-compact --lib --tests
       - name: Test k256
         run: cargo test -p jwt-compact --no-default-features --features std,k256 --lib --tests
-      - name: Clippy dalek crypto (no-std)
-        run: cargo clippy -p jwt-compact --no-default-features --features ed25519-dalek --all-targets -- -D warnings
 
   build-wasm:
     needs:
@@ -85,7 +85,7 @@ jobs:
         with:
           toolchain: stable
       - name: Install Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
       - name: Install wasm-pack
@@ -135,18 +135,15 @@ jobs:
       - name: Cache cargo build
         uses: actions/cache@v3
         with:
-          path: e2e-tests/no-std/target
+          path: target
           key: ${{ runner.os }}-nostd-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-nostd-cargo
 
-      # Since it's impossible to include the `nostd` crate into the common workspace,
-      # we need to perform fmt / clippy checks for it separately.
-      - name: Format
-        run: cargo fmt -- --check
+      # Since we need a nightly toolchain for the no-std crate, we perform checks for it separately.
       - name: Clippy
         run: cargo clippy --bin jwt-compact-nostd --all-features -- -D warnings
 
       - name: Run binary (ed25519)
-        run: cargo run --release --features ed25519
+        run: cargo run -p jwt-compact-nostd --release --features ed25519
       - name: Run binary (rsa)
-        run: cargo run --release --features rsa
+        run: cargo run -p jwt-compact-nostd --release --features rsa

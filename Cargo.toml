@@ -6,6 +6,7 @@ authors = [
   "Akhil Velagapudi <akhilvelagapudi@gmail.com>",
   "Frank Denis <github@pureftpd.org>",
   "Maximilian Münchow <github@maxmuen.de>",
+  "Eran Rundstein <eran@rundste.in>",
 ]
 edition = "2021"
 rust-version = "1.65"
@@ -120,5 +121,4 @@ path = "tests/rsa.rs"
 required-features = ["rsa/pem"]
 
 [workspace]
-members = [".", "e2e-tests/wasm"]
-exclude = ["e2e-tests/no-std"] # including leads to compilation errors for the no-std crate
+members = [".", "e2e-tests/no-std", "e2e-tests/wasm"]

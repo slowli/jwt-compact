@@ -33,6 +33,12 @@ confidence-threshold = 0.8
 [bans]
 multiple-versions = "deny"
 wildcards = "deny"
+allow-wildcard-paths = true
+skip-tree = [
+  # `cortex-m` crates (which are only used in the no-std test crate) have some outdated deps.
+  { name = "cortex-m", version = "^0.7" },
+  { name = "cortex-m-rt", version = "^0.7" },
+]
 
 [sources]
 unknown-registry = "deny"

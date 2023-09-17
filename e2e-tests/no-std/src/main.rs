@@ -5,11 +5,11 @@
 
 extern crate alloc;
 
-use alloc_cortex_m::CortexMHeap;
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln, syscall};
+use embedded_alloc::Heap;
 use panic_halt as _;
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +26,7 @@ use jwt_compact::{
 };
 
 #[global_allocator]
-static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
+static ALLOCATOR: Heap = Heap::empty();
 
 #[cfg(any(feature = "ed25519", feature = "rsa"))]
 mod rsa_helpers {

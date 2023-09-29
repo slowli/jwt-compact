@@ -53,6 +53,8 @@ jobs:
       - build
       - build-msrv
     if: github.event_name == 'push'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:

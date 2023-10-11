@@ -5,6 +5,10 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Support floating-point timestamps in claims.
+
 ### Security
 
 - Update `ed25519-dalek` dependency, fixing a potential vulnerability as described in [RUSTSEC-2022-0093](https://rustsec.org/advisories/RUSTSEC-2022-0093).

@@ -6,6 +6,7 @@ authors = [
   "Akhil Velagapudi <akhilvelagapudi@gmail.com>",
   "Frank Denis <github@pureftpd.org>",
   "Maximilian Münchow <github@maxmuen.de>",
+  "Eran Rundstein <eran@rundste.in>",
 ]
 edition = "2021"
 rust-version = "1.65"
@@ -28,10 +29,10 @@ rustdoc-args = ["--cfg", "docsrs"]
 # Public dependencies (present in the public API).
 anyhow = { version = "1.0.34", default-features = false }
 base64ct = { version = "1.5.2", features = ["alloc"] }
+ciborium = { version = "0.2.1", default-features = false, optional = true }
 chrono = { version = "0.4.22", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
-serde_cbor = { version = "0.11.1", default-features = false, features = ["alloc"], optional = true }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 # SHA crypto backend (private dependency; re-exported `digest` crate is public).
@@ -40,12 +41,12 @@ sha2 = { version = "0.10", default-features = false }
 
 # Private dependencies (not exposed in the public API).
 lazy_static = { version = "1.4", optional = true }
-smallvec = "1.6.1"
+smallvec = "1.11.1"
 subtle = { version = "2.4.0", default-features = false }
 zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 # Crypto backends (all public dependencies).
-secp256k1 = { version = "0.27", optional = true }
+secp256k1 = { version = "0.28", optional = true }
 
 [dependencies.k256]
 version = "0.13.0"
@@ -66,10 +67,9 @@ features = ["sodiumoxide-crypto"]
 optional = true
 
 [dependencies.ed25519-dalek]
-version = "1.0.1"
+version = "2.0.0"
 optional = true
 default-features = false
-features = ["u64_backend", "rand"]
 
 [dependencies.ed25519-compact]
 version = "2.0.2"
@@ -94,10 +94,10 @@ uuid = { version = "1.0.0", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]
-default = ["std", "clock", "serde_cbor"]
+default = ["std", "clock", "ciborium"]
 # Enables `std`-specific functionality (such as error types implementing
 # the standard `Error` trait).
-std = ["anyhow/std", "serde_json/std", "serde_cbor?/std"]
+std = ["anyhow/std", "serde_json/std", "ciborium?/std"]
 # Enables getting the current time using `Utc::now()` from `chrono`.
 # Without it, some `TimeOptions` constructors, such as the `Default` impl,
 # are not available. It is still possible to create `TimeOptions`
@@ -121,5 +121,4 @@ path = "tests/rsa.rs"
 required-features = ["rsa/pem"]
 
 [workspace]
-members = [".", "e2e-tests/wasm"]
-exclude = ["e2e-tests/no-std"] # including leads to compilation errors for the no-std crate
+members = [".", "e2e-tests/no-std", "e2e-tests/wasm"]

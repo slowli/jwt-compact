@@ -1,8 +1,8 @@
 //! `EdDSA` algorithm implementation using the `ed25519-dalek` crate.
 
 use ed25519_dalek::{
-    Keypair, PublicKey, SecretKey, Signature, Signer, Verifier, PUBLIC_KEY_LENGTH,
-    SECRET_KEY_LENGTH, SIGNATURE_LENGTH,
+    SecretKey, Signature, Signer, Verifier, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH,
+    SIGNATURE_LENGTH,
 };
 
 use core::num::NonZeroUsize;
@@ -44,8 +44,8 @@ impl Ed25519 {
 }
 
 impl Algorithm for Ed25519 {
-    type SigningKey = Keypair;
-    type VerifyingKey = PublicKey;
+    type SigningKey = ed25519_dalek::SigningKey;
+    type VerifyingKey = ed25519_dalek::VerifyingKey;
     type Signature = Signature;
 
     fn name(&self) -> Cow<'static, str> {
@@ -66,8 +66,11 @@ impl Algorithm for Ed25519 {
     }
 }
 
-impl VerifyingKey<Ed25519> for PublicKey {
+impl VerifyingKey<Ed25519> for ed25519_dalek::VerifyingKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
+        let raw = <&[u8; PUBLIC_KEY_LENGTH]>::try_from(raw).map_err(|err| {
+            anyhow::anyhow!(err).context("Ed25519 public key has unexpected length")
+        })?;
         Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
@@ -76,22 +79,29 @@ impl VerifyingKey<Ed25519> for PublicKey {
     }
 }
 
-impl SigningKey<Ed25519> for Keypair {
+impl SigningKey<Ed25519> for ed25519_dalek::SigningKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_bytes(raw).map_err(|err| anyhow::anyhow!(err))
+        if let Ok(secret) = <&SecretKey>::try_from(raw) {
+            Ok(Self::from_bytes(secret))
+        } else if let Ok(keypair_bytes) = <&[u8; KEYPAIR_LENGTH]>::try_from(raw) {
+            Self::from_keypair_bytes(keypair_bytes).map_err(|err| anyhow::anyhow!(err))
+        } else {
+            Err(anyhow::anyhow!("Ed25519 secret key has unexpected length"))
+        }
     }
 
-    fn to_verifying_key(&self) -> PublicKey {
-        self.public
+    fn to_verifying_key(&self) -> ed25519_dalek::VerifyingKey {
+        self.into()
     }
 
     fn as_bytes(&self) -> SecretBytes<'_> {
-        SecretBytes::owned(self.to_bytes().to_vec())
+        // We return the expanded key for compatibility with other implementations
+        SecretBytes::owned(self.to_keypair_bytes().to_vec())
     }
 }
 
-impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
-    fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
+impl<'a> From<&'a ed25519_dalek::VerifyingKey> for JsonWebKey<'a> {
+    fn from(key: &'a ed25519_dalek::VerifyingKey) -> JsonWebKey<'a> {
         JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),
             x: Cow::Borrowed(key.as_ref()),
@@ -100,7 +110,7 @@ impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
     }
 }
 
-impl TryFrom<&JsonWebKey<'_>> for PublicKey {
+impl TryFrom<&JsonWebKey<'_>> for ed25519_dalek::VerifyingKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
@@ -110,21 +120,21 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
 
         JsonWebKey::ensure_curve(curve, "Ed25519")?;
         JsonWebKey::ensure_len("x", x, PUBLIC_KEY_LENGTH)?;
-        PublicKey::from_slice(x).map_err(JwkError::custom)
+        ed25519_dalek::VerifyingKey::from_slice(x).map_err(JwkError::custom)
     }
 }
 
-impl<'a> From<&'a Keypair> for JsonWebKey<'a> {
-    fn from(keypair: &'a Keypair) -> JsonWebKey<'a> {
+impl<'a> From<&'a ed25519_dalek::SigningKey> for JsonWebKey<'a> {
+    fn from(signing_key: &'a ed25519_dalek::SigningKey) -> JsonWebKey<'a> {
         JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),
-            x: Cow::Borrowed(keypair.public.as_ref()),
-            secret: Some(SecretBytes::borrowed(keypair.secret.as_ref())),
+            x: Cow::Borrowed(signing_key.as_ref().as_bytes()),
+            secret: Some(SecretBytes::owned(signing_key.to_bytes().to_vec())),
         }
     }
 }
 
-impl TryFrom<&JsonWebKey<'_>> for Keypair {
+impl TryFrom<&JsonWebKey<'_>> for ed25519_dalek::SigningKey {
     type Error = JwkError;
 
     fn try_from(jwk: &JsonWebKey<'_>) -> Result<Self, Self::Error> {
@@ -135,11 +145,8 @@ impl TryFrom<&JsonWebKey<'_>> for Keypair {
         let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
         JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_LENGTH)?;
 
-        let secret = SecretKey::from_bytes(sk_bytes).unwrap();
-        let keypair = Keypair {
-            public: PublicKey::from(&secret),
-            secret,
-        };
-        jwk.ensure_key_match(keypair)
+        let secret: &SecretKey = sk_bytes.try_into().unwrap();
+        let signing_key = ed25519_dalek::SigningKey::from(secret);
+        jwk.ensure_key_match(signing_key)
     }
 }

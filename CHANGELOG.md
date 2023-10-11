@@ -5,6 +5,11 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Security
+
+- Update `ed25519-dalek` dependency, fixing a potential vulnerability as described in [RUSTSEC-2022-0093](https://rustsec.org/advisories/RUSTSEC-2022-0093).
+- Replace unmaintained `serde_cbor` dependency with `ciborium`.
+
 ## 0.8.0-beta.1 - 2023-06-09
 
 ### Added

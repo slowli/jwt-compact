@@ -361,20 +361,16 @@ fn ed25519_algorithm() {
 #[cfg(feature = "ed25519-dalek")]
 #[test]
 fn ed25519_algorithm() {
-    use ed25519_dalek::{Keypair, SecretKey, SECRET_KEY_LENGTH};
+    use ed25519_dalek::{SecretKey, SigningKey};
     use rand_core::RngCore;
 
     // Since `ed25519_dalek` works with `rand` v0.7 rather than v0.8, we use this roundabout way
     // to generate a keypair.
-    let mut secret = [0_u8; SECRET_KEY_LENGTH];
+    let mut secret = SecretKey::default();
     thread_rng().fill_bytes(&mut secret);
-    let secret = SecretKey::from_bytes(&secret).unwrap();
-    let keypair = Keypair {
-        public: (&secret).into(),
-        secret,
-    };
+    let signing_key = SigningKey::from(secret);
 
-    test_algorithm(&Ed25519, &keypair, &keypair.public);
+    test_algorithm(&Ed25519, &signing_key, signing_key.as_ref());
 }
 
 #[cfg(feature = "ed25519-compact")]

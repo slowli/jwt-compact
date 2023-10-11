@@ -15,9 +15,10 @@ const-decoder = "0.3.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 
 # Cortex-M dependencies.
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
 cortex-m-semihosting = "0.5"
-alloc-cortex-m = "0.4.1"
+embedded-alloc = "0.5.0"
 panic-halt = "0.2.0"
 
 # RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
@@ -30,15 +31,8 @@ rsa = { version = "0.9", default-features = false, optional = true }
 path = "../.."
 default-features = false
 
-[profile.release]
-opt-level = "z" # Optimize for size, rather than speed
-lto = true
-
 # Crypto backends are included as features in order to not overflow
 # flash memory of the (emulated) microcontroller.
 [features]
 ed25519 = ["getrandom", "once_cell", "rand_chacha", "jwt-compact/ed25519-compact"]
 rsa = ["getrandom", "once_cell", "rand_chacha", "dep:rsa", "jwt-compact/rsa"]
-
-[workspace]
-# ^-- Needed to prevent setting the `std` flag for crates (is this a cargo bug?).

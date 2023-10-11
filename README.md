@@ -99,6 +99,11 @@ See the crate docs for more examples of usage.
 - [justwebtoken.io](https://justwebtoken.io/) – educational mini-website that uses this library
   packaged in a WASM module.
 
+## Contributing
+
+All contributions are welcome! See [the contributing guide](CONTRIBUTING.md) to help
+you get involved.
+
 ## License
 
 Licensed under the [Apache-2.0 license](LICENSE).

@@ -95,8 +95,7 @@ where
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let mut digest = D::default();
         digest.update(message);
-        let message = Message::from_slice(&digest.finalize())
-            .expect("failed to convert message to the correct form");
+        let message = Message::from_digest(digest.finalize().into());
 
         self.context.sign_ecdsa(&message, signing_key)
     }
@@ -109,8 +108,7 @@ where
     ) -> bool {
         let mut digest = D::default();
         digest.update(message);
-        let message = Message::from_slice(&digest.finalize())
-            .expect("failed to convert message to the correct form");
+        let message = Message::from_digest(digest.finalize().into());
 
         // Some implementations (e.g., OpenSSL) produce high-S signatures, which
         // are considered invalid by this implementation. Hence, we perform normalization here.

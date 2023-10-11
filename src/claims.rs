@@ -247,6 +247,17 @@ mod serde_timestamp {
                 .single()
                 .ok_or_else(|| E::custom("UTC timestamp overflow"))
         }
+
+        #[allow(clippy::cast_possible_truncation)]
+        // ^ If truncation occurs, the `timestamp_opt()` won't return a single value anyway
+        fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+        where
+            E: DeError,
+        {
+            Utc.timestamp_opt(value as i64, 0)
+                .single()
+                .ok_or_else(|| E::custom("UTC timestamp overflow"))
+        }
     }
 
     pub fn serialize<S: Serializer>(
@@ -268,6 +279,7 @@ mod serde_timestamp {
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
+    use chrono::TimeZone;
 
     #[test]
     fn empty_claims_can_be_serialized() {
@@ -352,5 +364,22 @@ mod tests {
                 .unwrap_err(),
             ValidationError::NotMature
         );
+    }
+    #[test]
+    fn float_timestamp() {
+        let claims = "{\"exp\": 1.691203462e+9}";
+        let claims: Claims<Empty> = serde_json::from_str(claims).unwrap();
+        let timestamp = Utc.timestamp_opt(1_691_203_462, 0).single().unwrap();
+        assert_eq!(claims.expiration, Some(timestamp));
+    }
+
+    #[test]
+    fn float_timestamp_errors() {
+        let invalid_claims = ["{\"exp\": 1e20}", "{\"exp\": -1e20}"];
+        for claims in invalid_claims {
+            let err = serde_json::from_str::<Claims<Empty>>(claims).unwrap_err();
+            let err = err.to_string();
+            assert!(err.contains("UTC timestamp overflow"), "{err}");
+        }
     }
 }

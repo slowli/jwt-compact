@@ -17,7 +17,7 @@ Add this to your `Crate.toml`:
 
 ```toml
 [dependencies]
-jwt-compact = "0.8.0-beta.1"
+jwt-compact = "0.8.0"
 ```
 
 ## Basic token lifecycle

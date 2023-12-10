@@ -78,6 +78,9 @@ See the crate docs for more examples of usage.
   for elliptic curves used in standard `ES*` algorithms).
 - The `ES256` algorithm is supported via pure Rust [`p256`] crate.
 - RSA algorithms (`RS*` and `PS*`) are supported via pure Rust [`rsa`] crate.
+  Beware that the `rsa` crate (along with other RSA implementations) may be susceptible to
+  [the "Marvin" timing side-channel attack](https://github.com/RustCrypto/RSA/security/advisories/GHSA-c38w-74pg-36hr)
+  at the time of writing; use with caution.
 - The crate supports the `no_std` mode. [No-std support](e2e-tests/no-std) 
   and [WASM compatibility](e2e-tests/wasm) are explicitly tested.
 

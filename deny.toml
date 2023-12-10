@@ -13,6 +13,11 @@ unsound = "deny"
 yanked = "deny"
 notice = "warn"
 severity-threshold = "Medium"
+ignore = [
+  # "Marvin" attack for the `rsa` crate; no fix is available ATM.
+  # A warning is added to crate readme and crate docs as a stopgap measure.
+  "RUSTSEC-2023-0071",
+]
 
 [licenses]
 unlicensed = "deny"

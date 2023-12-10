@@ -35,6 +35,10 @@
 //! | `ES256`  | [`p256`] | Pure Rust implementation |
 //! | `RS*`, `PS*` (RSA) | `rsa` | Uses pure Rust [`rsa`] crate with blinding |
 //!
+//! Beware that the `rsa` crate (along with other RSA implementations) may be susceptible to
+//! [the "Marvin" timing side-channel attack](https://github.com/RustCrypto/RSA/security/advisories/GHSA-c38w-74pg-36hr)
+//! at the time of writing; use with caution.
+//!
 //! `EdDSA` and `ES256K` algorithms are somewhat less frequently supported by JWT implementations
 //! than others since they are recent additions to the JSON Web Algorithms (JWA) suit.
 //! They both work with elliptic curves

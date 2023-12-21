@@ -28,7 +28,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Public dependencies (present in the public API).
-anyhow = { version = "1.0.34", default-features = false }
+anyhow = { version = "1.0.76", default-features = false }
 base64ct = { version = "1.5.2", features = ["alloc"] }
 ciborium = { version = "0.2.1", default-features = false, optional = true }
 chrono = { version = "0.4.22", default-features = false }
@@ -73,7 +73,7 @@ optional = true
 default-features = false
 
 [dependencies.ed25519-compact]
-version = "2.0.2"
+version = "2.0.6"
 optional = true
 default-features = false
 features = ["random"]

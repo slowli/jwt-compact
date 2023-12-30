@@ -389,7 +389,7 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
     fn from(key: &'a RsaPrivateKey) -> JsonWebKey<'a> {
         const MSG: &str = "RsaPrivateKey must have at least 2 prime factors";
 
-        let p = key.primes().get(0).expect(MSG);
+        let p = key.primes().first().expect(MSG);
         let q = key.primes().get(1).expect(MSG);
 
         let private_parts = RsaPrivateParts {

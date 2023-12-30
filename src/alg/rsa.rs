@@ -13,7 +13,7 @@ use core::{fmt, str::FromStr};
 
 use crate::{
     alg::{SecretBytes, StrongKey, WeakKeyError},
-    alloc::{Box, Cow, String, ToOwned, Vec},
+    alloc::{Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
     Algorithm, AlgorithmSignature,
 };
@@ -42,22 +42,29 @@ enum HashAlg {
 }
 
 impl HashAlg {
-    fn digest(self, message: &[u8]) -> Box<[u8]> {
+    fn digest(self, message: &[u8]) -> HashDigest {
         match self {
-            Self::Sha256 => {
-                let digest: [u8; 32] = *(Sha256::digest(message).as_ref());
-                Box::new(digest)
-            }
-            Self::Sha384 => {
-                let mut digest = [0_u8; 48];
-                digest.copy_from_slice(Sha384::digest(message).as_ref());
-                Box::new(digest)
-            }
-            Self::Sha512 => {
-                let mut digest = [0_u8; 64];
-                digest.copy_from_slice(Sha512::digest(message).as_ref());
-                Box::new(digest)
-            }
+            Self::Sha256 => HashDigest::Sha256(Sha256::digest(message).into()),
+            Self::Sha384 => HashDigest::Sha384(Sha384::digest(message).into()),
+            Self::Sha512 => HashDigest::Sha512(Sha512::digest(message).into()),
+        }
+    }
+}
+
+/// Output of a [`HashAlg`].
+#[derive(Debug)]
+enum HashDigest {
+    Sha256([u8; 32]),
+    Sha384([u8; 48]),
+    Sha512([u8; 64]),
+}
+
+impl AsRef<[u8]> for HashDigest {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Sha256(bytes) => bytes,
+            Self::Sha384(bytes) => bytes,
+            Self::Sha512(bytes) => bytes,
         }
     }
 }
@@ -173,12 +180,13 @@ impl Algorithm for Rsa {
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
         let digest = self.hash_alg.digest(message);
+        let digest = digest.as_ref();
         let signing_result = match self.padding_scheme() {
             PaddingScheme::Pkcs1v15(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, &digest)
+                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
             }
             PaddingScheme::Pss(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, &digest)
+                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
             }
         };
         RsaSignature(signing_result.expect("Unexpected RSA signature failure"))
@@ -191,11 +199,10 @@ impl Algorithm for Rsa {
         message: &[u8],
     ) -> bool {
         let digest = self.hash_alg.digest(message);
+        let digest = digest.as_ref();
         let verify_result = match self.padding_scheme() {
-            PaddingScheme::Pkcs1v15(padding) => {
-                verifying_key.verify(padding, &digest, &signature.0)
-            }
-            PaddingScheme::Pss(padding) => verifying_key.verify(padding, &digest, &signature.0),
+            PaddingScheme::Pkcs1v15(padding) => verifying_key.verify(padding, digest, &signature.0),
+            PaddingScheme::Pss(padding) => verifying_key.verify(padding, digest, &signature.0),
         };
         verify_result.is_ok()
     }

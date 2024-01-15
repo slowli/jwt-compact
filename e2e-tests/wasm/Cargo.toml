@@ -15,7 +15,7 @@ wasm-opt = ["-Os", "--enable-mutable-globals"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.89"
+wasm-bindgen = "0.2.90"
 
 chrono = { version = "0.4.22", features = ["wasmbind"] }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }

@@ -10,7 +10,7 @@ authors = [
   "Bruno Green",
 ]
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.70"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["JWT", "token", "authorization"]

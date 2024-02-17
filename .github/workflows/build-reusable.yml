@@ -56,6 +56,8 @@ jobs:
         run: cargo clippy -p jwt-compact --no-default-features --features std,ed25519-compact --all-targets -- -D warnings
       - name: Clippy k256
         run: cargo clippy -p jwt-compact --no-default-features --features k256 --all-targets -- -D warnings
+      - name: Clippy p256
+        run: cargo clippy -p jwt-compact --no-default-features --features p256 --all-targets -- -D warnings
       - name: Clippy WASM crate
         run: cargo clippy -p jwt-compact-wasm --all-targets -- -D warnings
 

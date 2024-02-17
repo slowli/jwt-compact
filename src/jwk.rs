@@ -419,6 +419,7 @@ pub struct RsaPrimeFactor<'a> {
 #[cfg(any(
     feature = "es256k",
     feature = "k256",
+    feature = "p256",
     feature = "exonum-crypto",
     feature = "ed25519-dalek",
     feature = "ed25519-compact"

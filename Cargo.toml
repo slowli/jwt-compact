@@ -31,7 +31,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 anyhow = { version = "1.0.79", default-features = false }
 base64ct = { version = "1.5.2", features = ["alloc"] }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
-chrono = { version = "0.4.33", default-features = false }
+chrono = { version = "0.4.34", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -68,12 +68,12 @@ features = ["sodiumoxide-crypto"]
 optional = true
 
 [dependencies.ed25519-dalek]
-version = "2.1.0"
+version = "2.1.1"
 optional = true
 default-features = false
 
 [dependencies.ed25519-compact]
-version = "2.0.6"
+version = "2.1.1"
 optional = true
 default-features = false
 features = ["random"]

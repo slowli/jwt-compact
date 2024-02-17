@@ -5,9 +5,13 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-## Changed
+### Changed
 
 - Bump minimum supported Rust version to 1.70.
+
+### Fixed
+
+- Fix missing JWK helpers when compiling the crate with the `p256` feature.
 
 ## 0.8.0 - 2023-10-12
 
@@ -75,17 +79,13 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Add `UntrustedToken::into_owned()` method to extend the token lifetime to static.
   This is useful if an `UntrustedToken` needs to be stashed / passed across threads.
-
 - Add `UntrustedToken::deserialize_claims_unchecked()` to extract claims from a token
   without verification. As the name length implies, the method should only be used
   in exceptional cases.
-
 - Implement `FromStr` and some standard traits (`Clone`, `Copy`, `PartialEq`) for `Rsa`.
-
 - Introduce `AlgorithmSignature::LENGTH` constant for specifying the expected 
   signature length. The new `ValidationError::InvalidSignatureLen` variant provides
   more specific errors if the signature length is not as specified.
-
 - Allow opting out from CBOR claims encoding by making `serde_cbor` dependency optional
   and using it as a crate feature. The relevant functionality (`AlgorithmExt::compact_token`,
   some error variants, etc.) is now gated behind this feature.
@@ -101,7 +101,6 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Fixed
 
 - Fix datetime overflow when validating the expiration claim.
-
 - Fix `no_std` support for RSA-based JWS algorithms. As a part of the fix,
   to enable RSA, you should now use the `rsa` feature instead of `rsa`.
 
@@ -115,28 +114,20 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Add `new()` constructor for `HS*` keys that accepts any type implementing
   `AsRef<[u8]>`. This simplifies key loading.
-
 - Add `new()` constructor for `UntrustedToken` that accepts any type implementing
   `AsRef<str>`. This simplifies token processing.
-
 - Add basic JSON Web Key (JWK) support. This allows (de)serializing keys from / into
   a uniform format and computing key thumbprints.
-
 - Add ES256K implementation using pure-Rust [`k256`] crate.
 
 ### Changed
 
 - Update dependencies.
-
 - Rename `Header.signature_type` field to `token_type` to be more in line with JWT spec.
-
 - Rename `Claims.expiration_date` to `expiration` to be more precise.
-
 - Encapsulate `hmac` and `sha2` dependencies by introducing signature types 
   for `HS*` algorithms. The `digest` dependency is still public.
-
 - `exonum-crypto` feature is no longer enabled by default.
-
 - Change return type of `SigningKey::as_bytes()` to securely zeroize owned values on drop.
 
 ### Fixed
@@ -155,7 +146,6 @@ No substantial changes compared to the 0.3.0-beta.2 release.
 ### Changed
 
 - Make `CreationError` non-exhaustive.
-
 - Rename `StrongKey::inner()` method to `into_inner`.
 
 ### Fixed
@@ -167,33 +157,23 @@ No substantial changes compared to the 0.3.0-beta.2 release.
 ### Added
 
 - Add signature getters for untrusted and trusted tokens.
-
 - Add the [`ed25519-compact`] backend for Ed25519-based tokens.
-
 - Add `SigningKey` and `VerifyingKey` traits for generic access to cryptographic keys.
-
 - Support RSA algorithms using pure-Rust [`rsa`] crate.
-
 - Add `no_std` mode and check `no_std` / WASM compatibility via dedicated aux crates.
   Introduce two relevant crate features, `clock` and `std`.
-
 - Add wrapper types for strong keys / JWT algorithms.
-
 - Add details to some `ValidationError` variants.
 
 ### Changed
 
 - Update dependencies.
-
 - Update minimum supported Rust version due to dependencies.
-
 - `es256k` feature should now be used for access to libsecp256k1 backend instead of
   `secp256k1`.
-
 - Rework time-related token creation / validation logic. It is now possible to
   use a custom clock, which could be useful for testing or if there is no access
   to the system clock.
-
 - Make `Header`, `Claims`, `TimeOptions`, and error types non-exhaustive.
 
 ## 0.2.0 - 2020-05-11

@@ -9,8 +9,8 @@ repository = "https://github.com/slowli/jwt-compact"
 publish = false
 
 [dependencies]
-anyhow = { version = "1.0.79", default-features = false }
-chrono = { version = "0.4.34", default-features = false }
+anyhow = { version = "1.0.80", default-features = false }
+chrono = { version = "0.4.35", default-features = false }
 const-decoder = "0.3.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 

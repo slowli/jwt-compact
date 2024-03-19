@@ -17,11 +17,11 @@ use crate::{Claim, ValidationError};
 /// // Default options.
 /// let default_options = TimeOptions::default();
 /// let options_with_custom_leeway =
-///     TimeOptions::from_leeway(Duration::seconds(5));
+///     TimeOptions::from_leeway(Duration::try_seconds(5).unwrap());
 /// // Options that have a fixed time. Can be useful for testing.
 /// let clock_time = Utc::now();
 /// let options_with_stopped_clock =
-///     TimeOptions::new(Duration::seconds(10), move || clock_time);
+///     TimeOptions::new(Duration::try_seconds(10).unwrap(), move || clock_time);
 /// ```
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -57,7 +57,7 @@ impl TimeOptions {
 #[cfg(feature = "clock")]
 impl Default for TimeOptions {
     fn default() -> Self {
-        Self::from_leeway(Duration::seconds(60))
+        Self::from_leeway(Duration::try_seconds(60).unwrap())
     }
 }
 
@@ -314,28 +314,29 @@ mod tests {
         claims.expiration = Some(DateTime::<Utc>::MAX_UTC);
         assert!(claims.validate_expiration(&time_options).is_ok());
 
-        claims.expiration = Some(Utc::now() - Duration::hours(1));
+        claims.expiration = Some(Utc::now() - Duration::try_hours(1).unwrap());
         assert_matches!(
             claims.validate_expiration(&time_options).unwrap_err(),
             ValidationError::Expired
         );
 
-        claims.expiration = Some(Utc::now() - Duration::seconds(10));
+        claims.expiration = Some(Utc::now() - Duration::try_seconds(10).unwrap());
         // With the default leeway, this claim is still valid.
         assert!(claims.validate_expiration(&time_options).is_ok());
         // If we set leeway lower, then the claim will be considered expired.
         assert_matches!(
             claims
-                .validate_expiration(&TimeOptions::from_leeway(Duration::seconds(5)))
+                .validate_expiration(&TimeOptions::from_leeway(Duration::try_seconds(5).unwrap()))
                 .unwrap_err(),
             ValidationError::Expired
         );
         // Same if we set the current time in the past.
         let expiration = claims.expiration.unwrap();
         assert!(claims
-            .validate_expiration(&TimeOptions::new(Duration::seconds(3), move || {
-                expiration
-            }))
+            .validate_expiration(&TimeOptions::new(
+                Duration::try_seconds(3).unwrap(),
+                move || { expiration }
+            ))
             .is_ok());
     }
 
@@ -348,19 +349,19 @@ mod tests {
             ValidationError::NoClaim(Claim::NotBefore)
         );
 
-        claims.not_before = Some(Utc::now() + Duration::hours(1));
+        claims.not_before = Some(Utc::now() + Duration::try_hours(1).unwrap());
         assert_matches!(
             claims.validate_maturity(&time_options).unwrap_err(),
             ValidationError::NotMature
         );
 
-        claims.not_before = Some(Utc::now() + Duration::seconds(10));
+        claims.not_before = Some(Utc::now() + Duration::try_seconds(10).unwrap());
         // With the default leeway, this claim is still valid.
         assert!(claims.validate_maturity(&time_options).is_ok());
         // If we set leeway lower, then the claim will be considered expired.
         assert_matches!(
             claims
-                .validate_maturity(&TimeOptions::from_leeway(Duration::seconds(5)))
+                .validate_maturity(&TimeOptions::from_leeway(Duration::try_seconds(5).unwrap()))
                 .unwrap_err(),
             ValidationError::NotMature
         );

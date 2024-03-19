@@ -91,7 +91,8 @@ where
     T::SigningKey: TryFrom<J, Error = JwkError>,
 {
     let secret_key = <T::SigningKey>::try_from(jwk).map_err(to_js_error)?;
-    let claims = Claims::new(claims).set_duration(&TimeOptions::default(), Duration::hours(1));
+    let claims =
+        Claims::new(claims).set_duration(&TimeOptions::default(), Duration::try_hours(1).unwrap());
 
     let token = alg
         .token(&Header::empty(), &claims, &secret_key)

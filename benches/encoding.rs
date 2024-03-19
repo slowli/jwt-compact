@@ -55,8 +55,8 @@ fn encoding_benches(criterion: &mut Criterion) {
         bencher.iter(|| {
             let header = Header::empty().with_key_id(&key_id);
             let claims = Claims::new(&claims)
-                .set_duration_and_issuance(&time_options, Duration::minutes(10))
-                .set_not_before(Utc::now() - Duration::minutes(10));
+                .set_duration_and_issuance(&time_options, Duration::try_minutes(10).unwrap())
+                .set_not_before(Utc::now() - Duration::try_minutes(10).unwrap());
             Hs256.token(&header, &claims, &key).unwrap()
         });
     });
@@ -78,8 +78,8 @@ fn decoding_benches(criterion: &mut Criterion) {
     let header = Header::empty().with_key_id(Uuid::new_v4().to_string());
     let time_options = TimeOptions::default();
     let claims = Claims::new(CustomClaims::default())
-        .set_duration_and_issuance(&time_options, Duration::minutes(10))
-        .set_not_before(Utc::now() - Duration::minutes(10));
+        .set_duration_and_issuance(&time_options, Duration::try_minutes(10).unwrap())
+        .set_not_before(Utc::now() - Duration::try_minutes(10).unwrap());
 
     #[cfg(feature = "serde_cbor")]
     {

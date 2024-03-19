@@ -35,7 +35,7 @@ pub fn create_claims() -> Claims<CompactClaims> {
 
     let mut claims = Claims::new(CompactClaims { subject: [1; 32] });
     claims.issued_at = Some(now);
-    claims.expiration = Some(now + Duration::days(7));
+    claims.expiration = Some(now + Duration::try_days(7).unwrap());
     claims
 }
 
@@ -118,7 +118,7 @@ pub fn test_algorithm<A: Algorithm>(
         &serde_json::to_vec(&{
             let mut mangled_claims = claims;
             let issued_at = mangled_claims.issued_at.as_mut().unwrap();
-            *issued_at += Duration::seconds(1);
+            *issued_at += Duration::try_seconds(1).unwrap();
             mangled_claims
         })
         .unwrap(),

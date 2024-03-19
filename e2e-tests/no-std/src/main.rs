@@ -79,7 +79,7 @@ struct TokenChecker {
 impl TokenChecker {
     fn new() -> Self {
         Self {
-            time_options: TimeOptions::new(Duration::seconds(15), now),
+            time_options: TimeOptions::new(Duration::try_seconds(15).unwrap(), now),
         }
     }
 
@@ -116,7 +116,7 @@ impl TokenChecker {
         signing_key: &T::SigningKey,
     ) -> anyhow::Result<String> {
         let claims = Claims::new(claims)
-            .set_duration_and_issuance(&self.time_options, Duration::minutes(10));
+            .set_duration_and_issuance(&self.time_options, Duration::try_minutes(10).unwrap());
 
         let token = alg
             .token(&Header::empty(), &claims, signing_key)

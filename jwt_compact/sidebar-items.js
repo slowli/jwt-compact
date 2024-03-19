@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Claim","CreationError","ParseError","Thumbprint","ValidationError"],"mod":["alg","jwk","prelude"],"struct":["Claims","Empty","Header","Renamed","SignedToken","TimeOptions","Token","UntrustedToken","Validator"],"trait":["Algorithm","AlgorithmExt","AlgorithmSignature"]};

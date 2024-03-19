@@ -28,10 +28,10 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Public dependencies (present in the public API).
-anyhow = { version = "1.0.79", default-features = false }
+anyhow = { version = "1.0.81", default-features = false }
 base64ct = { version = "1.5.2", features = ["alloc"] }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
-chrono = { version = "0.4.34", default-features = false }
+chrono = { version = "0.4.35", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -91,7 +91,7 @@ doc-comment = "0.3.3"
 hex-buffer-serde = "0.4.0"
 num-bigint = { package = "num-bigint-dig", version = "0.8.2" }
 rand = "0.8.3"
-uuid = { version = "1.7.0", features = ["serde", "v4"] }
+uuid = { version = "1.8.0", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]

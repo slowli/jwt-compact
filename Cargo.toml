@@ -42,7 +42,7 @@ sha2 = { version = "0.10", default-features = false }
 
 # Private dependencies (not exposed in the public API).
 lazy_static = { version = "1.4", optional = true }
-smallvec = "1.13.1"
+smallvec = "1.13.2"
 subtle = { version = "2.4.0", default-features = false }
 zeroize = { version = "1.7", features = ["zeroize_derive"] }
 

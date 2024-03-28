@@ -31,7 +31,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 anyhow = { version = "1.0.81", default-features = false }
 base64ct = { version = "1.5.2", features = ["alloc"] }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
-chrono = { version = "0.4.35", default-features = false }
+chrono = { version = "0.4.37", default-features = false }
 rand_core = "0.6.2"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -42,7 +42,7 @@ sha2 = { version = "0.10", default-features = false }
 
 # Private dependencies (not exposed in the public API).
 lazy_static = { version = "1.4", optional = true }
-smallvec = "1.13.1"
+smallvec = "1.13.2"
 subtle = { version = "2.4.0", default-features = false }
 zeroize = { version = "1.7", features = ["zeroize_derive"] }
 

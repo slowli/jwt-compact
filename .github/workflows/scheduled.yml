@@ -8,4 +8,4 @@ jobs:
   build:
     uses: ./.github/workflows/build-reusable.yml
     with:
-      nightly_rust_version: nightly-2023-09-09
+      nightly_rust_version: nightly-2024-03-19

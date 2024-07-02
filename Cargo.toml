@@ -28,7 +28,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Public dependencies (present in the public API).
-anyhow = { version = "1.0.82", default-features = false }
+anyhow = { version = "1.0.86", default-features = false }
 base64ct = { version = "1.5.2", features = ["alloc"] }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
 chrono = { version = "0.4.38", default-features = false }
@@ -41,10 +41,10 @@ hmac = "0.12.0"
 sha2 = { version = "0.10", default-features = false }
 
 # Private dependencies (not exposed in the public API).
-lazy_static = { version = "1.4", optional = true }
+lazy_static = { version = "1.5", optional = true }
 smallvec = "1.13.2"
-subtle = { version = "2.4.0", default-features = false }
-zeroize = { version = "1.7", features = ["zeroize_derive"] }
+subtle = { version = "2.6.1", default-features = false }
+zeroize = { version = "1.8", features = ["zeroize_derive"] }
 
 # Crypto backends (all public dependencies).
 secp256k1 = { version = "0.29", optional = true }
@@ -91,7 +91,7 @@ doc-comment = "0.3.3"
 hex-buffer-serde = "0.4.0"
 num-bigint = { package = "num-bigint-dig", version = "0.8.2" }
 rand = "0.8.3"
-uuid = { version = "1.8.0", features = ["serde", "v4"] }
+uuid = { version = "1.9.1", features = ["serde", "v4"] }
 version-sync = "0.9"
 
 [features]

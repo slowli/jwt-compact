@@ -61,7 +61,7 @@ fn encoding_benches(criterion: &mut Criterion) {
         });
     });
 
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     criterion.bench_function("encoding_cbor/full", |bencher| {
         bencher.iter(|| {
             let header = Header::empty().with_key_id(&key_id);
@@ -81,7 +81,7 @@ fn decoding_benches(criterion: &mut Criterion) {
         .set_duration_and_issuance(&time_options, Duration::try_minutes(10).unwrap())
         .set_not_before(Utc::now() - Duration::try_minutes(10).unwrap());
 
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     {
         let compact_token = Hs256.compact_token(&header, &claims, &key).unwrap();
         criterion.bench_function("decoding_cbor", |bencher| {

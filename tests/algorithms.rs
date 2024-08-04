@@ -315,7 +315,7 @@ fn hs512_algorithm() {
     test_algorithm(&Hs512, &key, &key);
 }
 
-#[cfg(feature = "serde_cbor")]
+#[cfg(feature = "ciborium")]
 #[test]
 fn compact_token_hs256() {
     let claims = create_claims();
@@ -340,11 +340,11 @@ fn compact_token_hs256() {
     {
         use std::collections::HashMap;
 
-        let generic_token: Token<HashMap<String, serde_cbor::Value>> =
+        let generic_token: Token<HashMap<String, ciborium::Value>> =
             Hs256.validator(&key).validate(&untrusted_token).unwrap();
         assert_matches::assert_matches!(
             generic_token.claims().custom["sub"],
-            serde_cbor::Value::Bytes(_)
+            ciborium::Value::Bytes(_)
         );
     }
 }
@@ -493,7 +493,7 @@ fn test_algorithm_with_custom_header<A: Algorithm>(
     let claims = create_claims();
 
     // Successful case with a compact token.
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     {
         let token_string = algorithm
             .compact_token(&header, &claims, signing_key)

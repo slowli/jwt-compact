@@ -50,7 +50,7 @@ pub fn test_algorithm<A: Algorithm>(
     let claims = create_claims();
 
     // Successful case with a compact token.
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     {
         let token_string = algorithm
             .compact_token(&Header::empty(), &claims, signing_key)

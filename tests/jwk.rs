@@ -28,10 +28,11 @@ fn assert_jwk_roundtrip(jwk: &JsonWebKey<'_>) {
     let restored_from_json: JsonWebKey<'_> = serde_json::from_value(json).unwrap();
     assert_eq!(restored_from_json, *jwk);
 
-    #[cfg(feature = "serde_cbor")]
+    #[cfg(feature = "ciborium")]
     {
-        let bytes = serde_cbor::to_vec(jwk).unwrap();
-        let restored_from_cbor: JsonWebKey<'_> = serde_cbor::from_slice(&bytes).unwrap();
+        let mut bytes = vec![];
+        ciborium::into_writer(jwk, &mut bytes).unwrap();
+        let restored_from_cbor: JsonWebKey<'_> = ciborium::from_reader(&bytes[..]).unwrap();
         assert_eq!(restored_from_cbor, *jwk);
     }
 }

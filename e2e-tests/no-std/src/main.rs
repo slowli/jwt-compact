@@ -9,7 +9,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln, syscall};
-use embedded_alloc::Heap;
+use embedded_alloc::LlffHeap as Heap;
 use panic_halt as _;
 use serde::{Deserialize, Serialize};
 

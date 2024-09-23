@@ -50,7 +50,7 @@ zeroize = { version = "1.8", features = ["zeroize_derive"] }
 secp256k1 = { version = "0.29", optional = true }
 
 [dependencies.k256]
-version = "0.13.3"
+version = "0.13.4"
 default-features = false
 features = ["ecdsa"]
 optional = true

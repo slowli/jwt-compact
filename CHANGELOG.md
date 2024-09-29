@@ -10,6 +10,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 ### Changed
 
 - Bump minimum supported Rust version to 1.70.
+- Update `secp256k1` dependency.
 
 ### Fixed
 

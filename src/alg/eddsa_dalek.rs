@@ -1,11 +1,11 @@
 //! `EdDSA` algorithm implementation using the `ed25519-dalek` crate.
 
+use core::num::NonZeroUsize;
+
 use ed25519_dalek::{
     SecretKey, Signature, Signer, Verifier, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH,
     SIGNATURE_LENGTH,
 };
-
-use core::num::NonZeroUsize;
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

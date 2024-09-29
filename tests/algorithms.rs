@@ -3,16 +3,16 @@
 use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{TimeZone, Utc};
+use jwt_compact::{
+    alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, Thumbprint, ValidationError,
+};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-mod shared;
-
 use crate::shared::{create_claims, test_algorithm, Obj, SampleClaims};
-use jwt_compact::{
-    alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, Thumbprint, ValidationError,
-};
+
+mod shared;
 
 #[test]
 fn hs256_reference() {

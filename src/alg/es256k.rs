@@ -1,5 +1,7 @@
 //! `ES256K` algorithm implementation using the `secp256k1` crate.
 
+use core::{marker::PhantomData, num::NonZeroUsize};
+
 use lazy_static::lazy_static;
 use secp256k1::{
     constants::{
@@ -14,8 +16,6 @@ use sha2::{
     },
     Digest, Sha256,
 };
-
-use core::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

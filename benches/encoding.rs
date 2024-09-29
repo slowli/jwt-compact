@@ -2,13 +2,12 @@
 
 use chrono::{Duration, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
 use jwt_compact::{
     alg::{Hs256, Hs256Key},
     AlgorithmExt, Claims, Header, TimeOptions, UntrustedToken,
 };
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 // Fairly small list of claims.
 #[derive(Serialize, Deserialize)]

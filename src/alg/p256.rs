@@ -1,12 +1,12 @@
 //! `ES256` algorithm implementation using the `p256` crate.
 
+use core::num::NonZeroUsize;
+
 use p256::ecdsa::{
     signature::{DigestSigner, DigestVerifier},
     Signature, SigningKey, VerifyingKey,
 };
 use sha2::{Digest, Sha256};
-
-use core::num::NonZeroUsize;
 
 use crate::{
     alg::{self, SecretBytes},

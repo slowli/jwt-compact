@@ -3,6 +3,28 @@
 
 use core::fmt;
 
+#[cfg(feature = "ed25519-compact")]
+pub use self::eddsa_compact::*;
+#[cfg(feature = "ed25519-dalek")]
+pub use self::eddsa_dalek::Ed25519;
+#[cfg(feature = "exonum-crypto")]
+pub use self::eddsa_sodium::Ed25519;
+#[cfg(feature = "es256k")]
+pub use self::es256k::Es256k;
+#[cfg(feature = "k256")]
+pub use self::k256::Es256k;
+#[cfg(feature = "p256")]
+pub use self::p256::Es256;
+#[cfg(feature = "rsa")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
+pub use self::rsa::{
+    ModulusBits, ModulusBitsError, Rsa, RsaError, RsaParseError, RsaPrivateKey, RsaPublicKey,
+    RsaSignature,
+};
+pub use self::{
+    generic::{SecretBytes, SigningKey, VerifyingKey},
+    hmacs::*,
+};
 use crate::{alloc::Cow, Algorithm};
 
 mod generic;
@@ -25,27 +47,6 @@ mod p256;
 // RSA implementation.
 #[cfg(feature = "rsa")]
 mod rsa;
-
-#[cfg(feature = "ed25519-compact")]
-pub use self::eddsa_compact::*;
-#[cfg(feature = "ed25519-dalek")]
-pub use self::eddsa_dalek::Ed25519;
-#[cfg(feature = "exonum-crypto")]
-pub use self::eddsa_sodium::Ed25519;
-#[cfg(feature = "es256k")]
-pub use self::es256k::Es256k;
-pub use self::generic::{SecretBytes, SigningKey, VerifyingKey};
-pub use self::hmacs::*;
-#[cfg(feature = "k256")]
-pub use self::k256::Es256k;
-#[cfg(feature = "p256")]
-pub use self::p256::Es256;
-#[cfg(feature = "rsa")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
-pub use self::rsa::{
-    ModulusBits, ModulusBitsError, Rsa, RsaError, RsaParseError, RsaPrivateKey, RsaPublicKey,
-    RsaSignature,
-};
 
 /// Wrapper around keys allowing to enforce key strength requirements.
 ///

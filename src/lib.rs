@@ -229,7 +229,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Documentation settings.
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/jwt-compact/0.8.0")]
+#![doc(html_root_url = "https://docs.rs/jwt-compact/0.9.0-beta.1")]
 // Linter settings.
 #![warn(missing_debug_implementations, missing_docs, bare_trait_objects)]
 #![warn(clippy::all, clippy::pedantic)]
@@ -238,6 +238,13 @@
     clippy::must_use_candidate,
     clippy::module_name_repetitions
 )]
+
+pub use crate::{
+    claims::{Claims, Empty, TimeOptions},
+    error::{Claim, CreationError, ParseError, ValidationError},
+    token::{Header, SignedToken, Thumbprint, Token, UntrustedToken},
+    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed, Validator},
+};
 
 pub mod alg;
 mod claims;
@@ -264,13 +271,6 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
 }
-
-pub use crate::{
-    claims::{Claims, Empty, TimeOptions},
-    error::{Claim, CreationError, ParseError, ValidationError},
-    token::{Header, SignedToken, Thumbprint, Token, UntrustedToken},
-    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed, Validator},
-};
 
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");

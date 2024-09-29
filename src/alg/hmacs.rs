@@ -1,7 +1,14 @@
 //! JWT algorithms based on HMACs.
 
-use hmac::digest::generic_array::{typenum::Unsigned, GenericArray};
-use hmac::{digest::CtOutput, Hmac, Mac as _};
+use core::{fmt, num::NonZeroUsize};
+
+use hmac::{
+    digest::{
+        generic_array::{typenum::Unsigned, GenericArray},
+        CtOutput,
+    },
+    Hmac, Mac as _,
+};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{
     digest::{core_api::BlockSizeUser, OutputSizeUser},
@@ -9,8 +16,6 @@ use sha2::{
 };
 use smallvec::{smallvec, SmallVec};
 use zeroize::Zeroize;
-
-use core::{fmt, num::NonZeroUsize};
 
 use crate::{
     alg::{SecretBytes, SigningKey, StrongKey, VerifyingKey, WeakKeyError},

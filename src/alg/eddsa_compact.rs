@@ -1,9 +1,9 @@
 //! `EdDSA` algorithm implementation using the `ed25519-compact` crate.
 
+use core::num::NonZeroUsize;
+
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
 use rand_core::{CryptoRng, RngCore};
-
-use core::num::NonZeroUsize;
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

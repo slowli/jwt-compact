@@ -1,12 +1,12 @@
 //! `EdDSA` algorithm implementation using the `exonum-crypto` crate.
 
+use core::num::NonZeroUsize;
+
 use anyhow::format_err;
 use exonum_crypto::{
     gen_keypair_from_seed, sign, verify, PublicKey, SecretKey, Seed, Signature, PUBLIC_KEY_LENGTH,
     SEED_LENGTH, SIGNATURE_LENGTH,
 };
-
-use core::num::NonZeroUsize;
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},

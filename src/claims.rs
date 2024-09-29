@@ -212,13 +212,13 @@ impl<T> Claims<T> {
 }
 
 mod serde_timestamp {
+    use core::fmt;
+
     use chrono::{offset::TimeZone, DateTime, Utc};
     use serde::{
         de::{Error as DeError, Visitor},
         Deserializer, Serializer,
     };
-
-    use core::fmt;
 
     struct TimestampVisitor;
 
@@ -277,9 +277,10 @@ mod serde_timestamp {
 
 #[cfg(all(test, feature = "clock"))]
 mod tests {
-    use super::*;
     use assert_matches::assert_matches;
     use chrono::TimeZone;
+
+    use super::*;
 
     #[test]
     fn empty_claims_can_be_serialized() {

@@ -5,16 +5,13 @@
 
 extern crate alloc;
 
+use alloc::{borrow::ToOwned, string::String};
+
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln, syscall};
 use embedded_alloc::LlffHeap as Heap;
-use panic_halt as _;
-use serde::{Deserialize, Serialize};
-
-use alloc::{borrow::ToOwned, string::String};
-
 #[cfg(feature = "ed25519")]
 use jwt_compact::alg::Ed25519;
 #[cfg(feature = "rsa")]
@@ -24,6 +21,8 @@ use jwt_compact::{
     prelude::*,
     Algorithm,
 };
+use panic_halt as _;
+use serde::{Deserialize, Serialize};
 
 #[global_allocator]
 static ALLOCATOR: Heap = Heap::empty();

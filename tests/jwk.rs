@@ -4,12 +4,11 @@
 
 use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
-use sha2::{digest::Digest, Sha256, Sha384, Sha512};
-
 use jwt_compact::{
     alg::Hs256Key,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
+use sha2::{digest::Digest, Sha256, Sha384, Sha512};
 
 fn key_thumbprint<'a, D, K>(key: &'a K) -> String
 where
@@ -90,11 +89,11 @@ fn hs256_incorrect_key_type() {
 
 #[cfg(feature = "rsa")]
 mod rsa_jwk {
-    use super::*;
-
     use num_bigint::{ModInverse, RandPrime};
     use rand::{thread_rng, Rng};
     use rsa::{errors::Error as RsaError, BigUint, RsaPrivateKey, RsaPublicKey};
+
+    use super::*;
 
     // This code is taken from the `rsa` crate, where it was made private in v0.9
     // because of high possibility of misuse.
@@ -295,8 +294,7 @@ mod rsa_jwk {
 
 #[cfg(any(feature = "es256k", feature = "k256"))]
 mod es256k {
-    use super::*;
-
+    use const_decoder::Decoder::Hex;
     #[cfg(feature = "k256")]
     use jwt_compact::alg::VerifyingKey;
     use jwt_compact::{
@@ -304,7 +302,7 @@ mod es256k {
         Algorithm,
     };
 
-    use const_decoder::Decoder::Hex;
+    use super::*;
 
     type SecretKey = <Es256k as Algorithm>::SigningKey;
     type PublicKey = <Es256k as Algorithm>::VerifyingKey;
@@ -489,14 +487,13 @@ mod es256k {
 
 #[cfg(feature = "p256")]
 mod es256 {
-    use super::*;
-
+    use const_decoder::Decoder::Hex;
     use jwt_compact::{
         alg::{Es256, SigningKey, VerifyingKey},
         Algorithm,
     };
 
-    use const_decoder::Decoder::Hex;
+    use super::*;
 
     type SecretKey = <Es256 as Algorithm>::SigningKey;
     type PublicKey = <Es256 as Algorithm>::VerifyingKey;
@@ -685,13 +682,13 @@ mod es256 {
     feature = "ed25519-compact"
 ))]
 mod ed25519 {
-    use super::*;
+    use const_decoder::Decoder::Hex;
     use jwt_compact::{
         alg::{Ed25519, SigningKey, VerifyingKey},
         Algorithm,
     };
 
-    use const_decoder::Decoder::Hex;
+    use super::*;
 
     type SecretKey = <Ed25519 as Algorithm>::SigningKey;
     type PublicKey = <Ed25519 as Algorithm>::VerifyingKey;

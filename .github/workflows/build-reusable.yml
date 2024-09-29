@@ -43,7 +43,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo
 
       - name: Format
-        run: cargo fmt --all -- --check
+        run: cargo fmt --all -- --check --config imports_granularity=Crate --config group_imports=StdExternalCrate
       - name: Clippy
         run: cargo clippy -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
       - name: Clippy

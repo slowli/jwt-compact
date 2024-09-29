@@ -1,5 +1,7 @@
 //! `ES256K` algorithm implementation using the `k256` crate.
 
+use core::{marker::PhantomData, num::NonZeroUsize, ops::Add};
+
 use k256::{
     ecdsa::{
         signature::{DigestSigner, DigestVerifier},
@@ -9,8 +11,6 @@ use k256::{
     Secp256k1,
 };
 use sha2::{digest::typenum::Unsigned, Digest, Sha256};
-
-use core::{marker::PhantomData, num::NonZeroUsize, ops::Add};
 
 use crate::{
     alg::{self, SecretBytes},

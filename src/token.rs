@@ -1,13 +1,13 @@
 //! `Token` and closely related types.
 
+use core::{cmp, fmt};
+
 use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{
     de::{DeserializeOwned, Error as DeError, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use smallvec::{smallvec, SmallVec};
-
-use core::{cmp, fmt};
 
 #[cfg(feature = "ciborium")]
 use crate::error::CborDeError;

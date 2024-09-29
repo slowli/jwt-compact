@@ -239,6 +239,13 @@
     clippy::module_name_repetitions
 )]
 
+pub use crate::{
+    claims::{Claims, Empty, TimeOptions},
+    error::{Claim, CreationError, ParseError, ValidationError},
+    token::{Header, SignedToken, Thumbprint, Token, UntrustedToken},
+    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed, Validator},
+};
+
 pub mod alg;
 mod claims;
 mod error;
@@ -264,13 +271,6 @@ pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{AlgorithmExt as _, Claims, Header, TimeOptions, Token, UntrustedToken};
 }
-
-pub use crate::{
-    claims::{Claims, Empty, TimeOptions},
-    error::{Claim, CreationError, ParseError, ValidationError},
-    token::{Header, SignedToken, Thumbprint, Token, UntrustedToken},
-    traits::{Algorithm, AlgorithmExt, AlgorithmSignature, Renamed, Validator},
-};
 
 #[cfg(doctest)]
 doc_comment::doctest!("../README.md");

@@ -19,7 +19,7 @@ and describe the motivation behind it. If applicable, like to the related issue(
 Optimally, you should check locally that the CI checks pass before submitting the PR. Checks included in the CI
 include:
 
-- Formatting using `cargo fmt --all`
+- Formatting using `cargo fmt --all -- --config imports_granularity=Crate --config group_imports=StdExternalCrate`
 - Linting using `cargo clippy`
 - Linting the dependency graph using [`cargo deny`](https://crates.io/crates/cargo-deny)
 - Running the test suite using `cargo test`

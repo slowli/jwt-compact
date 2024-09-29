@@ -1,9 +1,9 @@
 //! Generic traits providing uniform interfaces for a certain cryptosystem
 //! across different backends.
 
-use zeroize::Zeroize;
-
 use core::{fmt, ops};
+
+use zeroize::Zeroize;
 
 use crate::{
     alloc::{Cow, Vec},

@@ -1,15 +1,14 @@
 //! RSA-based JWT algorithms: `RS*` and `PS*`.
 
-pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
+use core::{fmt, str::FromStr};
 
 use rand_core::{CryptoRng, RngCore};
+pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 use rsa::{
     traits::{PrivateKeyParts, PublicKeyParts},
     BigUint, Pkcs1v15Sign, Pss,
 };
 use sha2::{Digest, Sha256, Sha384, Sha512};
-
-use core::{fmt, str::FromStr};
 
 use crate::{
     alg::{SecretBytes, StrongKey, WeakKeyError},

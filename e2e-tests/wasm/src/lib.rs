@@ -5,19 +5,18 @@
 
 extern crate alloc;
 
-use chrono::Duration;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::Error as JsonError;
-use wasm_bindgen::prelude::*;
-
 use alloc::string::{String, ToString};
 use core::fmt;
 
+use chrono::Duration;
 use jwt_compact::{
     alg::{Ed25519, Es256, Es256k, Hs256, Hs384, Hs512, Rsa},
     jwk::{JsonWebKey, JwkError},
     Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
 };
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Error as JsonError;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {

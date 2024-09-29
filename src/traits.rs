@@ -1,9 +1,9 @@
 //! Key traits defined by the crate.
 
+use core::{marker::PhantomData, num::NonZeroUsize};
+
 use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{de::DeserializeOwned, Serialize};
-
-use core::{marker::PhantomData, num::NonZeroUsize};
 
 #[cfg(feature = "ciborium")]
 use crate::error::CborSerError;

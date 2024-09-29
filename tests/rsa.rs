@@ -1,13 +1,13 @@
 //! Tests for RSA algorithms.
 
 use assert_matches::assert_matches;
+use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 use rand::thread_rng;
 use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
 
-mod shared;
-
 use crate::shared::{create_claims, test_algorithm, CompactClaims, SampleClaims};
-use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
+
+mod shared;
 
 const RSA_PRIVATE_KEY: &str = "\
 -----BEGIN RSA PRIVATE KEY-----

@@ -33,10 +33,10 @@
 //! # }
 //! ```
 
+use core::fmt;
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::digest::{Digest, Output};
-
-use core::fmt;
 
 use crate::{
     alg::SecretBytes,
@@ -476,13 +476,13 @@ mod helpers {
 }
 
 mod base64url {
+    use core::fmt;
+
     use base64ct::{Base64UrlUnpadded, Encoding};
     use serde::{
         de::{Error as DeError, Unexpected, Visitor},
         Deserializer, Serializer,
     };
-
-    use core::fmt;
 
     use crate::alloc::{Cow, Vec};
 
@@ -553,10 +553,10 @@ mod base64url {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+
     use super::*;
     use crate::alg::Hs256Key;
-
-    use assert_matches::assert_matches;
 
     fn create_jwk() -> JsonWebKey<'static> {
         JsonWebKey::KeyPair {

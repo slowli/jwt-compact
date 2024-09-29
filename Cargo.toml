@@ -1,6 +1,6 @@
 [package]
 name = "jwt-compact"
-version = "0.8.0"
+version = "0.9.0-beta.1"
 authors = [
   "Alex Ostrovski <ostrovski.alex@gmail.com>",
   "Akhil Velagapudi <akhilvelagapudi@gmail.com>",

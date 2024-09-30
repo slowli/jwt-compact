@@ -11,7 +11,7 @@ publish = false
 [dependencies]
 anyhow = { version = "1.0.89", default-features = false }
 chrono = { version = "0.4.38", default-features = false }
-const-decoder = "0.3.0"
+const-decoder = "0.4.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 
 # Cortex-M dependencies.
@@ -23,7 +23,7 @@ panic-halt = "0.2.0"
 
 # RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
 getrandom = { version = "0.2", features = ["custom"], optional = true }
-once_cell = { version = "1.19.0", default-features = false, optional = true }
+once_cell = { version = "1.20.1", default-features = false, optional = true }
 rand_chacha = { version = "0.3.1", default-features = false, optional = true }
 rsa = { version = "0.9", default-features = false, optional = true }
 

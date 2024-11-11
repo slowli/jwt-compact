@@ -19,7 +19,7 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
 cortex-m-semihosting = "0.5"
 embedded-alloc = "0.6.0"
-panic-halt = "0.2.0"
+panic-halt = "1.0.0"
 
 # RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
 getrandom = { version = "0.2", features = ["custom"], optional = true }

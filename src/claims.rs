@@ -222,7 +222,7 @@ mod serde_timestamp {
 
     struct TimestampVisitor;
 
-    impl<'de> Visitor<'de> for TimestampVisitor {
+    impl Visitor<'_> for TimestampVisitor {
         type Value = DateTime<Utc>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -260,6 +260,7 @@ mod serde_timestamp {
         }
     }
 
+    #[allow(unknown_lints, clippy::ref_option)] // function signature required by `serde`
     pub fn serialize<S: Serializer>(
         time: &Option<DateTime<Utc>>,
         serializer: S,

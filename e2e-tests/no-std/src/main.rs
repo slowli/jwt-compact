@@ -46,7 +46,8 @@ mod rsa_helpers {
     fn unsecure_getrandom_do_not_use_in_real_apps(dest: &mut [u8]) -> Result<(), RandomError> {
         unsafe {
             // SAFETY: we have a single-threaded context, so access to `RNG` is exclusive.
-            RNG.fill_bytes(dest);
+            let rng_ref = &raw mut RNG;
+            (*rng_ref).fill_bytes(dest);
         }
         Ok(())
     }

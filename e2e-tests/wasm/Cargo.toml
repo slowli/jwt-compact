@@ -15,9 +15,9 @@ wasm-opt = ["-Os", "--enable-mutable-globals", "--enable-bulk-memory"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.95"
+wasm-bindgen = "0.2.99"
 
-chrono = { version = "0.4.38", features = ["wasmbind"] }
+chrono = { version = "0.4.39", features = ["wasmbind"] }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 

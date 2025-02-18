@@ -1,8 +1,11 @@
 //! Tests for RSA algorithms.
 
+use std::cell::RefCell;
+
 use assert_matches::assert_matches;
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 use rand::thread_rng;
+use rand_core::OsRng;
 use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
 
 use crate::shared::{create_claims, test_algorithm, CompactClaims, SampleClaims};
@@ -247,4 +250,14 @@ fn ps384_reference() {
 fn parsing_rsa_alg_from_string() {
     let rsa: Rsa = "PS256".parse().unwrap();
     assert_eq!(rsa, Rsa::ps256());
+}
+
+#[test]
+fn rs256_byo() {
+    let signing_key = RsaPrivateKey::from_pkcs1_pem(RSA_PRIVATE_KEY).unwrap();
+    signing_key.validate().unwrap();
+    let verifying_key = signing_key.to_public_key();
+    let mut rng = OsRng;
+    let cell = RefCell::new(&mut rng);
+    test_algorithm(&Rsa::rs256().with_byo(cell), &signing_key, &verifying_key);
 }

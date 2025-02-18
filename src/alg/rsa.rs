@@ -1,8 +1,8 @@
 //! RSA-based JWT algorithms: `RS*` and `PS*`.
 
-use core::{fmt, str::FromStr};
+use core::{cell::RefCell, fmt, ops::DerefMut, str::FromStr};
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::{CryptoRng, CryptoRngCore, RngCore};
 pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 use rsa::{
     traits::{PrivateKeyParts, PublicKeyParts},
@@ -19,7 +19,7 @@ use crate::{
 
 /// RSA signature.
 #[derive(Debug)]
-#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = ["rsa", "rsa-byo"])))]
 pub struct RsaSignature(Vec<u8>);
 
 impl AlgorithmSignature for RsaSignature {
@@ -162,13 +162,88 @@ impl std::error::Error for ModulusBitsError {}
 /// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
 /// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
+#[cfg_attr(docsrs, doc(cfg(feature = ["rsa", "rsa-byo"])))]
 pub struct Rsa {
     hash_alg: HashAlg,
     padding_alg: Padding,
 }
 
-impl Algorithm for Rsa {
+/// Integrity algorithm using [RSA] digital signatures with self-brought RNG.
+///
+/// Depending on the variation, the algorithm employs PKCS#1 v1.5 or PSS padding and
+/// one of the hash functions from the SHA-2 family: SHA-256, SHA-384, or SHA-512.
+/// See [RFC 7518] for more details. Depending on the chosen parameters,
+/// the name of the algorithm is one of `RS256`, `RS384`, `RS512`, `PS256`, `PS384`, `PS512`:
+///
+/// - `R` / `P` denote the padding scheme: PKCS#1 v1.5 for `R`, PSS for `P`
+/// - `256` / `384` / `512` denote the hash function
+///
+/// The length of RSA keys is not unequivocally specified by the algorithm; nevertheless,
+/// it **MUST** be at least 2048 bits as per RFC 7518. To minimize risks of misconfiguration,
+/// use [`StrongAlg`](super::StrongAlg) wrapper around `Rsa`:
+///
+/// ```
+/// # use jwt_compact::alg::{StrongAlg, Rsa};
+/// let mut rng = OsRng;
+/// let cell = RefCell::new(&mut rng);
+/// const ALG: StrongAlg<Rsa> = StrongAlg(Rsa::rs256().with_byo(cell));
+/// // `ALG` will not support RSA keys with unsecure lengths by design!
+/// ```
+///
+/// [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
+/// [RFC 7518]: https://www.rfc-editor.org/rfc/rfc7518.html
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa-byo")))]
+#[cfg(feature = "rsa-byo")]
+pub struct RsaByo<'a, Rng: CryptoRngCore> {
+    hash_alg: HashAlg,
+    padding_alg: Padding,
+
+    rng: RefCell<&'a mut Rng>,
+}
+
+trait RsaAlgorithm {
+    fn rng<'a>(&'a self) -> impl DerefMut<Target = impl CryptoRngCore>;
+    fn hash_alg(&self) -> HashAlg;
+    fn padding_alg(&self) -> Padding;
+
+    fn padding_scheme(&self) -> PaddingScheme {
+        let padding_alg = self.padding_alg();
+        let hash_alg = self.hash_alg();
+        match padding_alg {
+            Padding::Pkcs1v15 => PaddingScheme::Pkcs1v15(match hash_alg {
+                HashAlg::Sha256 => Pkcs1v15Sign::new::<Sha256>(),
+                HashAlg::Sha384 => Pkcs1v15Sign::new::<Sha384>(),
+                HashAlg::Sha512 => Pkcs1v15Sign::new::<Sha512>(),
+            }),
+            Padding::Pss => {
+                // The salt length needs to be set to the size of hash function output;
+                // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
+                PaddingScheme::Pss(match hash_alg {
+                    HashAlg::Sha256 => Pss::new_with_salt::<Sha256>(Sha256::output_size()),
+                    HashAlg::Sha384 => Pss::new_with_salt::<Sha384>(Sha384::output_size()),
+                    HashAlg::Sha512 => Pss::new_with_salt::<Sha512>(Sha512::output_size()),
+                })
+            }
+        }
+    }
+
+    fn alg_name(&self) -> &'static str {
+        match (self.padding_alg(), self.hash_alg()) {
+            (Padding::Pkcs1v15, HashAlg::Sha256) => "RS256",
+            (Padding::Pkcs1v15, HashAlg::Sha384) => "RS384",
+            (Padding::Pkcs1v15, HashAlg::Sha512) => "RS512",
+            (Padding::Pss, HashAlg::Sha256) => "PS256",
+            (Padding::Pss, HashAlg::Sha384) => "PS384",
+            (Padding::Pss, HashAlg::Sha512) => "PS512",
+        }
+    }
+}
+
+impl<T> Algorithm for T
+where
+    T: RsaAlgorithm,
+{
     type SigningKey = RsaPrivateKey;
     type VerifyingKey = RsaPublicKey;
     type Signature = RsaSignature;
@@ -178,15 +253,14 @@ impl Algorithm for Rsa {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let digest = self.hash_alg.digest(message);
+        let digest = self.hash_alg().digest(message);
         let digest = digest.as_ref();
+        let mut rng = self.rng();
         let signing_result = match self.padding_scheme() {
             PaddingScheme::Pkcs1v15(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
+                signing_key.sign_with_rng(&mut *rng, padding, digest)
             }
-            PaddingScheme::Pss(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
-            }
+            PaddingScheme::Pss(padding) => signing_key.sign_with_rng(&mut *rng, padding, digest),
         };
         RsaSignature(signing_result.expect("Unexpected RSA signature failure"))
     }
@@ -197,13 +271,46 @@ impl Algorithm for Rsa {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let digest = self.hash_alg.digest(message);
+        let digest = self.hash_alg().digest(message);
         let digest = digest.as_ref();
         let verify_result = match self.padding_scheme() {
             PaddingScheme::Pkcs1v15(padding) => verifying_key.verify(padding, digest, &signature.0),
             PaddingScheme::Pss(padding) => verifying_key.verify(padding, digest, &signature.0),
         };
         verify_result.is_ok()
+    }
+}
+
+#[cfg(feature = "rsa")]
+use rand_core::OsRng;
+
+#[cfg(feature = "rsa")]
+impl RsaAlgorithm for Rsa {
+    fn rng(&self) -> impl DerefMut<Target = impl CryptoRngCore> {
+        Box::new(OsRng)
+    }
+
+    fn hash_alg(&self) -> HashAlg {
+        self.hash_alg
+    }
+
+    fn padding_alg(&self) -> Padding {
+        self.padding_alg
+    }
+}
+
+#[cfg(feature = "rsa-byo")]
+impl<Rng: CryptoRngCore> RsaAlgorithm for RsaByo<'_, Rng> {
+    fn rng(&self) -> impl DerefMut<Target = impl CryptoRngCore> {
+        self.rng.borrow_mut()
+    }
+
+    fn hash_alg(&self) -> HashAlg {
+        self.hash_alg
+    }
+
+    fn padding_alg(&self) -> Padding {
+        self.padding_alg
     }
 }
 
@@ -245,6 +352,16 @@ impl Rsa {
         Rsa::new(HashAlg::Sha512, Padding::Pss)
     }
 
+    /// RSA with BYO RNG provider.
+    #[cfg(feature = "rsa-byo")]
+    pub fn with_byo<Rng: CryptoRngCore>(self, rng: RefCell<&mut Rng>) -> RsaByo<Rng> {
+        RsaByo {
+            hash_alg: self.hash_alg,
+            padding_alg: self.padding_alg,
+            rng,
+        }
+    }
+
     /// RSA based on the specified algorithm name.
     ///
     /// # Panics
@@ -254,37 +371,6 @@ impl Rsa {
     pub fn with_name(name: &str) -> Self {
         name.parse().unwrap()
     }
-
-    fn padding_scheme(self) -> PaddingScheme {
-        match self.padding_alg {
-            Padding::Pkcs1v15 => PaddingScheme::Pkcs1v15(match self.hash_alg {
-                HashAlg::Sha256 => Pkcs1v15Sign::new::<Sha256>(),
-                HashAlg::Sha384 => Pkcs1v15Sign::new::<Sha384>(),
-                HashAlg::Sha512 => Pkcs1v15Sign::new::<Sha512>(),
-            }),
-            Padding::Pss => {
-                // The salt length needs to be set to the size of hash function output;
-                // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
-                PaddingScheme::Pss(match self.hash_alg {
-                    HashAlg::Sha256 => Pss::new_with_salt::<Sha256>(Sha256::output_size()),
-                    HashAlg::Sha384 => Pss::new_with_salt::<Sha384>(Sha384::output_size()),
-                    HashAlg::Sha512 => Pss::new_with_salt::<Sha512>(Sha512::output_size()),
-                })
-            }
-        }
-    }
-
-    fn alg_name(self) -> &'static str {
-        match (self.padding_alg, self.hash_alg) {
-            (Padding::Pkcs1v15, HashAlg::Sha256) => "RS256",
-            (Padding::Pkcs1v15, HashAlg::Sha384) => "RS384",
-            (Padding::Pkcs1v15, HashAlg::Sha512) => "RS512",
-            (Padding::Pss, HashAlg::Sha256) => "PS256",
-            (Padding::Pss, HashAlg::Sha384) => "PS384",
-            (Padding::Pss, HashAlg::Sha512) => "PS512",
-        }
-    }
-
     /// Generates a new key pair with the specified modulus bit length (aka key length).
     pub fn generate<R: CryptoRng + RngCore>(
         rng: &mut R,

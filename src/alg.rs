@@ -15,8 +15,11 @@ pub use self::es256k::Es256k;
 pub use self::k256::Es256k;
 #[cfg(feature = "p256")]
 pub use self::p256::Es256;
-#[cfg(feature = "rsa")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rsa")))]
+#[cfg(feature = "rsa-byo")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rsa-byo")))]
+pub use self::rsa::RsaByo;
+#[cfg(any(feature = "rsa", feature = "rsa-byo"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "rsa", feature = "rsa-byo"))))]
 pub use self::rsa::{
     ModulusBits, ModulusBitsError, Rsa, RsaError, RsaParseError, RsaPrivateKey, RsaPublicKey,
     RsaSignature,
@@ -45,7 +48,7 @@ mod eddsa_sodium;
 #[cfg(feature = "p256")]
 mod p256;
 // RSA implementation.
-#[cfg(feature = "rsa")]
+#[cfg(any(feature = "rsa", feature = "rsa-byo"))]
 mod rsa;
 
 /// Wrapper around keys allowing to enforce key strength requirements.

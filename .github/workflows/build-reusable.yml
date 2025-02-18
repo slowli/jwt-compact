@@ -65,7 +65,7 @@ jobs:
         run: cargo deny --workspace check
 
       - name: Run tests
-        run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
+        run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem,rsa-byo
       - name: Test dalek crypto
         run: cargo test -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
       - name: Test ed25519-compact

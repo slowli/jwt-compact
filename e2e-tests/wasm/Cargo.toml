@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 wasm-bindgen = "0.2.99"
 
-chrono = { version = "0.4.39", features = ["wasmbind"] }
+chrono = { version = "0.4.42", features = ["wasmbind"] }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 

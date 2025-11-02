@@ -6,7 +6,7 @@ use rand_core::{CryptoRng, RngCore};
 pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 use rsa::{
     traits::{PrivateKeyParts, PublicKeyParts},
-    BigUint, Pkcs1v15Sign, Pss,
+    BoxedUint, Pkcs1v15Sign, Pss,
 };
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
@@ -104,7 +104,7 @@ impl ModulusBits {
         }
     }
 
-    fn is_valid_bits(bits: usize) -> bool {
+    fn is_valid_bits(bits: u32) -> bool {
         matches!(bits, 2_048 | 3_072 | 4_096)
     }
 }
@@ -181,12 +181,16 @@ impl Algorithm for Rsa {
         let digest = self.hash_alg.digest(message);
         let digest = digest.as_ref();
         let signing_result = match self.padding_scheme() {
-            PaddingScheme::Pkcs1v15(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
-            }
-            PaddingScheme::Pss(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
-            }
+            PaddingScheme::Pkcs1v15(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(rand_core::OsRng),
+                padding,
+                digest,
+            ),
+            PaddingScheme::Pss(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(rand_core::OsRng),
+                padding,
+                digest,
+            ),
         };
         RsaSignature(signing_result.expect("Unexpected RSA signature failure"))
     }
@@ -360,11 +364,34 @@ impl TryFrom<RsaPublicKey> for StrongKey<RsaPublicKey> {
 impl<'a> From<&'a RsaPublicKey> for JsonWebKey<'a> {
     fn from(key: &'a RsaPublicKey) -> JsonWebKey<'a> {
         JsonWebKey::Rsa {
-            modulus: Cow::Owned(key.n().to_bytes_be()),
-            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+            modulus: Cow::Owned(key.n().to_be_bytes_trimmed_vartime().into()),
+            public_exponent: Cow::Owned(key.e().to_be_bytes_trimmed_vartime().into()),
             private_parts: None,
         }
     }
+}
+
+#[allow(clippy::cast_possible_truncation)] // not triggered
+fn secret_uint_from_slice(slice: &[u8], precision: u32) -> Result<BoxedUint, JwkError> {
+    debug_assert!(precision <= RsaPublicKey::MAX_SIZE as u32);
+    BoxedUint::from_be_slice(slice, precision).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
+}
+
+/// The caller must ensure that setting `precision` won't truncate the value.
+fn secret_uint_to_slice(secret: &BoxedUint, precision: u32) -> SecretBytes<'static> {
+    let bytes = secret.to_be_bytes();
+    let precision_bytes = precision.div_ceil(8) as usize;
+    SecretBytes::owned_slice(if bytes.len() > precision_bytes {
+        let first_idx = bytes.len() - precision_bytes;
+        bytes[first_idx..].into()
+    } else {
+        bytes
+    })
+}
+
+fn pub_exponent_from_slice(slice: &[u8]) -> Result<BoxedUint, JwkError> {
+    BoxedUint::from_be_slice(slice, RsaPublicKey::MAX_PUB_EXPONENT.ilog2() + 1)
+        .map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
 }
 
 impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
@@ -380,8 +407,8 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
             return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 
-        let e = BigUint::from_bytes_be(public_exponent);
-        let n = BigUint::from_bytes_be(modulus);
+        let e = pub_exponent_from_slice(public_exponent)?;
+        let n = BoxedUint::from_be_slice_vartime(modulus);
         Self::new(n, e).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
     }
 }
@@ -397,18 +424,23 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
 
         let p = key.primes().first().expect(MSG);
         let q = key.primes().get(1).expect(MSG);
+        // Truncate secret values to the modulus precision. We know that all secret values don't exceed the modulus,
+        // so this is safe. `d` in particular does have q higher precision for multi-prime RSA keys
+        // (e.g., it may have 2,176-bit precision for a 2,048-bit modulus), which would lead to excessive zero padding
+        // and may lead to unnecessary deserialization errors.
+        let precision = key.n().bits_precision();
 
         let private_parts = RsaPrivateParts {
-            private_exponent: SecretBytes::owned(key.d().to_bytes_be()),
-            prime_factor_p: SecretBytes::owned(p.to_bytes_be()),
-            prime_factor_q: SecretBytes::owned(q.to_bytes_be()),
+            private_exponent: secret_uint_to_slice(key.d(), precision),
+            prime_factor_p: secret_uint_to_slice(p, precision),
+            prime_factor_q: secret_uint_to_slice(q, precision),
             p_crt_exponent: None,
             q_crt_exponent: None,
             q_crt_coefficient: None,
             other_prime_factors: key.primes()[2..]
                 .iter()
                 .map(|factor| RsaPrimeFactor {
-                    factor: SecretBytes::owned(factor.to_bytes_be()),
+                    factor: secret_uint_to_slice(factor, precision),
                     crt_exponent: None,
                     crt_coefficient: None,
                 })
@@ -416,8 +448,8 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
         };
 
         JsonWebKey::Rsa {
-            modulus: Cow::Owned(key.n().to_bytes_be()),
-            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+            modulus: Cow::Owned(key.n().to_be_bytes_trimmed_vartime().into()),
+            public_exponent: Cow::Owned(key.e().to_be_bytes_trimmed_vartime().into()),
             private_parts: Some(private_parts),
         }
     }
@@ -450,18 +482,26 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
             .as_ref()
             .ok_or_else(|| JwkError::NoField("d".into()))?;
 
-        let e = BigUint::from_bytes_be(public_exponent);
-        let n = BigUint::from_bytes_be(modulus);
-        let d = BigUint::from_bytes_be(d);
+        let e = pub_exponent_from_slice(public_exponent)?;
+        let n = BoxedUint::from_be_slice_vartime(modulus);
 
+        // Round `n` bitness up to the nearest value divisible by 8
+        let precision = n.bits().div_ceil(8) * 8;
+        if precision as usize > RsaPublicKey::MAX_SIZE {
+            return Err(JwkError::Custom(anyhow::anyhow!(
+                "Modulus precision ({got}) exceeds maximum supported value ({max})",
+                got = n.bits(),
+                max = RsaPublicKey::MAX_SIZE
+            )));
+        }
+
+        let d = secret_uint_from_slice(d, precision)?;
         let mut factors = Vec::with_capacity(2 + other_prime_factors.len());
-        factors.push(BigUint::from_bytes_be(prime_factor_p));
-        factors.push(BigUint::from_bytes_be(prime_factor_q));
-        factors.extend(
-            other_prime_factors
-                .iter()
-                .map(|prime| BigUint::from_bytes_be(&prime.factor)),
-        );
+        factors.push(secret_uint_from_slice(prime_factor_p, precision)?);
+        factors.push(secret_uint_from_slice(prime_factor_q, precision)?);
+        for other_factor in other_prime_factors {
+            factors.push(secret_uint_from_slice(&other_factor.factor, precision)?);
+        }
 
         let key = Self::from_components(n, e, d, factors);
         let key = key.map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;

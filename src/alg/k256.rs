@@ -10,7 +10,10 @@ use k256::{
     elliptic_curve::FieldBytesSize,
     Secp256k1,
 };
-use sha2::{digest::typenum::Unsigned, Digest, Sha256};
+use sha2::{
+    digest::{typenum::Unsigned, Update},
+    Digest, Sha256,
+};
 
 use crate::{
     alg::{self, SecretBytes},
@@ -46,7 +49,7 @@ pub struct Es256k<D = Sha256> {
 
 impl<D> Default for Es256k<D>
 where
-    D: Default + Digest,
+    D: Default + Digest + Update,
     SigningKey: DigestSigner<D, Signature>,
     VerifyingKey: DigestVerifier<D, Signature>,
 {
@@ -59,7 +62,7 @@ where
 
 impl<D> Algorithm for Es256k<D>
 where
-    D: Default + Digest,
+    D: Default + Digest + Update,
     SigningKey: DigestSigner<D, Signature>,
     VerifyingKey: DigestVerifier<D, Signature>,
 {
@@ -72,9 +75,7 @@ where
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut digest = D::default();
-        digest.update(message);
-        signing_key.sign_digest(digest)
+        signing_key.sign_digest(|digest| Digest::update(digest, message))
     }
 
     fn verify_signature(
@@ -83,20 +84,20 @@ where
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut digest = D::default();
-        digest.update(message);
-
         // Some implementations (e.g., OpenSSL) produce high-S signatures, which
         // are considered invalid by this implementation. Hence, we perform normalization here.
         //
         // See also: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
-        let mut normalized_signature = *signature;
-        if let Some(new_signature) = normalized_signature.normalize_s() {
-            normalized_signature = new_signature;
-        }
+        let normalized_signature = signature.normalize_s();
 
         verifying_key
-            .verify_digest(digest, &normalized_signature)
+            .verify_digest(
+                |digest| {
+                    Digest::update(digest, message);
+                    Ok(())
+                },
+                &normalized_signature,
+            )
             .is_ok()
     }
 }

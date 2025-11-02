@@ -6,7 +6,7 @@ use chrono::{TimeZone, Utc};
 use jwt_compact::{
     alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, Thumbprint, ValidationError,
 };
-use rand::thread_rng;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -299,19 +299,19 @@ fn wso2_reference() {
 
 #[test]
 fn hs256_algorithm() {
-    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs256Key::generate(&mut rng()).into_inner();
     test_algorithm(&Hs256, &key, &key);
 }
 
 #[test]
 fn hs384_algorithm() {
-    let key = Hs384Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs384Key::generate(&mut rng()).into_inner();
     test_algorithm(&Hs384, &key, &key);
 }
 
 #[test]
 fn hs512_algorithm() {
-    let key = Hs512Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs512Key::generate(&mut rng()).into_inner();
     test_algorithm(&Hs512, &key, &key);
 }
 
@@ -319,7 +319,7 @@ fn hs512_algorithm() {
 #[test]
 fn compact_token_hs256() {
     let claims = create_claims();
-    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs256Key::generate(&mut rng()).into_inner();
     let long_token_str = Hs256.token(&Header::empty(), &claims, &key).unwrap();
     let token_str = Hs256
         .compact_token(&Header::empty(), &claims, &key)
@@ -367,7 +367,7 @@ fn ed25519_algorithm() {
     // Since `ed25519_dalek` works with `rand` v0.7 rather than v0.8, we use this roundabout way
     // to generate a keypair.
     let mut secret = SecretKey::default();
-    thread_rng().fill_bytes(&mut secret);
+    rng().fill_bytes(&mut secret);
     let signing_key = SigningKey::from(secret);
 
     test_algorithm(&Ed25519, &signing_key, signing_key.as_ref());
@@ -376,7 +376,7 @@ fn ed25519_algorithm() {
 #[cfg(feature = "ed25519-compact")]
 #[test]
 fn ed25519_algorithm() {
-    let (signing_key, verifying_key) = Ed25519::generate(&mut thread_rng());
+    let (signing_key, verifying_key) = Ed25519::generate(&mut rng());
     test_algorithm(&Ed25519, &signing_key, &verifying_key);
 }
 
@@ -388,10 +388,19 @@ fn es256k_algorithm() {
     type SecretKey = <Es256k as Algorithm>::SigningKey;
     type PublicKey = <Es256k as Algorithm>::VerifyingKey;
 
-    let mut rng = thread_rng();
+    #[cfg(feature = "es256k")]
+    fn bytes_to_sk(bytes: [u8; 32]) -> Option<SecretKey> {
+        SecretKey::from_byte_array(bytes).ok()
+    }
+
+    #[cfg(feature = "k256")]
+    fn bytes_to_sk(bytes: [u8; 32]) -> Option<SecretKey> {
+        SecretKey::from_slice(&bytes).ok()
+    }
+
+    let mut rng = rng();
     let signing_key = loop {
-        let bytes: [u8; 32] = rng.gen();
-        if let Ok(key) = SecretKey::from_slice(&bytes) {
+        if let Some(key) = bytes_to_sk(rng.random()) {
             break key;
         }
     };
@@ -447,9 +456,9 @@ fn es256_algorithm() {
     type SecretKey = <Es256 as Algorithm>::SigningKey;
     type PublicKey = <Es256 as Algorithm>::VerifyingKey;
 
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let signing_key = loop {
-        let bytes: [u8; 32] = rng.gen();
+        let bytes: [u8; 32] = rng.random();
         if let Ok(key) = SecretKey::from_slice(&bytes) {
             break key;
         }
@@ -543,18 +552,18 @@ fn test_algorithm_with_custom_header<A: Algorithm>(
 
 #[test]
 fn hs256_algorithm_with_custom_header() {
-    let key = Hs256Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs256Key::generate(&mut rng()).into_inner();
     test_algorithm_with_custom_header(&Hs256, &key, &key);
 }
 
 #[test]
 fn hs384_algorithm_with_custom_header() {
-    let key = Hs384Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs384Key::generate(&mut rng()).into_inner();
     test_algorithm_with_custom_header(&Hs384, &key, &key);
 }
 
 #[test]
 fn hs512_algorithm_with_custom_header() {
-    let key = Hs512Key::generate(&mut thread_rng()).into_inner();
+    let key = Hs512Key::generate(&mut rng()).into_inner();
     test_algorithm_with_custom_header(&Hs512, &key, &key);
 }

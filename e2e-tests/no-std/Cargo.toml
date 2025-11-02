@@ -9,8 +9,8 @@ repository = "https://github.com/slowli/jwt-compact"
 publish = false
 
 [dependencies]
-anyhow = { version = "1.0.95", default-features = false }
-chrono = { version = "0.4.39", default-features = false }
+anyhow = { version = "1.0.100", default-features = false }
+chrono = { version = "0.4.42", default-features = false }
 const-decoder = "0.4.0"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 
@@ -22,10 +22,10 @@ embedded-alloc = "0.6.0"
 panic-halt = "1.0.0"
 
 # RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
-getrandom = { version = "0.2", features = ["custom"], optional = true }
-once_cell = { version = "1.20.2", default-features = false, optional = true }
-rand_chacha = { version = "0.3.1", default-features = false, optional = true }
-rsa = { version = "0.9", default-features = false, optional = true }
+getrandom = { version = "0.3.4", optional = true }
+once_cell = { version = "1.21.3", default-features = false, optional = true }
+rand_chacha = { version = "0.9.0", default-features = false, optional = true }
+rsa = { version = "=0.10.0-rc.9", default-features = false, features = ["encoding"], optional = true }
 
 [dependencies.jwt-compact]
 path = "../.."

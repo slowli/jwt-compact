@@ -258,6 +258,8 @@ mod alloc {
     #[cfg(not(feature = "std"))]
     extern crate alloc as std;
 
+    #[cfg(feature = "rsa")]
+    pub use std::boxed::Box;
     pub use std::{
         borrow::{Cow, ToOwned},
         format,

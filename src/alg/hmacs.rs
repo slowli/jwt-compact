@@ -3,15 +3,12 @@
 use core::{fmt, num::NonZeroUsize};
 
 use hmac::{
-    digest::{
-        generic_array::{typenum::Unsigned, GenericArray},
-        CtOutput,
-    },
-    Hmac, Mac as _,
+    digest::{crypto_common::typenum::Unsigned, CtOutput},
+    Hmac, KeyInit as _, Mac as _,
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{
-    digest::{core_api::BlockSizeUser, OutputSizeUser},
+    digest::{core_api::BlockSizeUser, Output, OutputSizeUser},
     Sha256, Sha384, Sha512,
 };
 use smallvec::{smallvec, SmallVec};
@@ -44,7 +41,7 @@ macro_rules! define_hmac_signature {
                 NonZeroUsize::new(<$digest as OutputSizeUser>::OutputSize::USIZE);
 
             fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-                let bytes = GenericArray::clone_from_slice(bytes);
+                let bytes: Output<$digest> = bytes.try_into()?;
                 Ok(Self(CtOutput::new(bytes)))
             }
 

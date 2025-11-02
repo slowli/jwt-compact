@@ -89,25 +89,26 @@ fn hs256_incorrect_key_type() {
 
 #[cfg(feature = "rsa")]
 mod rsa_jwk {
-    use num_bigint::{ModInverse, RandPrime};
-    use rand::{thread_rng, Rng};
-    use rsa::{errors::Error as RsaError, BigUint, RsaPrivateKey, RsaPublicKey};
+    use crypto_bigint::{BoxedUint, Resize as _};
+    use jwt_compact::{alg::Rsa, AlgorithmExt, UntrustedToken};
+    use rand::{rng, CryptoRng};
+    use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 
     use super::*;
 
     // This code is taken from the `rsa` crate, where it was made private in v0.9
     // because of high possibility of misuse.
     fn generate_multi_prime_key(
-        rng: &mut impl Rng,
-        nprimes: usize,
-        bit_size: usize,
+        rng: &mut impl CryptoRng,
+        nprimes: u32,
+        bit_size: u32,
     ) -> RsaPrivateKey {
         assert!(nprimes > 2);
 
-        let mut primes = vec![BigUint::from(0_u32); nprimes];
-        let n_final: BigUint;
-        let d_final: BigUint;
-        let exp = BigUint::from(65_537_u32);
+        let mut primes = vec![BoxedUint::from(0_u32); nprimes as usize];
+        let n_final: BoxedUint;
+        let d_final: BoxedUint;
+        let exp = BoxedUint::from(65_537_u32);
 
         'next: loop {
             let mut todo = bit_size;
@@ -116,7 +117,8 @@ mod rsa_jwk {
             }
 
             for (i, prime) in primes.iter_mut().enumerate() {
-                *prime = rng.gen_prime(todo / (nprimes - i));
+                let bit_length = todo / (nprimes - i as u32);
+                *prime = crypto_primes::random_prime(rng, crypto_primes::Flavor::Any, bit_length);
                 todo -= prime.bits();
             }
 
@@ -129,21 +131,23 @@ mod rsa_jwk {
                 }
             }
 
-            let mut n = BigUint::from(1_u32);
-            let mut totient = BigUint::from(1_u32);
+            let mut n = BoxedUint::from(1_u32);
+            let mut totient = BoxedUint::from(1_u32);
 
             for prime in &primes {
                 n *= prime;
-                totient *= prime - BigUint::from(1_u32);
+                totient *= prime - BoxedUint::from(1_u32);
             }
 
             if n.bits() != bit_size {
                 continue 'next;
             }
 
-            if let Some(d) = (&exp).mod_inverse(totient) {
+            let totient = crypto_bigint::NonZero::new(totient).unwrap();
+            let exp = (&exp).resize(totient.bits_precision());
+            if let Some(d) = exp.invert_mod(&totient).into_option() {
                 n_final = n;
-                d_final = d.to_biguint().unwrap();
+                d_final = d;
                 break;
             }
         }
@@ -201,8 +205,8 @@ mod rsa_jwk {
     #[test]
     fn verifying_jwk() {
         let n = Base64UrlUnpadded::decode_vec(RSA_N).unwrap();
-        let n = BigUint::from_bytes_be(&n);
-        let public_key = RsaPublicKey::new(n, BigUint::from(65_537_u32)).unwrap();
+        let n = BoxedUint::from_be_slice_vartime(&n);
+        let public_key = RsaPublicKey::new(n, BoxedUint::from(65_537_u32)).unwrap();
 
         assert_eq!(
             key_thumbprint::<Sha256, _>(&public_key),
@@ -213,6 +217,26 @@ mod rsa_jwk {
         assert!(!jwk.is_signing_key());
         assert_jwk_roundtrip(&jwk);
         assert_eq!(RsaPublicKey::try_from(&jwk).unwrap(), public_key);
+    }
+
+    // Checks that JWK deserialization logic carefully handles bits precision of the key components.
+    #[test]
+    fn wasm_example() {
+        let jwk = r#"{
+          "kty": "RSA",
+          "n": "qXyCSOdPbF2595BBQkK6iKNO2lVLyEexFY-PdZNo9bkDlMbBe6X8Kspwg2hG8ifr3t5k4o9V_D8sKJHR7xAhGTNObkdcqgsO5qUMnNiylwXzl776JVDX303znkjwjKZCcTSiILXB2ZJ8f8Na4PVRvsvV-oRuKr5sL_V0s-PHn-3nOauz-4Bw4TZjxrGr1zZyTPO_mRM4khKchskpcva3g9BlbXjL87N_EIWTw8vBfG6iw58KdniWIPD65898Nu-um9-SNDcNpqIaQl9HfDj_lJlAgur8ZTm3a7zX-bI7XzeSY-ydlpFHeCrc6Z5hMRARLwcmvKiEPPY-CXA7IVro5Q",
+          "e": "AQAB"
+        }"#;
+        let jwk: JsonWebKey<'_> = serde_json::from_str(jwk).unwrap();
+        assert!(!jwk.is_signing_key());
+        let public_key = RsaPublicKey::try_from(&jwk).unwrap();
+
+        let token = "eyJhbGciOiJSUzI1NiJ9.eyJuYW1lIjoiSm9obiBEb2UiLCJhZG1pbiI6ZmFsc2UsImV4cCI6MTc2MjExNTc3Miwic3ViIjoiam9obi5kb2VAZXhhbXBsZS5jb20ifQ.MWVFYUMVeWKmizi5mWn2WumxwxHzBWZLvz6DLipjpEbbI-OeHw803gqi-fOGVYaWd0E8mHHKzdNPExiTqwT5OSM0ocSmSN5IwfGvTrcOhSGJlAS3Vve_bQbnCn1gxCi1CAJxXNOivy1QEe-8rIsphfDRjnEYO-Ywg62cKHAj7uLpiJAHcFkSuYcZhiwvwN5vrf1lZjPfvDLCYuSgnyJDGYasXtKKDaldDgtcxPPDtS_VEiGESZcoTNeO93VbElOmxsMxaSjvpaYMblCr10xXpHJACaRFJj-hnoAx0OrK_sizMc1TKHQpjeS8AruWboWDu9kOGoU6myDiql-au8FWLQ";
+        let token = UntrustedToken::new(token).unwrap();
+        Rsa::rs256()
+            .validator::<serde_json::Value>(&public_key)
+            .validate(&token)
+            .unwrap();
     }
 
     #[test]
@@ -245,7 +269,7 @@ mod rsa_jwk {
 
     #[test]
     fn signing_jwk_for_multi_prime_key() {
-        let private_key = generate_multi_prime_key(&mut thread_rng(), 3, 2_048);
+        let private_key = generate_multi_prime_key(&mut rng(), 3, 2_048);
 
         let jwk = JsonWebKey::from(&private_key);
         let private_key_copy = RsaPrivateKey::try_from(&jwk).unwrap();

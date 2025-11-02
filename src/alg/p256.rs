@@ -43,9 +43,9 @@ impl Algorithm for Es256 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        let mut digest = Sha256::default();
-        digest.update(message);
-        signing_key.sign_digest(digest)
+        signing_key.sign_digest(|digest: &mut Sha256| {
+            digest.update(message);
+        })
     }
 
     fn verify_signature(
@@ -54,10 +54,15 @@ impl Algorithm for Es256 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        let mut digest = Sha256::default();
-        digest.update(message);
-
-        verifying_key.verify_digest(digest, signature).is_ok()
+        verifying_key
+            .verify_digest(
+                |digest: &mut Sha256| {
+                    digest.update(message);
+                    Ok(())
+                },
+                signature,
+            )
+            .is_ok()
     }
 }
 

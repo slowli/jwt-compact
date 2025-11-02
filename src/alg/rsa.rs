@@ -372,9 +372,21 @@ impl<'a> From<&'a RsaPublicKey> for JsonWebKey<'a> {
 }
 
 #[allow(clippy::cast_possible_truncation)] // not triggered
-fn uint_from_slice(slice: &[u8]) -> Result<BoxedUint, JwkError> {
-    BoxedUint::from_be_slice(slice, RsaPublicKey::MAX_SIZE as u32)
-        .map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
+fn secret_uint_from_slice(slice: &[u8], precision: u32) -> Result<BoxedUint, JwkError> {
+    debug_assert!(precision <= RsaPublicKey::MAX_SIZE as u32);
+    BoxedUint::from_be_slice(slice, precision).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
+}
+
+/// The caller must ensure that setting `precision` won't truncate the value.
+fn secret_uint_to_slice(secret: &BoxedUint, precision: u32) -> SecretBytes<'static> {
+    let bytes = secret.to_be_bytes();
+    let precision_bytes = ((precision + 7) / 8) as usize;
+    SecretBytes::owned_slice(if bytes.len() > precision_bytes {
+        let first_idx = bytes.len() - precision_bytes;
+        bytes[first_idx..].into()
+    } else {
+        bytes
+    })
 }
 
 fn pub_exponent_from_slice(slice: &[u8]) -> Result<BoxedUint, JwkError> {
@@ -396,7 +408,7 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
         };
 
         let e = pub_exponent_from_slice(public_exponent)?;
-        let n = uint_from_slice(modulus)?;
+        let n = BoxedUint::from_be_slice_vartime(modulus);
         Self::new(n, e).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
     }
 }
@@ -412,18 +424,23 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
 
         let p = key.primes().first().expect(MSG);
         let q = key.primes().get(1).expect(MSG);
+        // Truncate secret values to the modulus precision. We know that all secret values don't exceed the modulus,
+        // so this is safe. `d` in particular does have q higher precision for multi-prime RSA keys
+        // (e.g., it may have 2,176-bit precision for a 2,048-bit modulus), which would lead to excessive zero padding
+        // and may lead to unnecessary deserialization errors.
+        let precision = key.n().bits_precision();
 
         let private_parts = RsaPrivateParts {
-            private_exponent: SecretBytes::owned_slice(key.d().to_be_bytes()),
-            prime_factor_p: SecretBytes::owned_slice(p.to_be_bytes()),
-            prime_factor_q: SecretBytes::owned_slice(q.to_be_bytes()),
+            private_exponent: secret_uint_to_slice(key.d(), precision),
+            prime_factor_p: secret_uint_to_slice(p, precision),
+            prime_factor_q: secret_uint_to_slice(q, precision),
             p_crt_exponent: None,
             q_crt_exponent: None,
             q_crt_coefficient: None,
             other_prime_factors: key.primes()[2..]
                 .iter()
                 .map(|factor| RsaPrimeFactor {
-                    factor: SecretBytes::owned_slice(factor.to_be_bytes()),
+                    factor: secret_uint_to_slice(factor, precision),
                     crt_exponent: None,
                     crt_coefficient: None,
                 })
@@ -466,14 +483,24 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
             .ok_or_else(|| JwkError::NoField("d".into()))?;
 
         let e = pub_exponent_from_slice(public_exponent)?;
-        let n = uint_from_slice(modulus)?;
-        let d = uint_from_slice(d)?;
+        let n = BoxedUint::from_be_slice_vartime(modulus);
 
+        // Round `n` bitness up to the nearest value divisible by 8
+        let precision = (n.bits() + 7) / 8 * 8;
+        if precision as usize > RsaPublicKey::MAX_SIZE {
+            return Err(JwkError::Custom(anyhow::anyhow!(
+                "Modulus precision ({got}) exceeds maximum supported value ({max})",
+                got = n.bits(),
+                max = RsaPublicKey::MAX_SIZE
+            )));
+        }
+
+        let d = secret_uint_from_slice(d, precision)?;
         let mut factors = Vec::with_capacity(2 + other_prime_factors.len());
-        factors.push(uint_from_slice(prime_factor_p)?);
-        factors.push(uint_from_slice(prime_factor_q)?);
+        factors.push(secret_uint_from_slice(prime_factor_p, precision)?);
+        factors.push(secret_uint_from_slice(prime_factor_q, precision)?);
         for other_factor in other_prime_factors {
-            factors.push(uint_from_slice(&other_factor.factor)?);
+            factors.push(secret_uint_from_slice(&other_factor.factor, precision)?);
         }
 
         let key = Self::from_components(n, e, d, factors);

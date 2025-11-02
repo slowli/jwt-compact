@@ -90,6 +90,7 @@ fn hs256_incorrect_key_type() {
 #[cfg(feature = "rsa")]
 mod rsa_jwk {
     use crypto_bigint::{BoxedUint, Resize as _};
+    use jwt_compact::{alg::Rsa, AlgorithmExt, UntrustedToken};
     use rand::{rng, CryptoRng};
     use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 
@@ -216,6 +217,26 @@ mod rsa_jwk {
         assert!(!jwk.is_signing_key());
         assert_jwk_roundtrip(&jwk);
         assert_eq!(RsaPublicKey::try_from(&jwk).unwrap(), public_key);
+    }
+
+    // Checks that JWK deserialization logic carefully handles bits precision of the key components.
+    #[test]
+    fn wasm_example() {
+        let jwk = r#"{
+          "kty": "RSA",
+          "n": "qXyCSOdPbF2595BBQkK6iKNO2lVLyEexFY-PdZNo9bkDlMbBe6X8Kspwg2hG8ifr3t5k4o9V_D8sKJHR7xAhGTNObkdcqgsO5qUMnNiylwXzl776JVDX303znkjwjKZCcTSiILXB2ZJ8f8Na4PVRvsvV-oRuKr5sL_V0s-PHn-3nOauz-4Bw4TZjxrGr1zZyTPO_mRM4khKchskpcva3g9BlbXjL87N_EIWTw8vBfG6iw58KdniWIPD65898Nu-um9-SNDcNpqIaQl9HfDj_lJlAgur8ZTm3a7zX-bI7XzeSY-ydlpFHeCrc6Z5hMRARLwcmvKiEPPY-CXA7IVro5Q",
+          "e": "AQAB"
+        }"#;
+        let jwk: JsonWebKey<'_> = serde_json::from_str(jwk).unwrap();
+        assert!(!jwk.is_signing_key());
+        let public_key = RsaPublicKey::try_from(&jwk).unwrap();
+
+        let token = "eyJhbGciOiJSUzI1NiJ9.eyJuYW1lIjoiSm9obiBEb2UiLCJhZG1pbiI6ZmFsc2UsImV4cCI6MTc2MjExNTc3Miwic3ViIjoiam9obi5kb2VAZXhhbXBsZS5jb20ifQ.MWVFYUMVeWKmizi5mWn2WumxwxHzBWZLvz6DLipjpEbbI-OeHw803gqi-fOGVYaWd0E8mHHKzdNPExiTqwT5OSM0ocSmSN5IwfGvTrcOhSGJlAS3Vve_bQbnCn1gxCi1CAJxXNOivy1QEe-8rIsphfDRjnEYO-Ywg62cKHAj7uLpiJAHcFkSuYcZhiwvwN5vrf1lZjPfvDLCYuSgnyJDGYasXtKKDaldDgtcxPPDtS_VEiGESZcoTNeO93VbElOmxsMxaSjvpaYMblCr10xXpHJACaRFJj-hnoAx0OrK_sizMc1TKHQpjeS8AruWboWDu9kOGoU6myDiql-au8FWLQ";
+        let token = UntrustedToken::new(token).unwrap();
+        Rsa::rs256()
+            .validator::<serde_json::Value>(&public_key)
+            .validate(&token)
+            .unwrap();
     }
 
     #[test]

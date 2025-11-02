@@ -98,7 +98,7 @@ where
         digest.update(message);
         let message = Message::from_digest(digest.finalize().into());
 
-        self.context.sign_ecdsa(&message, signing_key)
+        self.context.sign_ecdsa(message, signing_key)
     }
 
     fn verify_signature(
@@ -119,7 +119,7 @@ where
         normalized_signature.normalize_s();
 
         self.context
-            .verify_ecdsa(&message, &normalized_signature, verifying_key)
+            .verify_ecdsa(message, &normalized_signature, verifying_key)
             .is_ok()
     }
 }
@@ -128,7 +128,8 @@ where
 /// `to_verifying_key` if it was not initialized previously.
 impl SigningKey<Es256k> for SecretKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).map_err(From::from)
+        let raw = <[u8; SECRET_KEY_SIZE]>::try_from(raw)?;
+        Self::from_byte_array(raw).map_err(From::from)
     }
 
     fn to_verifying_key(&self) -> PublicKey {
@@ -204,9 +205,14 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
         };
         let sk_bytes = secret.as_deref();
         let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
-        JsonWebKey::ensure_len("d", sk_bytes, SECRET_KEY_SIZE)?;
+        let sk_bytes: [u8; SECRET_KEY_SIZE] =
+            sk_bytes.try_into().map_err(|_| JwkError::UnexpectedLen {
+                field: "d".to_owned(),
+                expected: SECRET_KEY_SIZE,
+                actual: sk_bytes.len(),
+            })?;
 
-        let sk = SecretKey::from_slice(sk_bytes).map_err(JwkError::custom)?;
+        let sk = SecretKey::from_byte_array(sk_bytes).map_err(JwkError::custom)?;
         jwk.ensure_key_match(sk)
     }
 }

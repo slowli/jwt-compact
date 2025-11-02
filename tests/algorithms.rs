@@ -391,7 +391,7 @@ fn es256k_algorithm() {
     let mut rng = rng();
     let signing_key = loop {
         let bytes: [u8; 32] = rng.random();
-        if let Ok(key) = SecretKey::from_slice(&bytes) {
+        if let Ok(key) = SecretKey::from_byte_array(bytes) {
             break key;
         }
     };

@@ -380,7 +380,7 @@ fn secret_uint_from_slice(slice: &[u8], precision: u32) -> Result<BoxedUint, Jwk
 /// The caller must ensure that setting `precision` won't truncate the value.
 fn secret_uint_to_slice(secret: &BoxedUint, precision: u32) -> SecretBytes<'static> {
     let bytes = secret.to_be_bytes();
-    let precision_bytes = ((precision + 7) / 8) as usize;
+    let precision_bytes = precision.div_ceil(8) as usize;
     SecretBytes::owned_slice(if bytes.len() > precision_bytes {
         let first_idx = bytes.len() - precision_bytes;
         bytes[first_idx..].into()
@@ -486,7 +486,7 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
         let n = BoxedUint::from_be_slice_vartime(modulus);
 
         // Round `n` bitness up to the nearest value divisible by 8
-        let precision = (n.bits() + 7) / 8 * 8;
+        let precision = n.bits().div_ceil(8) * 8;
         if precision as usize > RsaPublicKey::MAX_SIZE {
             return Err(JwkError::Custom(anyhow::anyhow!(
                 "Modulus precision ({got}) exceeds maximum supported value ({max})",

@@ -10,7 +10,7 @@ authors = [
   "Bruno Green",
 ]
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.85"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["JWT", "token", "authorization"]
@@ -41,7 +41,6 @@ hmac = "=0.13.0-rc.2"
 sha2 = { version = "=0.11.0-rc.2", default-features = false }
 
 # Private dependencies (not exposed in the public API).
-lazy_static = { version = "1.5", optional = true }
 smallvec = "1.15.1"
 subtle = { version = "2.6.1", default-features = false }
 zeroize = { version = "1.8", features = ["zeroize_derive"] }
@@ -105,8 +104,8 @@ std = ["anyhow/std", "serde_json/std", "ciborium?/std"]
 # with an excplicitly specified clock function, or to set / verify
 # time-related `Claims` fields manually.
 clock = ["chrono/clock"]
-# `secp256k1` crypto backend; `lazy_static` is required for internal initialization.
-es256k = ["secp256k1", "lazy_static"]
+# `secp256k1` crypto backend.
+es256k = ["secp256k1"]
 ed25519-compact = ["dep:ed25519-compact", "rand_core/os_rng"]
 # RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
 rsa = ["dep:rsa", "rand_core/os_rng", "sha2/oid"]

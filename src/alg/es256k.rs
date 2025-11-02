@@ -1,8 +1,8 @@
 //! `ES256K` algorithm implementation using the `secp256k1` crate.
 
 use core::{marker::PhantomData, num::NonZeroUsize};
+use std::sync::LazyLock;
 
-use lazy_static::lazy_static;
 use secp256k1::{
     constants::{
         COMPACT_SIGNATURE_SIZE, FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE,
@@ -133,9 +133,8 @@ impl SigningKey<Es256k> for SecretKey {
     }
 
     fn to_verifying_key(&self) -> PublicKey {
-        lazy_static! {
-            static ref CONTEXT: Secp256k1<All> = Secp256k1::new();
-        }
+        static CONTEXT: LazyLock<Secp256k1<All>> = LazyLock::new(Secp256k1::new);
+
         PublicKey::from_secret_key(&CONTEXT, self)
     }
 

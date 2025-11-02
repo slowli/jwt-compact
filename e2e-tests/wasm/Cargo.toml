@@ -22,7 +22,7 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 # Set up `getrandom` crate to use the host JS CSPRNG.
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [dependencies.jwt-compact]
 path = "../.."

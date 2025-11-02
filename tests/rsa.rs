@@ -2,8 +2,8 @@
 
 use assert_matches::assert_matches;
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
-use rand::thread_rng;
-use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
+use rand::rng;
+use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePrivateKey};
 
 use crate::shared::{create_claims, test_algorithm, CompactClaims, SampleClaims};
 
@@ -75,13 +75,13 @@ fn rs256_algorithm_with_generated_keys() {
 
     let rsa = StrongAlg(Rsa::rs256());
     let (signing_key, verifying_key) =
-        Rsa::generate(&mut thread_rng(), ModulusBits::TwoKibibytes).unwrap();
+        Rsa::generate(&mut rng(), ModulusBits::TwoKibibytes).unwrap();
     test_algorithm(&rsa, &signing_key, &verifying_key);
 }
 
 #[test]
 fn ps256_checked_len_fails_on_undersized_key() {
-    let small_private_key = RsaPrivateKey::new(&mut thread_rng(), 1_024).unwrap();
+    let small_private_key = RsaPrivateKey::new(&mut rng(), 1_024).unwrap();
     let claims = create_claims();
     let token = Rsa::ps256()
         .token(&Header::empty(), &claims, &small_private_key)

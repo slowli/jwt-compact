@@ -3,7 +3,7 @@
 use core::num::NonZeroUsize;
 
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
-use rand_core::{CryptoRng, RngCore};
+use rand_core::{CryptoRng, RngCore, TryRngCore};
 
 use crate::{
     alg::{SecretBytes, SigningKey, VerifyingKey},
@@ -61,7 +61,11 @@ impl Algorithm for Ed25519 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.sign(message, Some(Noise::default()))
+        let mut noise = [0_u8; Noise::BYTES];
+        rand_core::OsRng
+            .try_fill_bytes(&mut noise)
+            .expect("failed generating noise for Ed25519 signature");
+        signing_key.sign(message, Some(Noise::new(noise)))
     }
 
     fn verify_signature(

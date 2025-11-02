@@ -12,7 +12,8 @@ use secp256k1::{
 };
 use sha2::{
     digest::{
-        crypto_common::BlockSizeUser, generic_array::typenum::U32, FixedOutputReset, HashMarker,
+        crypto_common::{typenum::U32, BlockSizeUser},
+        FixedOutputReset, HashMarker,
     },
     Digest, Sha256,
 };

@@ -81,6 +81,11 @@ impl<'a> SecretBytes<'a> {
     pub fn owned(bytes: Vec<u8>) -> Self {
         Self(Cow::Owned(bytes))
     }
+
+    #[cfg(feature = "rsa")]
+    pub(crate) fn owned_slice(bytes: crate::alloc::Box<[u8]>) -> Self {
+        Self(Cow::Owned(bytes.into()))
+    }
 }
 
 impl fmt::Debug for SecretBytes<'_> {

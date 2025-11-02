@@ -6,7 +6,7 @@ use rand_core::{CryptoRng, RngCore};
 pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 use rsa::{
     traits::{PrivateKeyParts, PublicKeyParts},
-    BigUint, Pkcs1v15Sign, Pss,
+    BoxedUint, Pkcs1v15Sign, Pss,
 };
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
@@ -104,7 +104,7 @@ impl ModulusBits {
         }
     }
 
-    fn is_valid_bits(bits: usize) -> bool {
+    fn is_valid_bits(bits: u32) -> bool {
         matches!(bits, 2_048 | 3_072 | 4_096)
     }
 }
@@ -181,12 +181,16 @@ impl Algorithm for Rsa {
         let digest = self.hash_alg.digest(message);
         let digest = digest.as_ref();
         let signing_result = match self.padding_scheme() {
-            PaddingScheme::Pkcs1v15(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
-            }
-            PaddingScheme::Pss(padding) => {
-                signing_key.sign_with_rng(&mut rand_core::OsRng, padding, digest)
-            }
+            PaddingScheme::Pkcs1v15(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(rand_core::OsRng),
+                padding,
+                digest,
+            ),
+            PaddingScheme::Pss(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(rand_core::OsRng),
+                padding,
+                digest,
+            ),
         };
         RsaSignature(signing_result.expect("Unexpected RSA signature failure"))
     }
@@ -360,11 +364,22 @@ impl TryFrom<RsaPublicKey> for StrongKey<RsaPublicKey> {
 impl<'a> From<&'a RsaPublicKey> for JsonWebKey<'a> {
     fn from(key: &'a RsaPublicKey) -> JsonWebKey<'a> {
         JsonWebKey::Rsa {
-            modulus: Cow::Owned(key.n().to_bytes_be()),
-            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+            modulus: Cow::Owned(key.n().to_be_bytes_trimmed_vartime().into()),
+            public_exponent: Cow::Owned(key.e().to_be_bytes_trimmed_vartime().into()),
             private_parts: None,
         }
     }
+}
+
+#[allow(clippy::cast_possible_truncation)] // not triggered
+fn uint_from_slice(slice: &[u8]) -> Result<BoxedUint, JwkError> {
+    BoxedUint::from_be_slice(slice, RsaPublicKey::MAX_SIZE as u32)
+        .map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
+}
+
+fn pub_exponent_from_slice(slice: &[u8]) -> Result<BoxedUint, JwkError> {
+    BoxedUint::from_be_slice(slice, RsaPublicKey::MAX_PUB_EXPONENT.ilog2() + 1)
+        .map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
 }
 
 impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
@@ -380,8 +395,8 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPublicKey {
             return Err(JwkError::key_type(jwk, KeyType::Rsa));
         };
 
-        let e = BigUint::from_bytes_be(public_exponent);
-        let n = BigUint::from_bytes_be(modulus);
+        let e = pub_exponent_from_slice(public_exponent)?;
+        let n = uint_from_slice(modulus)?;
         Self::new(n, e).map_err(|err| JwkError::custom(anyhow::anyhow!(err)))
     }
 }
@@ -399,16 +414,16 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
         let q = key.primes().get(1).expect(MSG);
 
         let private_parts = RsaPrivateParts {
-            private_exponent: SecretBytes::owned(key.d().to_bytes_be()),
-            prime_factor_p: SecretBytes::owned(p.to_bytes_be()),
-            prime_factor_q: SecretBytes::owned(q.to_bytes_be()),
+            private_exponent: SecretBytes::owned_slice(key.d().to_be_bytes()),
+            prime_factor_p: SecretBytes::owned_slice(p.to_be_bytes()),
+            prime_factor_q: SecretBytes::owned_slice(q.to_be_bytes()),
             p_crt_exponent: None,
             q_crt_exponent: None,
             q_crt_coefficient: None,
             other_prime_factors: key.primes()[2..]
                 .iter()
                 .map(|factor| RsaPrimeFactor {
-                    factor: SecretBytes::owned(factor.to_bytes_be()),
+                    factor: SecretBytes::owned_slice(factor.to_be_bytes()),
                     crt_exponent: None,
                     crt_coefficient: None,
                 })
@@ -416,8 +431,8 @@ impl<'a> From<&'a RsaPrivateKey> for JsonWebKey<'a> {
         };
 
         JsonWebKey::Rsa {
-            modulus: Cow::Owned(key.n().to_bytes_be()),
-            public_exponent: Cow::Owned(key.e().to_bytes_be()),
+            modulus: Cow::Owned(key.n().to_be_bytes_trimmed_vartime().into()),
+            public_exponent: Cow::Owned(key.e().to_be_bytes_trimmed_vartime().into()),
             private_parts: Some(private_parts),
         }
     }
@@ -450,18 +465,16 @@ impl TryFrom<&JsonWebKey<'_>> for RsaPrivateKey {
             .as_ref()
             .ok_or_else(|| JwkError::NoField("d".into()))?;
 
-        let e = BigUint::from_bytes_be(public_exponent);
-        let n = BigUint::from_bytes_be(modulus);
-        let d = BigUint::from_bytes_be(d);
+        let e = pub_exponent_from_slice(public_exponent)?;
+        let n = uint_from_slice(modulus)?;
+        let d = uint_from_slice(d)?;
 
         let mut factors = Vec::with_capacity(2 + other_prime_factors.len());
-        factors.push(BigUint::from_bytes_be(prime_factor_p));
-        factors.push(BigUint::from_bytes_be(prime_factor_q));
-        factors.extend(
-            other_prime_factors
-                .iter()
-                .map(|prime| BigUint::from_bytes_be(&prime.factor)),
-        );
+        factors.push(uint_from_slice(prime_factor_p)?);
+        factors.push(uint_from_slice(prime_factor_q)?);
+        for other_factor in other_prime_factors {
+            factors.push(uint_from_slice(&other_factor.factor)?);
+        }
 
         let key = Self::from_components(n, e, d, factors);
         let key = key.map_err(|err| JwkError::custom(anyhow::anyhow!(err)))?;

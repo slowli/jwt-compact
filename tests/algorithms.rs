@@ -388,10 +388,19 @@ fn es256k_algorithm() {
     type SecretKey = <Es256k as Algorithm>::SigningKey;
     type PublicKey = <Es256k as Algorithm>::VerifyingKey;
 
+    #[cfg(feature = "es256k")]
+    fn bytes_to_sk(bytes: [u8; 32]) -> Option<SecretKey> {
+        SecretKey::from_byte_array(bytes).ok()
+    }
+
+    #[cfg(feature = "k256")]
+    fn bytes_to_sk(bytes: [u8; 32]) -> Option<SecretKey> {
+        SecretKey::from_slice(&bytes).ok()
+    }
+
     let mut rng = rng();
     let signing_key = loop {
-        let bytes: [u8; 32] = rng.random();
-        if let Ok(key) = SecretKey::from_byte_array(bytes) {
+        if let Some(key) = bytes_to_sk(rng.random()) {
             break key;
         }
     };

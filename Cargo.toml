@@ -68,7 +68,7 @@ features = ["sodiumoxide-crypto"]
 optional = true
 
 [dependencies.ed25519-dalek]
-version = "2.2.0"
+version = "=3.0.0-pre.1"
 optional = true
 default-features = false
 
@@ -120,7 +120,7 @@ required-features = ["std", "clock"]
 [[test]]
 name = "rsa"
 path = "tests/rsa.rs"
-required-features = ["rsa/pkcs1", "rsa/pkcs8"]
+required-features = ["rsa/encoding"]
 
 [workspace]
 members = [".", "e2e-tests/no-std", "e2e-tests/wasm"]

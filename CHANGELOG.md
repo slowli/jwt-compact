@@ -7,7 +7,8 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- Update the `secp256k1` dependency.
+- Bump minimum supported Rust version to 1.85.
+- Update multiple crypto dependencies.
 
 ## 0.9.0-beta.1 - 2024-09-29
 

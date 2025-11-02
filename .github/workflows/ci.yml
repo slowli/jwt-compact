@@ -8,7 +8,7 @@ on:
 
 env:
   msrv: "1.70"
-  nightly: nightly-2025-01-02
+  nightly: nightly-2025-11-02
 
 jobs:
   # Checks minimum supported Rust version.

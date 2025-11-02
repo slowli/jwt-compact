@@ -33,7 +33,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-deny
-          version: "^0.16"
+          version: "^0.18.5"
 
       - name: Cache cargo build
         uses: actions/cache@v4
@@ -45,7 +45,7 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check --config imports_granularity=Crate --config group_imports=StdExternalCrate
       - name: Clippy
-        run: cargo clippy -p jwt-compact --features p256,es256k,rsa,rsa/pem --all-targets -- -D warnings
+        run: cargo clippy -p jwt-compact --features p256,es256k,rsa,rsa/encoding --all-targets -- -D warnings
       - name: Clippy
         run: cargo clippy -p jwt-compact --features exonum-crypto --all-targets -- -D warnings
       - name: Clippy dalek crypto
@@ -65,7 +65,7 @@ jobs:
         run: cargo deny --workspace check
 
       - name: Run tests
-        run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/pem
+        run: cargo test -p jwt-compact --features exonum-crypto,p256,es256k,rsa,rsa/encoding
       - name: Test dalek crypto
         run: cargo test -p jwt-compact --no-default-features --features std,ed25519-dalek --lib --tests
       - name: Test ed25519-compact

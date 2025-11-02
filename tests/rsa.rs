@@ -3,7 +3,7 @@
 use assert_matches::assert_matches;
 use jwt_compact::{alg::*, prelude::*, Algorithm, ValidationError};
 use rand::rng;
-use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePrivateKey};
+use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
 
 use crate::shared::{create_claims, test_algorithm, CompactClaims, SampleClaims};
 

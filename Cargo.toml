@@ -84,7 +84,7 @@ default-features = false
 [dev-dependencies]
 assert_matches = "1.3"
 const-decoder = "0.4.0"
-criterion = "0.5.1"
+criterion = "0.7.0"
 crypto-bigint = "=0.7.0-rc.9"
 crypto-primes = "=0.7.0-pre.3"
 doc-comment = "0.3.4"

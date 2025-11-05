@@ -6,8 +6,8 @@ use core::{fmt, ops};
 use zeroize::Zeroize;
 
 use crate::{
-    alloc::{Cow, Vec},
     Algorithm,
+    alloc::{Cow, Vec},
 };
 
 /// Verifying key for a specific signature cryptosystem. In the case of public-key cryptosystems,

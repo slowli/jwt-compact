@@ -4,25 +4,25 @@ use core::{marker::PhantomData, num::NonZeroUsize};
 use std::sync::LazyLock;
 
 use secp256k1::{
+    All, Message, PublicKey, Secp256k1, SecretKey,
     constants::{
         COMPACT_SIGNATURE_SIZE, FIELD_SIZE, SECRET_KEY_SIZE, UNCOMPRESSED_PUBLIC_KEY_SIZE,
     },
     ecdsa::Signature,
-    All, Message, PublicKey, Secp256k1, SecretKey,
 };
 use sha2::{
-    digest::{
-        crypto_common::{typenum::U32, BlockSizeUser},
-        FixedOutputReset, HashMarker,
-    },
     Digest, Sha256,
+    digest::{
+        FixedOutputReset, HashMarker,
+        crypto_common::{BlockSizeUser, typenum::U32},
+    },
 };
 
 use crate::{
+    Algorithm, AlgorithmSignature,
     alg::{SecretBytes, SigningKey, VerifyingKey},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
-    Algorithm, AlgorithmSignature,
 };
 
 /// Byte size of a serialized EC coordinate.

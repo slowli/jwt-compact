@@ -3,22 +3,22 @@
 use core::{fmt, num::NonZeroUsize};
 
 use hmac::{
-    digest::{crypto_common::typenum::Unsigned, CtOutput},
     Hmac, KeyInit as _, Mac as _,
+    digest::{CtOutput, crypto_common::typenum::Unsigned},
 };
 use rand_core::{CryptoRng, RngCore};
 use sha2::{
-    digest::{core_api::BlockSizeUser, Output, OutputSizeUser},
     Sha256, Sha384, Sha512,
+    digest::{Output, OutputSizeUser, core_api::BlockSizeUser},
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use zeroize::Zeroize;
 
 use crate::{
+    Algorithm, AlgorithmSignature,
     alg::{SecretBytes, SigningKey, StrongKey, VerifyingKey, WeakKeyError},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
-    Algorithm, AlgorithmSignature,
 };
 
 macro_rules! define_hmac_signature {

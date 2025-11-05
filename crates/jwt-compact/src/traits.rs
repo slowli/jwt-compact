@@ -3,14 +3,14 @@
 use core::{marker::PhantomData, num::NonZeroUsize};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 #[cfg(feature = "ciborium")]
 use crate::error::CborSerError;
 use crate::{
+    Claims, CreationError, Header, SignedToken, Token, UntrustedToken, ValidationError,
     alloc::{Cow, String, ToOwned, Vec},
     token::CompleteHeader,
-    Claims, CreationError, Header, SignedToken, Token, UntrustedToken, ValidationError,
 };
 
 /// Signature for a certain JWT signing [`Algorithm`].

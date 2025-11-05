@@ -17,9 +17,9 @@ use jwt_compact::alg::Ed25519;
 #[cfg(feature = "rsa")]
 use jwt_compact::alg::Rsa;
 use jwt_compact::{
+    Algorithm,
     alg::{Hs256, Hs384, Hs512, SigningKey, VerifyingKey},
     prelude::*,
-    Algorithm,
 };
 use panic_halt as _;
 use serde::{Deserialize, Serialize};
@@ -32,8 +32,8 @@ mod rsa_helpers {
     use getrandom::Error as RandomError;
     use once_cell::unsync::Lazy;
     use rand_chacha::{
-        rand_core::{RngCore, SeedableRng},
         ChaChaRng,
+        rand_core::{RngCore, SeedableRng},
     };
 
     static mut RNG: Lazy<ChaChaRng> = Lazy::new(|| {
@@ -44,19 +44,23 @@ mod rsa_helpers {
     });
 
     unsafe fn unsecure_getrandom_do_not_use_in_real_apps(dest: &mut [u8]) {
-        // SAFETY: we have a single-threaded context, so access to `RNG` is exclusive.
-        let rng_ref = &raw mut RNG;
-        (*rng_ref).fill_bytes(dest);
+        unsafe {
+            // SAFETY: we have a single-threaded context, so access to `RNG` is exclusive.
+            let rng_ref = &raw mut RNG;
+            (*rng_ref).fill_bytes(dest);
+        }
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     unsafe extern "Rust" fn __getrandom_v03_custom(
         dest: *mut u8,
         len: usize,
     ) -> Result<(), RandomError> {
-        ::core::ptr::write_bytes(dest, 0, len);
-        let dest = ::core::slice::from_raw_parts_mut(dest, len);
-        unsecure_getrandom_do_not_use_in_real_apps(dest);
+        unsafe {
+            ::core::ptr::write_bytes(dest, 0, len);
+            let dest = ::core::slice::from_raw_parts_mut(dest, len);
+            unsecure_getrandom_do_not_use_in_real_apps(dest);
+        }
         Ok(())
     }
 }

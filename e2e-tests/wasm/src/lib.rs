@@ -10,11 +10,11 @@ use core::fmt;
 
 use chrono::Duration;
 use jwt_compact::{
+    Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
     alg::{Ed25519, Es256, Es256k, Hs256, Hs384, Hs512, Rsa},
     jwk::{JsonWebKey, JwkError},
-    Algorithm, AlgorithmExt, Claims, Header, TimeOptions, Token, UntrustedToken,
 };
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Error as JsonError;
 use wasm_bindgen::prelude::*;
 

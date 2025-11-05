@@ -1,35 +1,33 @@
 [package]
 name = "jwt-compact-nostd"
-version = "0.0.0"
-authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
-edition = "2021"
-license = "Apache-2.0"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Testing usability of `jwt-compact` in no-std env"
-repository = "https://github.com/slowli/jwt-compact"
 publish = false
 
 [dependencies]
-anyhow = { version = "1.0.100", default-features = false }
-chrono = { version = "0.4.42", default-features = false }
-const-decoder = "0.4.0"
-serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+anyhow.workspace = true
+chrono.workspace = true
+const-decoder.workspace = true
+serde = { workspace = true, features = ["alloc", "derive"] }
 
 # Cortex-M dependencies.
-cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
-cortex-m-rt = "0.7"
-cortex-m-semihosting = "0.5"
-embedded-alloc = "0.6.0"
-panic-halt = "1.0.0"
+cortex-m = { workspace = true, features = ["critical-section-single-core"] }
+cortex-m-rt.workspace = true
+cortex-m-semihosting.workspace = true
+embedded-alloc.workspace = true
+panic-halt.workspace = true
 
 # RSA-specific dependencies. Everything besides `rsa` is needed to set up an RNG.
-getrandom = { version = "0.3.4", optional = true }
-once_cell = { version = "1.21.3", default-features = false, optional = true }
-rand_chacha = { version = "0.9.0", default-features = false, optional = true }
-rsa = { version = "=0.10.0-rc.9", default-features = false, features = ["encoding"], optional = true }
+getrandom = { workspace = true, optional = true }
+once_cell = { workspace = true, optional = true }
+rand_chacha = { workspace = true, optional = true }
+rsa = { workspace = true, features = ["encoding"], optional = true }
 
-[dependencies.jwt-compact]
-path = "../.."
-default-features = false
+jwt-compact.workspace = true
 
 # Crypto backends are included as features in order to not overflow
 # flash memory of the (emulated) microcontroller.

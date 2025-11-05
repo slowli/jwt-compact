@@ -8,7 +8,7 @@ use jwt_compact::{
     alg::Hs256Key,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
-use sha2::{digest::Digest, Sha256, Sha384, Sha512};
+use sha2::{Sha256, Sha384, Sha512, digest::Digest};
 
 fn key_thumbprint<'a, D, K>(key: &'a K) -> String
 where
@@ -90,9 +90,9 @@ fn hs256_incorrect_key_type() {
 #[cfg(feature = "rsa")]
 mod rsa_jwk {
     use crypto_bigint::{BoxedUint, Resize as _};
-    use jwt_compact::{alg::Rsa, AlgorithmExt, UntrustedToken};
-    use rand::{rng, CryptoRng};
-    use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
+    use jwt_compact::{AlgorithmExt, UntrustedToken, alg::Rsa};
+    use rand::{CryptoRng, rng};
+    use rsa::{RsaPrivateKey, RsaPublicKey, errors::Error as RsaError};
 
     use super::*;
 
@@ -322,8 +322,8 @@ mod es256k {
     #[cfg(feature = "k256")]
     use jwt_compact::alg::VerifyingKey;
     use jwt_compact::{
-        alg::{Es256k, SigningKey},
         Algorithm,
+        alg::{Es256k, SigningKey},
     };
 
     use super::*;
@@ -513,8 +513,8 @@ mod es256k {
 mod es256 {
     use const_decoder::Decoder::Hex;
     use jwt_compact::{
-        alg::{Es256, SigningKey, VerifyingKey},
         Algorithm,
+        alg::{Es256, SigningKey, VerifyingKey},
     };
 
     use super::*;
@@ -708,8 +708,8 @@ mod es256 {
 mod ed25519 {
     use const_decoder::Decoder::Hex;
     use jwt_compact::{
-        alg::{Ed25519, SigningKey, VerifyingKey},
         Algorithm,
+        alg::{Ed25519, SigningKey, VerifyingKey},
     };
 
     use super::*;

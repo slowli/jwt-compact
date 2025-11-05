@@ -1,11 +1,11 @@
 [package]
 name = "jwt-compact-wasm"
-version = "0.0.0"
-authors = ["Alex Ostrovski <ostrovski.alex@gmail.com>"]
-edition = "2021"
-license = "Apache-2.0"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "Testing usability of `jwt-compact` in WASM"
-repository = "https://github.com/slowli/jwt-compact"
 publish = false
 
 [package.metadata.wasm-pack.profile.release]
@@ -15,16 +15,13 @@ wasm-opt = ["-Os", "--enable-mutable-globals", "--enable-bulk-memory"]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.99"
-
-chrono = { version = "0.4.42", features = ["wasmbind"] }
-serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-
+wasm-bindgen.workspace = true
+chrono = { workspace = true, features = ["wasmbind"] }
+serde = { workspace = true, features = ["alloc", "derive"] }
+serde_json = { workspace = true, features = ["alloc"] }
 # Set up `getrandom` crate to use the host JS CSPRNG.
-getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom = { workspace = true, features = ["wasm_js"] }
 
 [dependencies.jwt-compact]
-path = "../.."
-default-features = false
+workspace = true
 features = ["clock", "ed25519-compact", "rsa", "k256", "p256"]

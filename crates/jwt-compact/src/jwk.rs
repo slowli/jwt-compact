@@ -426,7 +426,7 @@ pub struct RsaPrimeFactor<'a> {
 ))]
 mod helpers {
     use super::{JsonWebKey, JwkError};
-    use crate::{alg::SigningKey, alloc::ToOwned, Algorithm};
+    use crate::{Algorithm, alg::SigningKey, alloc::ToOwned};
 
     impl JsonWebKey<'_> {
         pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
@@ -480,8 +480,8 @@ mod base64url {
 
     use base64ct::{Base64UrlUnpadded, Encoding};
     use serde::{
-        de::{Error as DeError, Unexpected, Visitor},
         Deserializer, Serializer,
+        de::{Error as DeError, Unexpected, Visitor},
     };
 
     use crate::alloc::{Cow, Vec};

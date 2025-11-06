@@ -4,13 +4,13 @@ use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{TimeZone, Utc};
 use jwt_compact::{
-    alg::*, prelude::*, Algorithm, AlgorithmExt, ParseError, Thumbprint, ValidationError,
+    Algorithm, AlgorithmExt, ParseError, Thumbprint, ValidationError, alg::*, prelude::*,
 };
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::shared::{create_claims, test_algorithm, Obj, SampleClaims};
+use crate::shared::{Obj, SampleClaims, create_claims, test_algorithm};
 
 mod shared;
 
@@ -18,8 +18,7 @@ mod shared;
 fn hs256_reference() {
     //! Example from https://tools.ietf.org/html/rfc7515#appendix-A.1
 
-    const TOKEN: &str =
-        "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAs\
+    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAs\
          DQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1\
          gFWFOEjXk";
     const KEY: &str =
@@ -67,8 +66,7 @@ fn short_hs256_key_cannot_be_checked() {
 fn hs384_reference() {
     //! Example generated using https://jwt.io/
 
-    const TOKEN: &str =
-        "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9l\
+    const TOKEN: &str = "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9l\
          IiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.bQTnz6AuMJvmXXQsVPrxeQNvzDkimo7VNXxHeSBfC\
          lLufmCVZRUuyTwJF311JHuh";
     const KEY: &[u8] = b"your-384-bit-secret";
@@ -101,8 +99,7 @@ fn hs384_reference() {
 fn hs512_reference() {
     //! Example generated using https://jwt.io/
 
-    const TOKEN: &str =
-        "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEiLCJuYW1lIjoiSmFuZSBEb2Ui\
+    const TOKEN: &str = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ODc2NTQzMjEiLCJuYW1lIjoiSmFuZSBEb2Ui\
          LCJhZG1pbiI6ZmFsc2UsImlhdCI6MTUxNjIzOTEyMn0.zGgI9yNlkGofH0aIuYq7v_VPi6THftCS-59DXMQ0X\
          ugapLalKKDo6qAJkBy0i8d9DFcYIySIUgQ69Dprvp4fpA";
     const KEY: &[u8] = b"your-512-bit-secret";
@@ -136,8 +133,7 @@ fn es256_reference() {
 
     type PublicKey = <Es256 as Algorithm>::VerifyingKey;
 
-    const TOKEN: &str =
-        "eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt\
+    const TOKEN: &str = "eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt\
          cGxlLmNvbS9pc19yb290Ijp0cnVlfQ.DtEhU3ljbEg8L38VWAfUAqOyKAM6-Xx-F4GawxaepmXFCgfTjDxw5d\
          jxLa8ISlSApmWQxfKTUJqPP3-Kg6NU1Q";
 
@@ -177,8 +173,7 @@ fn es256k_reference() {
 
     use const_decoder::Decoder::Hex;
 
-    const TOKEN: &str =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcy\
+    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksifQ.eyJpYXQiOjE1NjE4MTQ3ODgsImJsYSI6ImJsYSIsImlzcy\
          I6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.cJI3_GRjb6d6LJqOXA\
          PKhLjYnFg1ZdqTK8huTiTCb9Q53xNZiSWK95vaG4nk1Vk0-FbyVpug6yf9HoFqtKnmLQ";
 
@@ -222,8 +217,7 @@ fn ed25519_reference() {
     type EdSigningKey = <Ed25519 as Algorithm>::SigningKey;
     type EdVerifyingKey = <Ed25519 as Algorithm>::VerifyingKey;
 
-    const TOKEN: &str =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzc\
+    const TOKEN: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZDI1NTE5In0.eyJpYXQiOjE1NjE4MTU1MjYsImZvbyI6ImJhciIsImlzc\
          yI6ImRpZDp1cG9ydDoyblF0aVFHNkNnbTFHWVRCYWFLQWdyNzZ1WTdpU2V4VWtxWCJ9.Du1gZvmrmykgWnqtB\
          FvyFZAmEQ8wGSuknEn4Qnu9jW8MwHwyAgruJ3YzOVZiukhvp9RFiJlwdp4BfNbReJx8Cg";
     const KEY: [u8; 32] =

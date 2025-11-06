@@ -1,6 +1,6 @@
 # Compact JWT implementation in Rust
 
-[![Build Status](https://github.com/slowli/jwt-compact/workflows/CI/badge.svg?branch=master)](https://github.com/slowli/jwt-compact/actions)
+[![CI](https://github.com/slowli/jwt-compact/actions/workflows/ci.yml/badge.svg)](https://github.com/slowli/jwt-compact/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/slowli/jwt-compact.svg)](https://github.com/slowli/jwt-compact/blob/master/LICENSE)
 ![rust 1.85+ required](https://img.shields.io/badge/rust-1.85+-blue.svg?label=Required%20Rust)
 ![no_std supported](https://img.shields.io/badge/no__std-tested-green.svg)

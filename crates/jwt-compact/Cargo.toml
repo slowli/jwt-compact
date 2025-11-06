@@ -1,0 +1,86 @@
+[package]
+name = "jwt-compact"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+repository.workspace = true
+readme = "README.md"
+description = "Minimalistic JWT implementation with focus on type safety and secure cryptographic primitives"
+
+[package.metadata.docs.rs]
+# Enable non-conflicting additional algorithms in documentation on `docs.rs`.
+features = ["exonum-crypto", "es256k", "p256", "rsa"]
+# Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+# Public dependencies (present in the public API).
+anyhow.workspace = true
+base64ct = { workspace = true, features = ["alloc"] }
+ciborium = { workspace = true, optional = true }
+chrono.workspace = true
+rand_core.workspace = true
+serde = { workspace = true, features = ["alloc", "derive"] }
+serde_json = { workspace = true, features = ["alloc"] }
+
+# SHA crypto backend (private dependency; re-exported `digest` crate is public).
+hmac.workspace = true
+sha2.workspace = true
+
+# Private dependencies (not exposed in the public API).
+smallvec.workspace = true
+subtle.workspace = true
+zeroize = { workspace = true, features = ["zeroize_derive"] }
+
+# Crypto backends (all public dependencies).
+secp256k1 = { workspace = true, optional = true }
+k256 = { workspace = true, features = ["ecdsa"], optional = true }
+p256 = { workspace = true, features = ["ecdsa"], optional = true }
+exonum-crypto = { workspace = true, features = ["sodiumoxide-crypto"], optional = true }
+ed25519-dalek = { workspace = true, optional = true }
+ed25519-compact = { workspace = true, optional = true }
+rsa = { workspace = true, optional = true }
+
+[dev-dependencies]
+assert_matches.workspace = true
+const-decoder.workspace = true
+criterion.workspace = true
+crypto-bigint.workspace = true
+crypto-primes.workspace = true
+doc-comment.workspace = true
+hex-buffer-serde.workspace = true
+rand.workspace = true
+uuid = { workspace = true, features = ["serde", "v4"] }
+version-sync.workspace = true
+
+[features]
+default = ["std", "clock", "ciborium"]
+# Enables `std`-specific functionality (such as error types implementing
+# the standard `Error` trait).
+std = ["anyhow/std", "serde_json/std", "ciborium?/std"]
+# Enables getting the current time using `Utc::now()` from `chrono`.
+# Without it, some `TimeOptions` constructors, such as the `Default` impl,
+# are not available. It is still possible to create `TimeOptions`
+# with an excplicitly specified clock function, or to set / verify
+# time-related `Claims` fields manually.
+clock = ["chrono/clock"]
+# `secp256k1` crypto backend.
+es256k = ["secp256k1"]
+ed25519-compact = ["dep:ed25519-compact", "rand_core/os_rng"]
+# RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
+rsa = ["dep:rsa", "rand_core/os_rng", "sha2/oid"]
+
+[[bench]]
+name = "encoding"
+harness = false
+path = "benches/encoding.rs"
+required-features = ["std", "clock"]
+
+[[test]]
+name = "rsa"
+path = "tests/rsa.rs"
+required-features = ["rsa/encoding"]

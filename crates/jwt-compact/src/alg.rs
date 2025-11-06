@@ -25,7 +25,7 @@ pub use self::{
     generic::{SecretBytes, SigningKey, VerifyingKey},
     hmacs::*,
 };
-use crate::{alloc::Cow, Algorithm};
+use crate::{Algorithm, alloc::Cow};
 
 mod generic;
 mod hmacs;

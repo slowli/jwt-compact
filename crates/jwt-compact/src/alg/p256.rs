@@ -1,30 +1,22 @@
-//! `ES256K` algorithm implementation using the `k256` crate.
+//! `ES256` algorithm implementation using the `p256` crate.
 
-use core::{marker::PhantomData, num::NonZeroUsize, ops::Add};
+use core::num::NonZeroUsize;
 
-use k256::{
-    ecdsa::{
-        signature::{DigestSigner, DigestVerifier},
-        Signature, SigningKey, VerifyingKey,
-    },
-    elliptic_curve::FieldBytesSize,
-    Secp256k1,
+use p256::ecdsa::{
+    Signature, SigningKey, VerifyingKey,
+    signature::{DigestSigner, DigestVerifier},
 };
-use sha2::{
-    digest::{typenum::Unsigned, Update},
-    Digest, Sha256,
-};
+use sha2::{Digest, Sha256};
 
 use crate::{
+    Algorithm, AlgorithmSignature,
     alg::{self, SecretBytes},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
-    Algorithm, AlgorithmSignature,
 };
 
 impl AlgorithmSignature for Signature {
-    const LENGTH: Option<NonZeroUsize> =
-        NonZeroUsize::new(<FieldBytesSize<Secp256k1> as Add>::Output::USIZE);
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(64);
 
     fn try_from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         Signature::try_from(slice).map_err(|err| anyhow::anyhow!(err))
@@ -35,47 +27,25 @@ impl AlgorithmSignature for Signature {
     }
 }
 
-/// Algorithm implementing elliptic curve digital signatures (ECDSA) on the secp256k1 curve.
-///
-/// The algorithm does not fix the choice of the message digest algorithm; instead,
-/// it is provided as a type parameter. SHA-256 is the default parameter value,
-/// but it can be set to any cryptographically secure hash function with 32-byte output
-/// (e.g., SHA3-256).
-#[derive(Debug)]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "es256k", feature = "k256"))))]
-pub struct Es256k<D = Sha256> {
-    _digest: PhantomData<D>,
-}
+/// `ES256` signing algorithm. Implements elliptic curve digital signatures (ECDSA)
+/// on the secp256r1 curve (aka P-256).
+#[derive(Debug, Default)]
+#[cfg_attr(docsrs, doc(cfg(feature = "p256")))]
+pub struct Es256;
 
-impl<D> Default for Es256k<D>
-where
-    D: Default + Digest + Update,
-    SigningKey: DigestSigner<D, Signature>,
-    VerifyingKey: DigestVerifier<D, Signature>,
-{
-    fn default() -> Self {
-        Es256k {
-            _digest: PhantomData,
-        }
-    }
-}
-
-impl<D> Algorithm for Es256k<D>
-where
-    D: Default + Digest + Update,
-    SigningKey: DigestSigner<D, Signature>,
-    VerifyingKey: DigestVerifier<D, Signature>,
-{
+impl Algorithm for Es256 {
     type SigningKey = SigningKey;
     type VerifyingKey = VerifyingKey;
     type Signature = Signature;
 
     fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed("ES256K")
+        Cow::Borrowed("ES256")
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        signing_key.sign_digest(|digest| Digest::update(digest, message))
+        signing_key.sign_digest(|digest: &mut Sha256| {
+            digest.update(message);
+        })
     }
 
     fn verify_signature(
@@ -84,25 +54,19 @@ where
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        // Some implementations (e.g., OpenSSL) produce high-S signatures, which
-        // are considered invalid by this implementation. Hence, we perform normalization here.
-        //
-        // See also: https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki
-        let normalized_signature = signature.normalize_s();
-
         verifying_key
             .verify_digest(
-                |digest| {
-                    Digest::update(digest, message);
+                |digest: &mut Sha256| {
+                    digest.update(message);
                     Ok(())
                 },
-                &normalized_signature,
+                signature,
             )
             .is_ok()
     }
 }
 
-impl alg::SigningKey<Es256k> for SigningKey {
+impl alg::SigningKey<Es256> for SigningKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
         Self::from_slice(raw).map_err(|err| anyhow::anyhow!(err))
     }
@@ -116,7 +80,7 @@ impl alg::SigningKey<Es256k> for SigningKey {
     }
 }
 
-impl alg::VerifyingKey<Es256k> for VerifyingKey {
+impl alg::VerifyingKey<Es256> for VerifyingKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
         Self::from_sec1_bytes(raw).map_err(|err| anyhow::anyhow!(err))
     }
@@ -131,7 +95,7 @@ impl alg::VerifyingKey<Es256k> for VerifyingKey {
 fn create_jwk<'a>(pk: &VerifyingKey, sk: Option<&'a SigningKey>) -> JsonWebKey<'a> {
     let uncompressed = pk.to_encoded_point(false);
     JsonWebKey::EllipticCurve {
-        curve: "secp256k1".into(),
+        curve: "P-256".into(),
         x: Cow::Owned(uncompressed.x().expect("x coord").to_vec()),
         y: Cow::Owned(uncompressed.y().expect("y coord").to_vec()),
         secret: sk.map(|sk| SecretBytes::owned(sk.to_bytes().to_vec())),
@@ -153,7 +117,7 @@ impl TryFrom<&JsonWebKey<'_>> for VerifyingKey {
         let JsonWebKey::EllipticCurve { curve, x, y, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::EllipticCurve));
         };
-        JsonWebKey::ensure_curve(curve, "secp256k1")?;
+        JsonWebKey::ensure_curve(curve, "P-256")?;
         JsonWebKey::ensure_len("x", x, COORDINATE_SIZE)?;
         JsonWebKey::ensure_len("y", y, COORDINATE_SIZE)?;
 

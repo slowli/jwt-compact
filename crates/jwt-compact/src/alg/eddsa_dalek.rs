@@ -3,15 +3,15 @@
 use core::num::NonZeroUsize;
 
 use ed25519_dalek::{
-    SecretKey, Signature, Signer, Verifier, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH,
-    SIGNATURE_LENGTH,
+    KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, SIGNATURE_LENGTH, SecretKey, Signature,
+    Signer, Verifier,
 };
 
 use crate::{
+    Algorithm, AlgorithmSignature, Renamed,
     alg::{SecretBytes, SigningKey, VerifyingKey},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
-    Algorithm, AlgorithmSignature, Renamed,
 };
 
 impl AlgorithmSignature for Signature {

@@ -3,18 +3,18 @@
 use core::{fmt, str::FromStr};
 
 use rand_core::{CryptoRng, RngCore};
-pub use rsa::{errors::Error as RsaError, RsaPrivateKey, RsaPublicKey};
 use rsa::{
-    traits::{PrivateKeyParts, PublicKeyParts},
     BoxedUint, Pkcs1v15Sign, Pss,
+    traits::{PrivateKeyParts, PublicKeyParts},
 };
+pub use rsa::{RsaPrivateKey, RsaPublicKey, errors::Error as RsaError};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use crate::{
+    Algorithm, AlgorithmSignature,
     alg::{SecretBytes, StrongKey, WeakKeyError},
     alloc::{Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
-    Algorithm, AlgorithmSignature,
 };
 
 /// RSA signature.

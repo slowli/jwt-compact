@@ -1,27 +1,24 @@
-//! `EdDSA` algorithm implementation using the `exonum-crypto` crate.
+//! `EdDSA` algorithm implementation using the `ed25519-compact` crate.
 
 use core::num::NonZeroUsize;
 
-use anyhow::format_err;
-use exonum_crypto::{
-    gen_keypair_from_seed, sign, verify, PublicKey, SecretKey, Seed, Signature, PUBLIC_KEY_LENGTH,
-    SEED_LENGTH, SIGNATURE_LENGTH,
-};
+use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
+use rand_core::{CryptoRng, RngCore, TryRngCore};
 
 use crate::{
+    Algorithm, AlgorithmSignature, Renamed,
     alg::{SecretBytes, SigningKey, VerifyingKey},
     alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
-    Algorithm, AlgorithmSignature, Renamed,
 };
 
 impl AlgorithmSignature for Signature {
-    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(SIGNATURE_LENGTH);
+    const LENGTH: Option<NonZeroUsize> = NonZeroUsize::new(Signature::BYTES);
 
     fn try_from_slice(bytes: &[u8]) -> anyhow::Result<Self> {
-        // There are no checks other than by signature length in `from_slice`,
-        // so the `unwrap()` below is safe.
-        Ok(Self::from_slice(bytes).unwrap())
+        let mut signature = [0_u8; Signature::BYTES];
+        signature.copy_from_slice(bytes);
+        Ok(Self::new(signature))
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
@@ -31,19 +28,11 @@ impl AlgorithmSignature for Signature {
 
 /// Integrity algorithm using digital signatures on the Ed25519 elliptic curve.
 ///
-/// The name of the algorithm is specified as `EdDSA` as per [IANA registry].
+/// The name of the algorithm is specified as `EdDSA` as per the [IANA registry].
 /// Use `with_specific_name()` to switch to non-standard `Ed25519`.
 ///
 /// [IANA registry]: https://www.iana.org/assignments/jose/jose.xhtml
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(
-        feature = "exonum-crypto",
-        feature = "ed25519-dalek",
-        feature = "ed25519-compact"
-    )))
-)]
 pub struct Ed25519;
 
 impl Ed25519 {
@@ -51,6 +40,14 @@ impl Ed25519 {
     /// This is a non-standard name, but it is used in some apps.
     pub fn with_specific_name() -> Renamed<Self> {
         Renamed::new(Self, "Ed25519")
+    }
+
+    /// Generate a new key pair.
+    pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> (SecretKey, PublicKey) {
+        let mut seed = [0_u8; Seed::BYTES];
+        rng.fill_bytes(&mut seed);
+        let keypair = KeyPair::from_seed(Seed::new(seed));
+        (keypair.sk, keypair.pk)
     }
 }
 
@@ -64,7 +61,11 @@ impl Algorithm for Ed25519 {
     }
 
     fn sign(&self, signing_key: &Self::SigningKey, message: &[u8]) -> Self::Signature {
-        sign(message, signing_key)
+        let mut noise = [0_u8; Noise::BYTES];
+        rand_core::OsRng
+            .try_fill_bytes(&mut noise)
+            .expect("failed generating noise for Ed25519 signature");
+        signing_key.sign(message, Some(Noise::new(noise)))
     }
 
     fn verify_signature(
@@ -73,13 +74,13 @@ impl Algorithm for Ed25519 {
         verifying_key: &Self::VerifyingKey,
         message: &[u8],
     ) -> bool {
-        verify(signature, message, verifying_key)
+        verifying_key.verify(message, signature).is_ok()
     }
 }
 
 impl VerifyingKey<Ed25519> for PublicKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).ok_or_else(|| format_err!("Invalid public key length"))
+        Self::from_slice(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn as_bytes(&self) -> Cow<'_, [u8]> {
@@ -89,18 +90,15 @@ impl VerifyingKey<Ed25519> for PublicKey {
 
 impl SigningKey<Ed25519> for SecretKey {
     fn from_slice(raw: &[u8]) -> anyhow::Result<Self> {
-        Self::from_slice(raw).ok_or_else(|| format_err!("Invalid secret key bytes"))
+        Self::from_slice(raw).map_err(|err| anyhow::anyhow!(err))
     }
 
     fn to_verifying_key(&self) -> PublicKey {
-        // Slightly hacky. The backend does not expose functions for converting secret keys
-        // to public ones, and we don't want to use `KeyPair` instead of `SecretKey`
-        // for this single purpose.
-        PublicKey::from_slice(&self[SEED_LENGTH..]).unwrap()
+        self.public_key()
     }
 
     fn as_bytes(&self) -> SecretBytes<'_> {
-        SecretBytes::borrowed(&self[..])
+        SecretBytes::borrowed(self.as_ref())
     }
 }
 
@@ -108,7 +106,7 @@ impl<'a> From<&'a PublicKey> for JsonWebKey<'a> {
     fn from(key: &'a PublicKey) -> JsonWebKey<'a> {
         JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),
-            x: Cow::Borrowed(key.as_ref()),
+            x: Cow::Borrowed(&key[..]),
             secret: None,
         }
     }
@@ -121,11 +119,10 @@ impl TryFrom<&JsonWebKey<'_>> for PublicKey {
         let JsonWebKey::KeyPair { curve, x, .. } = jwk else {
             return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
-
         JsonWebKey::ensure_curve(curve, "Ed25519")?;
-        JsonWebKey::ensure_len("x", x, PUBLIC_KEY_LENGTH)?;
-        Ok(PublicKey::from_slice(x).unwrap())
-        // ^ unlike some other impls, libsodium does not check public key validity on creation
+        JsonWebKey::ensure_len("x", x, PublicKey::BYTES)?;
+
+        <PublicKey as VerifyingKey<_>>::from_slice(x).map_err(JwkError::custom)
     }
 }
 
@@ -133,8 +130,8 @@ impl<'a> From<&'a SecretKey> for JsonWebKey<'a> {
     fn from(key: &'a SecretKey) -> JsonWebKey<'a> {
         JsonWebKey::KeyPair {
             curve: Cow::Borrowed("Ed25519"),
-            x: Cow::Borrowed(&key[SEED_LENGTH..]),
-            secret: Some(SecretBytes::borrowed(&key[..SEED_LENGTH])),
+            x: Cow::Borrowed(&key[Seed::BYTES..]),
+            secret: Some(SecretBytes::borrowed(&key[..Seed::BYTES])),
         }
     }
 }
@@ -147,11 +144,11 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
             return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
         let seed_bytes = secret.as_deref();
-        let seed_bytes = seed_bytes.ok_or_else(|| JwkError::NoField("d".to_owned()))?;
+        let seed_bytes = seed_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
+        JsonWebKey::ensure_len("d", seed_bytes, Seed::BYTES)?;
+        let seed_bytes = *<&[u8; Seed::BYTES]>::try_from(seed_bytes).unwrap();
 
-        JsonWebKey::ensure_len("d", seed_bytes, SEED_LENGTH)?;
-        let seed = Seed::from_slice(seed_bytes).unwrap();
-        let (_, sk) = gen_keypair_from_seed(&seed);
-        jwk.ensure_key_match(sk)
+        let secret_key = KeyPair::from_seed(Seed::new(seed_bytes)).sk;
+        jwk.ensure_key_match(secret_key)
     }
 }

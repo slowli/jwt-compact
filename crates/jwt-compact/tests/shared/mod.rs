@@ -4,7 +4,7 @@ use assert_matches::assert_matches;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{Duration, TimeZone, Utc};
 use hex_buffer_serde::{Hex as _, HexForm};
-use jwt_compact::{prelude::*, Algorithm, ValidationError};
+use jwt_compact::{Algorithm, ValidationError, prelude::*};
 use rand::{rng, seq::index::sample as sample_indexes};
 use serde::{Deserialize, Serialize};
 

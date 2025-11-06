@@ -1,5 +1,8 @@
-[package]
-name = "jwt-compact"
+[workspace]
+resolver = "3"
+members = ["crates/jwt-compact", "e2e-tests/no-std", "e2e-tests/wasm"]
+
+[workspace.package]
 version = "0.9.0-beta.1"
 authors = [
   "Alex Ostrovski <ostrovski.alex@gmail.com>",
@@ -9,117 +12,53 @@ authors = [
   "Eran Rundstein <eran@rundste.in>",
   "Bruno Green",
 ]
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"
-readme = "README.md"
 license = "Apache-2.0"
 keywords = ["JWT", "token", "authorization"]
 categories = ["web-programming", "cryptography", "no-std"]
-description = "Minimalistic JWT implementation with focus on type safety and secure cryptographic primitives"
 repository = "https://github.com/slowli/jwt-compact"
 
-exclude = ["e2e-tests"]
-
-[package.metadata.docs.rs]
-# Enable non-conflicting additional algorithms in documentation on `docs.rs`.
-features = ["exonum-crypto", "es256k", "p256", "rsa"]
-# Set `docsrs` to enable unstable `doc(cfg(...))` attributes.
-rustdoc-args = ["--cfg", "docsrs"]
-
-[dependencies]
-# Public dependencies (present in the public API).
+[workspace.dependencies]
+# External dependencies
 anyhow = { version = "1.0.100", default-features = false }
-base64ct = { version = "1.5.2", features = ["alloc"] }
-ciborium = { version = "0.2.2", default-features = false, optional = true }
-chrono = { version = "0.4.42", default-features = false }
-rand_core = "0.9.3"
-serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-
-# SHA crypto backend (private dependency; re-exported `digest` crate is public).
-hmac = "=0.13.0-rc.2"
-sha2 = { version = "=0.11.0-rc.2", default-features = false }
-
-# Private dependencies (not exposed in the public API).
-smallvec = "1.15.1"
-subtle = { version = "2.6.1", default-features = false }
-zeroize = { version = "1.8", features = ["zeroize_derive"] }
-
-# Crypto backends (all public dependencies).
-secp256k1 = { version = "0.31", optional = true }
-
-[dependencies.k256]
-version = "=0.14.0-rc.0"
-default-features = false
-features = ["ecdsa"]
-optional = true
-
-[dependencies.p256]
-version = "=0.14.0-rc.0"
-default-features = false
-features = ["ecdsa"]
-optional = true
-
-[dependencies.exonum-crypto]
-version = "1.0.0"
-default-features = false
-features = ["sodiumoxide-crypto"]
-optional = true
-
-[dependencies.ed25519-dalek]
-version = "=3.0.0-pre.1"
-optional = true
-default-features = false
-
-[dependencies.ed25519-compact]
-version = "2.1.1"
-optional = true
-default-features = false
-
-[dependencies.rsa]
-version = "=0.10.0-rc.9"
-optional = true
-default-features = false
-
-[dev-dependencies]
 assert_matches = "1.3"
+base64ct = { version = "1.5.2" }
+chrono = { version = "0.4.42", default-features = false }
+ciborium = { version = "0.2.2", default-features = false }
 const-decoder = "0.4.0"
-criterion = "0.5.1"
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+cortex-m-semihosting = "0.5"
+criterion = "0.7.0"
 crypto-bigint = "=0.7.0-rc.9"
 crypto-primes = "=0.7.0-pre.3"
 doc-comment = "0.3.4"
+ed25519-compact = {version = "2.1.1", default-features = false }
+ed25519-dalek = { version = "=3.0.0-pre.1", default-features = false }
+embedded-alloc = "0.6.0"
+exonum-crypto = { version = "1.0.0", default-features = false }
+getrandom = "0.3.4"
 hex-buffer-serde = "0.4.0"
+hmac = "=0.13.0-rc.2"
+k256 = { version = "=0.14.0-rc.0", default-features = false }
+once_cell = { version = "1.21.3", default-features = false }
+p256 = { version = "=0.14.0-rc.0", default-features = false }
+panic-halt = "1.0.0"
 rand = "0.9.2"
-uuid = { version = "1.16.0", features = ["serde", "v4"] }
+rand_chacha = { version = "0.9.0", default-features = false }
+rand_core = "0.9.3"
+rsa = { version = "=0.10.0-rc.9", default-features = false }
+secp256k1 = "0.31"
+serde = { version = "1.0", default-features = false }
+serde_json = { version = "1.0", default-features = false }
+sha2 = { version = "=0.11.0-rc.2", default-features = false }
+smallvec = "1.15.1"
+subtle = { version = "2.6.1", default-features = false }
+uuid = "1.18.1"
 version-sync = "0.9"
+wasm-bindgen = "0.2.99"
+zeroize = "1.8"
 
-[features]
-default = ["std", "clock", "ciborium"]
-# Enables `std`-specific functionality (such as error types implementing
-# the standard `Error` trait).
-std = ["anyhow/std", "serde_json/std", "ciborium?/std"]
-# Enables getting the current time using `Utc::now()` from `chrono`.
-# Without it, some `TimeOptions` constructors, such as the `Default` impl,
-# are not available. It is still possible to create `TimeOptions`
-# with an excplicitly specified clock function, or to set / verify
-# time-related `Claims` fields manually.
-clock = ["chrono/clock"]
-# `secp256k1` crypto backend.
-es256k = ["secp256k1"]
-ed25519-compact = ["dep:ed25519-compact", "rand_core/os_rng"]
-# RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
-rsa = ["dep:rsa", "rand_core/os_rng", "sha2/oid"]
-
-[[bench]]
-name = "encoding"
-harness = false
-path = "benches/encoding.rs"
-required-features = ["std", "clock"]
-
-[[test]]
-name = "rsa"
-path = "tests/rsa.rs"
-required-features = ["rsa/encoding"]
-
-[workspace]
-members = [".", "e2e-tests/no-std", "e2e-tests/wasm"]
+# Local dependencies
+jwt-compact = { version = "=0.9.0-beta.1", default-features = false, path = "crates/jwt-compact" }

@@ -214,10 +214,10 @@ impl<T> Claims<T> {
 mod serde_timestamp {
     use core::fmt;
 
-    use chrono::{offset::TimeZone, DateTime, Utc};
+    use chrono::{DateTime, Utc, offset::TimeZone};
     use serde::{
-        de::{Error as DeError, Visitor},
         Deserializer, Serializer,
+        de::{Error as DeError, Visitor},
     };
 
     struct TimestampVisitor;
@@ -334,12 +334,14 @@ mod tests {
         );
         // Same if we set the current time in the past.
         let expiration = claims.expiration.unwrap();
-        assert!(claims
-            .validate_expiration(&TimeOptions::new(
-                Duration::try_seconds(3).unwrap(),
-                move || { expiration }
-            ))
-            .is_ok());
+        assert!(
+            claims
+                .validate_expiration(&TimeOptions::new(
+                    Duration::try_seconds(3).unwrap(),
+                    move || { expiration }
+                ))
+                .is_ok()
+        );
     }
 
     #[test]

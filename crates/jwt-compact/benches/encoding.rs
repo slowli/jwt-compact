@@ -1,10 +1,10 @@
 //! Benchmarks for encoding / decoding logic.
 
 use chrono::{Duration, Utc};
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use jwt_compact::{
-    alg::{Hs256, Hs256Key},
     AlgorithmExt, Claims, Header, TimeOptions, UntrustedToken,
+    alg::{Hs256, Hs256Key},
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

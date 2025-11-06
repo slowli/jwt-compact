@@ -4,16 +4,16 @@ use core::{cmp, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{
-    de::{DeserializeOwned, Error as DeError, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{DeserializeOwned, Error as DeError, Visitor},
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 #[cfg(feature = "ciborium")]
 use crate::error::CborDeError;
 use crate::{
-    alloc::{format, Cow, String, Vec},
     Algorithm, Claims, Empty, ParseError, ValidationError,
+    alloc::{Cow, String, Vec, format},
 };
 
 /// Maximum "reasonable" signature size in bytes.
@@ -604,9 +604,9 @@ mod tests {
 
     use super::*;
     use crate::{
+        AlgorithmExt, Empty,
         alg::{Hs256, Hs256Key},
         alloc::{ToOwned, ToString},
-        AlgorithmExt, Empty,
     };
 
     type Obj = serde_json::Map<String, serde_json::Value>;

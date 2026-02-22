@@ -356,7 +356,7 @@ fn ed25519_algorithm() {
 #[test]
 fn ed25519_algorithm() {
     use ed25519_dalek::{SecretKey, SigningKey};
-    use rand_core::RngCore;
+    use rand_core::Rng;
 
     // Since `ed25519_dalek` works with `rand` v0.7 rather than v0.8, we use this roundabout way
     // to generate a keypair.
@@ -377,7 +377,7 @@ fn ed25519_algorithm() {
 #[cfg(any(feature = "es256k", feature = "k256"))]
 #[test]
 fn es256k_algorithm() {
-    use rand::Rng;
+    use rand::RngExt;
 
     type SecretKey = <Es256k as Algorithm>::SigningKey;
     type PublicKey = <Es256k as Algorithm>::VerifyingKey;
@@ -445,7 +445,7 @@ fn high_s_in_signature_is_successfully_validated() {
 #[cfg(feature = "p256")]
 #[test]
 fn es256_algorithm() {
-    use rand::Rng;
+    use rand::RngExt;
 
     type SecretKey = <Es256 as Algorithm>::SigningKey;
     type PublicKey = <Es256 as Algorithm>::VerifyingKey;

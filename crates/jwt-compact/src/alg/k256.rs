@@ -123,13 +123,13 @@ impl alg::VerifyingKey<Es256k> for VerifyingKey {
 
     /// Serializes the key as a 33-byte compressed form.
     fn as_bytes(&self) -> Cow<'_, [u8]> {
-        let bytes = self.to_encoded_point(true).as_bytes().to_vec();
+        let bytes = self.to_sec1_point(true).as_bytes().to_vec();
         Cow::Owned(bytes)
     }
 }
 
 fn create_jwk<'a>(pk: &VerifyingKey, sk: Option<&'a SigningKey>) -> JsonWebKey<'a> {
-    let uncompressed = pk.to_encoded_point(false);
+    let uncompressed = pk.to_sec1_point(false);
     JsonWebKey::EllipticCurve {
         curve: "secp256k1".into(),
         x: Cow::Owned(uncompressed.x().expect("x coord").to_vec()),

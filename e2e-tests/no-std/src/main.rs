@@ -33,7 +33,7 @@ mod rsa_helpers {
     use once_cell::unsync::Lazy;
     use rand_chacha::{
         ChaChaRng,
-        rand_core::{RngCore, SeedableRng},
+        rand_core::{Rng, SeedableRng},
     };
 
     static mut RNG: Lazy<ChaChaRng> = Lazy::new(|| {

@@ -30,13 +30,13 @@ const-decoder = "0.4.0"
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
 cortex-m-semihosting = "0.5"
-criterion = "0.7.0"
+criterion = "0.8.2"
 crypto-bigint = "=0.7.0-rc.27"
 crypto-primes = "=0.7.0-pre.9"
 doc-comment = "0.3.4"
 ed25519-compact = {version = "2.2.0", default-features = false }
 ed25519-dalek = { version = "=3.0.0-pre.6", default-features = false }
-embedded-alloc = "0.6.0"
+embedded-alloc = "0.7.0"
 exonum-crypto = { version = "1.0.0", default-features = false }
 getrandom = "0.4.1"
 hex-buffer-serde = "0.4.0"
@@ -57,7 +57,7 @@ smallvec = "1.15.1"
 subtle = { version = "2.6.1", default-features = false }
 uuid = "1.20.0"
 version-sync = "0.9"
-wasm-bindgen = "0.2.99"
+wasm-bindgen = "0.2.111"
 zeroize = "1.8"
 
 # Local dependencies

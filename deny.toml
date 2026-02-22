@@ -37,6 +37,9 @@ skip-tree = [
   # `cortex-m` crates (which are only used in the no-std test crate) have some outdated deps.
   { name = "cortex-m", version = "^0.7" },
   { name = "cortex-m-rt", version = "^0.7" },
+  # Dependency of `wasip2` via `getrandom`, which is de facto mutually exclusive with `wasip3`
+  # and newer `wit-bindgen`.
+  { name = "wit-bindgen", version = "^0.46" },
 ]
 
 [sources]

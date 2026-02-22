@@ -4,12 +4,12 @@ use core::{fmt, num::NonZeroUsize};
 
 use hmac::{
     Hmac, KeyInit as _, Mac as _,
-    digest::{CtOutput, crypto_common::typenum::Unsigned},
+    digest::{CtOutput, common::typenum::Unsigned},
 };
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use sha2::{
     Sha256, Sha384, Sha512,
-    digest::{Output, OutputSizeUser, core_api::BlockSizeUser},
+    digest::{Output, OutputSizeUser, block_api::BlockSizeUser},
 };
 use smallvec::{SmallVec, smallvec};
 use zeroize::Zeroize;
@@ -83,7 +83,7 @@ macro_rules! define_hmac_key {
 
         impl $name {
             /// Generates a random key using a cryptographically secure RNG.
-            pub fn generate<R: CryptoRng + RngCore>(rng: &mut R) -> StrongKey<Self> {
+            pub fn generate<R: CryptoRng>(rng: &mut R) -> StrongKey<Self> {
                 let mut key = $name(smallvec![0; <$digest as BlockSizeUser>::BlockSize::to_usize()]);
                 rng.fill_bytes(&mut key.0);
                 StrongKey(key)

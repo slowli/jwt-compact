@@ -14,7 +14,7 @@ use sha2::{
     Digest, Sha256,
     digest::{
         FixedOutputReset, HashMarker,
-        crypto_common::{BlockSizeUser, typenum::U32},
+        common::{BlockSizeUser, typenum::U32},
     },
 };
 

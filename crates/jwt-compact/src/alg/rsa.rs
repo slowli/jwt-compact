@@ -2,7 +2,7 @@
 
 use core::{fmt, str::FromStr};
 
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRng;
 use rsa::{
     BoxedUint, Pkcs1v15Sign, Pss,
     traits::{PrivateKeyParts, PublicKeyParts},
@@ -78,7 +78,9 @@ enum Padding {
 #[derive(Debug)]
 enum PaddingScheme {
     Pkcs1v15(Pkcs1v15Sign),
-    Pss(Pss),
+    Pss256(Pss<Sha256>),
+    Pss384(Pss<Sha384>),
+    Pss512(Pss<Sha512>),
 }
 
 /// Bit length of an RSA key modulus (aka RSA key length).
@@ -182,12 +184,22 @@ impl Algorithm for Rsa {
         let digest = digest.as_ref();
         let signing_result = match self.padding_scheme() {
             PaddingScheme::Pkcs1v15(padding) => signing_key.sign_with_rng(
-                &mut rand_core::UnwrapErr(rand_core::OsRng),
+                &mut rand_core::UnwrapErr(getrandom::SysRng),
                 padding,
                 digest,
             ),
-            PaddingScheme::Pss(padding) => signing_key.sign_with_rng(
-                &mut rand_core::UnwrapErr(rand_core::OsRng),
+            PaddingScheme::Pss256(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(getrandom::SysRng),
+                padding,
+                digest,
+            ),
+            PaddingScheme::Pss384(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(getrandom::SysRng),
+                padding,
+                digest,
+            ),
+            PaddingScheme::Pss512(padding) => signing_key.sign_with_rng(
+                &mut rand_core::UnwrapErr(getrandom::SysRng),
                 padding,
                 digest,
             ),
@@ -205,7 +217,9 @@ impl Algorithm for Rsa {
         let digest = digest.as_ref();
         let verify_result = match self.padding_scheme() {
             PaddingScheme::Pkcs1v15(padding) => verifying_key.verify(padding, digest, &signature.0),
-            PaddingScheme::Pss(padding) => verifying_key.verify(padding, digest, &signature.0),
+            PaddingScheme::Pss256(padding) => verifying_key.verify(padding, digest, &signature.0),
+            PaddingScheme::Pss384(padding) => verifying_key.verify(padding, digest, &signature.0),
+            PaddingScheme::Pss512(padding) => verifying_key.verify(padding, digest, &signature.0),
         };
         verify_result.is_ok()
     }
@@ -269,11 +283,17 @@ impl Rsa {
             Padding::Pss => {
                 // The salt length needs to be set to the size of hash function output;
                 // see https://www.rfc-editor.org/rfc/rfc7518.html#section-3.5.
-                PaddingScheme::Pss(match self.hash_alg {
-                    HashAlg::Sha256 => Pss::new_with_salt::<Sha256>(Sha256::output_size()),
-                    HashAlg::Sha384 => Pss::new_with_salt::<Sha384>(Sha384::output_size()),
-                    HashAlg::Sha512 => Pss::new_with_salt::<Sha512>(Sha512::output_size()),
-                })
+                match self.hash_alg {
+                    HashAlg::Sha256 => {
+                        PaddingScheme::Pss256(Pss::new_with_salt(Sha256::output_size()))
+                    }
+                    HashAlg::Sha384 => {
+                        PaddingScheme::Pss384(Pss::new_with_salt(Sha384::output_size()))
+                    }
+                    HashAlg::Sha512 => {
+                        PaddingScheme::Pss512(Pss::new_with_salt(Sha512::output_size()))
+                    }
+                }
             }
         }
     }
@@ -290,7 +310,7 @@ impl Rsa {
     }
 
     /// Generates a new key pair with the specified modulus bit length (aka key length).
-    pub fn generate<R: CryptoRng + RngCore>(
+    pub fn generate<R: CryptoRng>(
         rng: &mut R,
         modulus_bits: ModulusBits,
     ) -> rsa::errors::Result<(StrongKey<RsaPrivateKey>, StrongKey<RsaPublicKey>)> {

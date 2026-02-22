@@ -32,6 +32,7 @@ hmac.workspace = true
 sha2.workspace = true
 
 # Private dependencies (not exposed in the public API).
+getrandom = { workspace = true, optional = true }
 smallvec.workspace = true
 subtle.workspace = true
 zeroize = { workspace = true, features = ["zeroize_derive"] }
@@ -70,9 +71,9 @@ std = ["anyhow/std", "serde_json/std", "ciborium?/std"]
 clock = ["chrono/clock"]
 # `secp256k1` crypto backend.
 es256k = ["secp256k1"]
-ed25519-compact = ["dep:ed25519-compact", "rand_core/os_rng"]
+ed25519-compact = ["dep:ed25519-compact", "getrandom"]
 # RSA algorithm and its dependencies (currently, `getrandom`-based RNG).
-rsa = ["dep:rsa", "rand_core/os_rng", "sha2/oid"]
+rsa = ["dep:rsa", "getrandom", "sha2/oid"]
 
 [[bench]]
 name = "encoding"

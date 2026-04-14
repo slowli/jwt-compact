@@ -45,7 +45,7 @@ k256 = { version = "=0.14.0-rc.7", default-features = false }
 once_cell = { version = "1.21.3", default-features = false }
 p256 = { version = "=0.14.0-rc.7", default-features = false }
 panic-halt = "1.0.0"
-rand = "0.10.0"
+rand = "0.10.1"
 rand_chacha = { version = "0.10.0", default-features = false }
 rand_core = "0.10.0"
 rsa = { version = "=0.10.0-rc.15", default-features = false }

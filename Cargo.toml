@@ -31,8 +31,8 @@ cortex-m = "0.7"
 cortex-m-rt = "0.7"
 cortex-m-semihosting = "0.5"
 criterion = "0.8.2"
-crypto-bigint = "=0.7.3"
-crypto-primes = "=0.7.0"
+crypto-bigint = "0.7.3"
+crypto-primes = "0.7.0"
 doc-comment = "0.3.4"
 ed25519-compact = {version = "2.2.0", default-features = false }
 ed25519-dalek = { version = "=3.0.0-pre.6", default-features = false }
@@ -40,10 +40,10 @@ embedded-alloc = "0.7.0"
 exonum-crypto = { version = "1.0.0", default-features = false }
 getrandom = "0.4.2"
 hex-buffer-serde = "0.4.0"
-hmac = "=0.13.0"
-k256 = { version = "=0.14.0-rc.8", default-features = false }
+hmac = "0.13.0"
+k256 = { version = "=0.14.0-rc.9", default-features = false }
 once_cell = { version = "1.21.4", default-features = false }
-p256 = { version = "=0.14.0-rc.8", default-features = false }
+p256 = { version = "=0.14.0-rc.9", default-features = false }
 panic-halt = "1.0.0"
 rand = "0.10.1"
 rand_chacha = { version = "0.10.0", default-features = false }
@@ -52,7 +52,7 @@ rsa = { version = "=0.10.0-rc.17", default-features = false }
 secp256k1 = "0.31"
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", default-features = false }
-sha2 = { version = "=0.11.0", default-features = false }
+sha2 = { version = "0.11.0", default-features = false }
 smallvec = "1.15.1"
 subtle = { version = "2.6.1", default-features = false }
 uuid = "1.23.1"

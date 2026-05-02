@@ -1,0 +1,1 @@
+rd_("kjwt_compact")

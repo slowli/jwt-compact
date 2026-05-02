@@ -350,7 +350,7 @@ impl fmt::Display for JsonWebKey<'_> {
         // ^ unwrap() is safe: `JsonWebKey` serialization is always an object.
 
         let mut json_entries: Vec<_> = json_value.iter().collect();
-        json_entries.sort_unstable_by(|(x, _), (y, _)| x.cmp(y));
+        json_entries.sort_unstable_by_key(|(x, _)| *x);
 
         formatter.write_str("{")?;
         let field_count = json_entries.len();

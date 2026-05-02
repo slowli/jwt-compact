@@ -15,6 +15,9 @@ ignore = [
   # "Marvin" attack for the `rsa` crate; no fix is available ATM.
   # A warning is added to crate readme and crate docs as a stopgap measure.
   "RUSTSEC-2023-0071",
+  # The `bare-metal` crate has been deprecated and archived.
+  # Used only for end-to-end testing.
+  "RUSTSEC-2026-0110",
 ]
 
 [licenses]
@@ -34,6 +37,8 @@ multiple-versions = "deny"
 wildcards = "deny"
 allow-wildcard-paths = true
 skip-tree = [
+  # Used by `curve25519-dalek`
+  { name = "cpufeatures", version = "^0.2" },
   # `cortex-m` crates (which are only used in the no-std test crate) have some outdated deps.
   { name = "cortex-m", version = "^0.7" },
   { name = "cortex-m-rt", version = "^0.7" },

@@ -131,8 +131,8 @@ mod rsa_jwk {
                 }
             }
 
-            let mut n = BoxedUint::from(1_u32);
-            let mut totient = BoxedUint::from(1_u32);
+            let mut n = BoxedUint::from(1_u32).resize(bit_size);
+            let mut totient = BoxedUint::from(1_u32).resize(bit_size);
 
             for prime in &primes {
                 n *= prime;

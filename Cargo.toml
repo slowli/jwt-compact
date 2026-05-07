@@ -35,7 +35,7 @@ crypto-bigint = "0.7.3"
 crypto-primes = "0.7.0"
 doc-comment = "0.3.4"
 ed25519-compact = {version = "2.2.0", default-features = false }
-ed25519-dalek = { version = "=3.0.0-pre.6", default-features = false }
+ed25519-dalek = { version = "=3.0.0-pre.7", default-features = false }
 embedded-alloc = "0.7.0"
 exonum-crypto = { version = "1.0.0", default-features = false }
 getrandom = "0.4.2"
@@ -48,7 +48,7 @@ panic-halt = "1.0.0"
 rand = "0.10.1"
 rand_chacha = { version = "0.10.0", default-features = false }
 rand_core = "0.10.1"
-rsa = { version = "=0.10.0-rc.17", default-features = false }
+rsa = { version = "=0.10.0-rc.18", default-features = false }
 secp256k1 = "0.31"
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", default-features = false }

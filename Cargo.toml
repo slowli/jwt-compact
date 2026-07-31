@@ -41,14 +41,14 @@ exonum-crypto = { version = "1.0.0", default-features = false }
 getrandom = "0.4.2"
 hex-buffer-serde = "0.4.0"
 hmac = "0.13.0"
-k256 = { version = "=0.14.0-rc.9", default-features = false }
+k256 = { version = "=0.14.0-rc.10", default-features = false }
 once_cell = { version = "1.21.4", default-features = false }
-p256 = { version = "=0.14.0-rc.9", default-features = false }
+p256 = { version = "=0.14.0-rc.10", default-features = false }
 panic-halt = "1.0.0"
 rand = "0.10.1"
 rand_chacha = { version = "0.10.0", default-features = false }
 rand_core = "0.10.1"
-rsa = { version = "=0.10.0-rc.17", default-features = false }
+rsa = { version = "=0.10.0-rc.18", default-features = false }
 secp256k1 = "0.31"
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", default-features = false }

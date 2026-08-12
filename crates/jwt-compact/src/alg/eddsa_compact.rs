@@ -1,5 +1,6 @@
 //! `EdDSA` algorithm implementation using the `ed25519-compact` crate.
 
+use alloc::borrow::Cow;
 use core::num::NonZeroUsize;
 
 use ed25519_compact::{KeyPair, Noise, PublicKey, SecretKey, Seed, Signature};
@@ -8,7 +9,6 @@ use rand_core::{CryptoRng, TryRng};
 use crate::{
     Algorithm, AlgorithmSignature, Renamed,
     alg::{SecretBytes, SigningKey, VerifyingKey},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 

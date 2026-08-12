@@ -1,5 +1,6 @@
 //! JWT algorithms based on HMACs.
 
+use alloc::borrow::Cow;
 use core::{fmt, num::NonZeroUsize};
 
 use hmac::{
@@ -17,7 +18,6 @@ use zeroize::Zeroize;
 use crate::{
     Algorithm, AlgorithmSignature,
     alg::{SecretBytes, SigningKey, StrongKey, VerifyingKey, WeakKeyError},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 

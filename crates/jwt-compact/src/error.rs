@@ -1,10 +1,9 @@
 //! Error handling.
 
+use alloc::string::String;
 #[cfg(feature = "ciborium")]
 use core::convert::Infallible;
 use core::fmt;
-
-use crate::alloc::String;
 
 #[cfg(feature = "ciborium")]
 pub(crate) type CborDeError<E = anyhow::Error> = ciborium::de::Error<E>;
@@ -46,9 +45,8 @@ impl fmt::Display for ParseError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ParseError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for ParseError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::MalformedHeader(err) => Some(err),
             _ => None,
@@ -137,9 +135,8 @@ impl fmt::Display for ValidationError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ValidationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for ValidationError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::MalformedSignature(err) => Some(err.as_ref()),
             Self::MalformedClaims(err) => Some(err),
@@ -175,9 +172,8 @@ impl fmt::Display for CreationError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for CreationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for CreationError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Header(err) | Self::Claims(err) => Some(err),
             #[cfg(feature = "ciborium")]

@@ -33,15 +33,17 @@
 //! # }
 //! ```
 
+use alloc::{
+    borrow::Cow,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::digest::{Digest, Output};
 
-use crate::{
-    alg::SecretBytes,
-    alloc::{Cow, String, ToString, Vec},
-};
+use crate::alg::SecretBytes;
 
 /// Type of a [`JsonWebKey`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -145,9 +147,8 @@ impl fmt::Display for JwkError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for JwkError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for JwkError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Custom(err) => Some(err.as_ref()),
             _ => None,
@@ -426,7 +427,7 @@ pub struct RsaPrimeFactor<'a> {
 ))]
 mod helpers {
     use super::{JsonWebKey, JwkError};
-    use crate::{Algorithm, alg::SigningKey, alloc::ToOwned};
+    use crate::{Algorithm, alg::SigningKey};
 
     impl JsonWebKey<'_> {
         pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
@@ -434,9 +435,9 @@ mod helpers {
                 Ok(())
             } else {
                 Err(JwkError::UnexpectedValue {
-                    field: "crv".to_owned(),
-                    expected: expected.to_owned(),
-                    actual: curve.to_owned(),
+                    field: "crv".into(),
+                    expected: expected.into(),
+                    actual: curve.into(),
                 })
             }
         }
@@ -450,7 +451,7 @@ mod helpers {
                 Ok(())
             } else {
                 Err(JwkError::UnexpectedLen {
-                    field: field.to_owned(),
+                    field: field.into(),
                     expected: expected_len,
                     actual: bytes.len(),
                 })
@@ -476,6 +477,7 @@ mod helpers {
 }
 
 mod base64url {
+    use alloc::{borrow::Cow, vec::Vec};
     use core::fmt;
 
     use base64ct::{Base64UrlUnpadded, Encoding};
@@ -483,8 +485,6 @@ mod base64url {
         Deserializer, Serializer,
         de::{Error as DeError, Unexpected, Visitor},
     };
-
-    use crate::alloc::{Cow, Vec};
 
     pub fn serialize<S>(value: &[u8], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -657,7 +657,7 @@ mod tests {
             x: Cow::Borrowed(b"public"),
             secret: Some(SecretBytes::borrowed(b"private")),
         };
-        let mut bytes = vec![];
+        let mut bytes = Vec::new();
         ciborium::into_writer(&key, &mut bytes).unwrap();
         assert!(bytes.windows(6).any(|window| window == b"public"));
         assert!(bytes.windows(7).any(|window| window == b"private"));

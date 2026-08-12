@@ -278,6 +278,8 @@ mod serde_timestamp {
 
 #[cfg(all(test, feature = "clock"))]
 mod tests {
+    use alloc::{string::ToString, vec::Vec};
+
     use assert_matches::assert_matches;
     use chrono::TimeZone;
 
@@ -297,11 +299,11 @@ mod tests {
     #[cfg(feature = "ciborium")]
     fn empty_claims_can_be_serialized_to_cbor() {
         let mut claims = Claims::empty();
-        assert!(ciborium::into_writer(&claims, &mut vec![]).is_ok());
+        assert!(ciborium::into_writer(&claims, &mut Vec::new()).is_ok());
         claims.expiration = Some(Utc::now());
-        assert!(ciborium::into_writer(&claims, &mut vec![]).is_ok());
+        assert!(ciborium::into_writer(&claims, &mut Vec::new()).is_ok());
         claims.not_before = Some(Utc::now());
-        assert!(ciborium::into_writer(&claims, &mut vec![]).is_ok());
+        assert!(ciborium::into_writer(&claims, &mut Vec::new()).is_ok());
     }
 
     #[test]

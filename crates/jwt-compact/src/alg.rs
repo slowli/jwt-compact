@@ -1,6 +1,7 @@
 //! Implementations of JWT signing / verification algorithms. Also contains generic traits
 //! for signing and verifying keys.
 
+use alloc::borrow::Cow;
 use core::fmt;
 
 #[cfg(feature = "ed25519-compact")]
@@ -25,7 +26,7 @@ pub use self::{
     generic::{SecretBytes, SigningKey, VerifyingKey},
     hmacs::*,
 };
-use crate::{Algorithm, alloc::Cow};
+use crate::Algorithm;
 
 mod generic;
 mod hmacs;
@@ -95,8 +96,7 @@ impl<T> fmt::Display for WeakKeyError<T> {
     }
 }
 
-#[cfg(feature = "std")]
-impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
+impl<T: fmt::Debug + 'static> core::error::Error for WeakKeyError<T> {}
 
 /// Wrapper around a JWT algorithm signalling that it supports only [`StrongKey`]s.
 ///

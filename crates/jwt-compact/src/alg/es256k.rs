@@ -1,5 +1,6 @@
 //! `ES256K` algorithm implementation using the `secp256k1` crate.
 
+use alloc::borrow::Cow;
 use core::{marker::PhantomData, num::NonZeroUsize};
 use std::sync::LazyLock;
 
@@ -21,7 +22,6 @@ use sha2::{
 use crate::{
     Algorithm, AlgorithmSignature,
     alg::{SecretBytes, SigningKey, VerifyingKey},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 
@@ -206,7 +206,7 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
         let sk_bytes = sk_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
         let sk_bytes: [u8; SECRET_KEY_SIZE] =
             sk_bytes.try_into().map_err(|_| JwkError::UnexpectedLen {
-                field: "d".to_owned(),
+                field: "d".into(),
                 expected: SECRET_KEY_SIZE,
                 actual: sk_bytes.len(),
             })?;

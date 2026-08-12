@@ -1,5 +1,6 @@
 //! RSA-based JWT algorithms: `RS*` and `PS*`.
 
+use alloc::{borrow::Cow, string::String, vec::Vec};
 use core::{fmt, str::FromStr};
 
 use rand_core::CryptoRng;
@@ -13,7 +14,6 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 use crate::{
     Algorithm, AlgorithmSignature,
     alg::{SecretBytes, StrongKey, WeakKeyError},
-    alloc::{Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
 };
 
@@ -138,8 +138,7 @@ impl fmt::Display for ModulusBitsError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ModulusBitsError {}
+impl core::error::Error for ModulusBitsError {}
 
 /// Integrity algorithm using [RSA] digital signatures.
 ///
@@ -331,7 +330,7 @@ impl FromStr for Rsa {
             "PS256" => Self::ps256(),
             "PS384" => Self::ps384(),
             "PS512" => Self::ps512(),
-            _ => return Err(RsaParseError(s.to_owned())),
+            _ => return Err(RsaParseError(s.into())),
         })
     }
 }
@@ -347,8 +346,7 @@ impl fmt::Display for RsaParseError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for RsaParseError {}
+impl core::error::Error for RsaParseError {}
 
 impl StrongKey<RsaPrivateKey> {
     /// Converts this private key to a public key.

@@ -59,10 +59,7 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 version-sync.workspace = true
 
 [features]
-default = ["std", "clock", "ciborium"]
-# Enables `std`-specific functionality (such as error types implementing
-# the standard `Error` trait).
-std = ["anyhow/std", "serde_json/std", "ciborium?/std"]
+default = ["clock", "ciborium"]
 # Enables getting the current time using `Utc::now()` from `chrono`.
 # Without it, some `TimeOptions` constructors, such as the `Default` impl,
 # are not available. It is still possible to create `TimeOptions`
@@ -79,7 +76,7 @@ rsa = ["dep:rsa", "getrandom", "sha2/oid"]
 name = "encoding"
 harness = false
 path = "benches/encoding.rs"
-required-features = ["std", "clock"]
+required-features = ["clock"]
 
 [[test]]
 name = "rsa"

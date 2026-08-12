@@ -1,5 +1,6 @@
 //! `EdDSA` algorithm implementation using the `exonum-crypto` crate.
 
+use alloc::borrow::Cow;
 use core::num::NonZeroUsize;
 
 use anyhow::format_err;
@@ -11,7 +12,6 @@ use exonum_crypto::{
 use crate::{
     Algorithm, AlgorithmSignature, Renamed,
     alg::{SecretBytes, SigningKey, VerifyingKey},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 
@@ -147,7 +147,7 @@ impl TryFrom<&JsonWebKey<'_>> for SecretKey {
             return Err(JwkError::key_type(jwk, KeyType::KeyPair));
         };
         let seed_bytes = secret.as_deref();
-        let seed_bytes = seed_bytes.ok_or_else(|| JwkError::NoField("d".to_owned()))?;
+        let seed_bytes = seed_bytes.ok_or_else(|| JwkError::NoField("d".into()))?;
 
         JsonWebKey::ensure_len("d", seed_bytes, SEED_LENGTH)?;
         let seed = Seed::from_slice(seed_bytes).unwrap();

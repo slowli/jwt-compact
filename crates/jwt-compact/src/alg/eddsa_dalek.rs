@@ -1,5 +1,6 @@
 //! `EdDSA` algorithm implementation using the `ed25519-dalek` crate.
 
+use alloc::borrow::Cow;
 use core::num::NonZeroUsize;
 
 use ed25519_dalek::{
@@ -10,7 +11,6 @@ use ed25519_dalek::{
 use crate::{
     Algorithm, AlgorithmSignature, Renamed,
     alg::{SecretBytes, SigningKey, VerifyingKey},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 

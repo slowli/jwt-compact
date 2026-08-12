@@ -68,15 +68,13 @@
 //!
 //! # `no_std` support
 //!
-//! The crate supports a `no_std` compilation mode. This is controlled by two features:
-//! `clock` and `std`; both are on by default.
+//! The crate supports a `no_std` compilation mode. This is controlled by the `clock` feature,
+//! which is on by default.
 //!
 //! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
 //!   Without it, some [`TimeOptions`] constructors, such as the `Default` impl,
 //!   are not available. It is still possible to create `TimeOptions` with an explicitly specified
 //!   clock function, or to set / verify time-related [`Claims`] fields manually.
-//! - The `std` feature is propagated to the core dependencies and enables `std`-specific
-//!   functionality (such as error types implementing the standard `Error` trait).
 //!
 //! Some `alloc` types are still used in the `no_std` mode, such as `String`, `Vec` and `Cow`.
 //!
@@ -226,7 +224,8 @@
 //! # } // end main()
 //! ```
 
-#![cfg_attr(not(feature = "std"), no_std)]
+// `es256k` crypto backend requires `std::sync::LazyLock`
+#![cfg_attr(not(feature = "es256k"), no_std)]
 // Documentation settings.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(html_root_url = "https://docs.rs/jwt-compact/0.9.0-beta.1")]
@@ -238,6 +237,8 @@
     clippy::must_use_candidate,
     clippy::module_name_repetitions
 )]
+
+extern crate alloc;
 
 pub use crate::{
     claims::{Claims, Empty, TimeOptions},
@@ -252,21 +253,6 @@ mod error;
 pub mod jwk;
 mod token;
 mod traits;
-
-// Polyfill for `alloc` types.
-mod alloc {
-    #[cfg(not(feature = "std"))]
-    extern crate alloc as std;
-
-    #[cfg(feature = "rsa")]
-    pub use std::boxed::Box;
-    pub use std::{
-        borrow::{Cow, ToOwned},
-        format,
-        string::{String, ToString},
-        vec::Vec,
-    };
-}
 
 /// Prelude to neatly import all necessary stuff from the crate.
 pub mod prelude {

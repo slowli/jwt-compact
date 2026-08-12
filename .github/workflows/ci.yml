@@ -37,9 +37,9 @@ jobs:
       - name: Build with ES256, ES256K & RSA
         run: cargo build -p jwt-compact --lib --features exonum-crypto,p256,es256k,rsa
       - name: Build with ed25519-compact
-        run: cargo build -p jwt-compact --no-default-features --features std,ed25519-compact --lib
+        run: cargo build -p jwt-compact --no-default-features --features ed25519-compact --lib
       - name: Build with dalek crypto
-        run: cargo build -p jwt-compact --no-default-features --features std,ed25519-dalek --lib
+        run: cargo build -p jwt-compact --no-default-features --features ed25519-dalek --lib
       - name: Build with k256 crypto
         run: cargo build -p jwt-compact --no-default-features --features k256 --lib
 

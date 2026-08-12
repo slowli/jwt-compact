@@ -1,5 +1,6 @@
 //! `ES256` algorithm implementation using the `p256` crate.
 
+use alloc::borrow::Cow;
 use core::num::NonZeroUsize;
 
 use p256::ecdsa::{
@@ -11,7 +12,6 @@ use sha2::{Digest, Sha256};
 use crate::{
     Algorithm, AlgorithmSignature,
     alg::{self, SecretBytes},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 

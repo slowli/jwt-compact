@@ -9,6 +9,7 @@ use alloc::{borrow::ToOwned, string::String};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, TimeZone, Utc};
+use cortex_m as _;
 use cortex_m_rt::entry;
 use cortex_m_semihosting::{debug, hprintln, syscall};
 use embedded_alloc::LlffHeap as Heap;

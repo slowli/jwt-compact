@@ -238,6 +238,8 @@
     clippy::module_name_repetitions
 )]
 
+extern crate alloc;
+
 pub use crate::{
     claims::{Claims, Empty, TimeOptions},
     error::{Claim, CreationError, ParseError, ValidationError},
@@ -251,20 +253,6 @@ mod error;
 pub mod jwk;
 mod token;
 mod traits;
-
-// Polyfill for `alloc` types.
-mod alloc {
-    extern crate alloc as std;
-
-    #[cfg(feature = "rsa")]
-    pub use std::boxed::Box;
-    pub use std::{
-        borrow::{Cow, ToOwned},
-        format,
-        string::{String, ToString},
-        vec::Vec,
-    };
-}
 
 /// Prelude to neatly import all necessary stuff from the crate.
 pub mod prelude {

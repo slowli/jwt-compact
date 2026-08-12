@@ -1,10 +1,9 @@
 //! Error handling.
 
+use alloc::string::String;
 #[cfg(feature = "ciborium")]
 use core::convert::Infallible;
 use core::fmt;
-
-use crate::alloc::String;
 
 #[cfg(feature = "ciborium")]
 pub(crate) type CborDeError<E = anyhow::Error> = ciborium::de::Error<E>;

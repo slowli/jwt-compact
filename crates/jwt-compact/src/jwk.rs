@@ -33,15 +33,17 @@
 //! # }
 //! ```
 
+use alloc::{
+    borrow::Cow,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::digest::{Digest, Output};
 
-use crate::{
-    alg::SecretBytes,
-    alloc::{Cow, String, ToString, Vec},
-};
+use crate::alg::SecretBytes;
 
 /// Type of a [`JsonWebKey`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -425,7 +427,7 @@ pub struct RsaPrimeFactor<'a> {
 ))]
 mod helpers {
     use super::{JsonWebKey, JwkError};
-    use crate::{Algorithm, alg::SigningKey, alloc::ToOwned};
+    use crate::{Algorithm, alg::SigningKey};
 
     impl JsonWebKey<'_> {
         pub(crate) fn ensure_curve(curve: &str, expected: &str) -> Result<(), JwkError> {
@@ -433,9 +435,9 @@ mod helpers {
                 Ok(())
             } else {
                 Err(JwkError::UnexpectedValue {
-                    field: "crv".to_owned(),
-                    expected: expected.to_owned(),
-                    actual: curve.to_owned(),
+                    field: "crv".into(),
+                    expected: expected.into(),
+                    actual: curve.into(),
                 })
             }
         }
@@ -449,7 +451,7 @@ mod helpers {
                 Ok(())
             } else {
                 Err(JwkError::UnexpectedLen {
-                    field: field.to_owned(),
+                    field: field.into(),
                     expected: expected_len,
                     actual: bytes.len(),
                 })
@@ -475,6 +477,7 @@ mod helpers {
 }
 
 mod base64url {
+    use alloc::{borrow::Cow, vec::Vec};
     use core::fmt;
 
     use base64ct::{Base64UrlUnpadded, Encoding};
@@ -482,8 +485,6 @@ mod base64url {
         Deserializer, Serializer,
         de::{Error as DeError, Unexpected, Visitor},
     };
-
-    use crate::alloc::{Cow, Vec};
 
     pub fn serialize<S>(value: &[u8], serializer: S) -> Result<S::Ok, S::Error>
     where

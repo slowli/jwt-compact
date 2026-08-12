@@ -1,5 +1,6 @@
 //! `ES256K` algorithm implementation using the `k256` crate.
 
+use alloc::borrow::Cow;
 use core::{marker::PhantomData, num::NonZeroUsize, ops::Add};
 
 use k256::{
@@ -18,7 +19,6 @@ use sha2::{
 use crate::{
     Algorithm, AlgorithmSignature,
     alg::{self, SecretBytes},
-    alloc::Cow,
     jwk::{JsonWebKey, JwkError, KeyType},
 };
 

@@ -278,11 +278,12 @@ mod serde_timestamp {
 
 #[cfg(all(test, feature = "clock"))]
 mod tests {
+    use alloc::{string::ToString, vec::Vec};
+
     use assert_matches::assert_matches;
     use chrono::TimeZone;
 
     use super::*;
-    use crate::alloc::{ToString, Vec};
 
     #[test]
     fn empty_claims_can_be_serialized() {

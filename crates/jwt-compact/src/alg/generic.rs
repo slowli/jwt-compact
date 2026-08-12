@@ -1,14 +1,12 @@
 //! Generic traits providing uniform interfaces for a certain cryptosystem
 //! across different backends.
 
+use alloc::{borrow::Cow, vec::Vec};
 use core::{fmt, ops};
 
 use zeroize::Zeroize;
 
-use crate::{
-    Algorithm,
-    alloc::{Cow, Vec},
-};
+use crate::Algorithm;
 
 /// Verifying key for a specific signature cryptosystem. In the case of public-key cryptosystems,
 /// this is a public key.
@@ -83,7 +81,7 @@ impl<'a> SecretBytes<'a> {
     }
 
     #[cfg(feature = "rsa")]
-    pub(crate) fn owned_slice(bytes: crate::alloc::Box<[u8]>) -> Self {
+    pub(crate) fn owned_slice(bytes: alloc::boxed::Box<[u8]>) -> Self {
         Self(Cow::Owned(bytes.into()))
     }
 }

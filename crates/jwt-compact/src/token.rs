@@ -1,5 +1,6 @@
 //! `Token` and closely related types.
 
+use alloc::{borrow::Cow, format, string::String, vec::Vec};
 use core::{cmp, fmt};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
@@ -11,10 +12,7 @@ use smallvec::{SmallVec, smallvec};
 
 #[cfg(feature = "ciborium")]
 use crate::error::CborDeError;
-use crate::{
-    Algorithm, Claims, Empty, ParseError, ValidationError,
-    alloc::{Cow, String, Vec, format},
-};
+use crate::{Algorithm, Claims, Empty, ParseError, ValidationError};
 
 /// Maximum "reasonable" signature size in bytes.
 const SIGNATURE_SIZE: usize = 128;
@@ -582,9 +580,9 @@ impl<H> UntrustedToken<'_, H> {
             ContentType::Cbor => {
                 ciborium::from_reader(&self.serialized_claims[..]).map_err(|err| {
                     ValidationError::MalformedCborClaims(match err {
-                        CborDeError::Io(err) => CborDeError::Io(anyhow::anyhow!(err)),
-                        // ^ In order to be able to use `anyhow!` in both std and no-std envs,
-                        // we inline the error transform directly here.
+                        CborDeError::Io(_) => CborDeError::Io(anyhow::anyhow!(
+                            "unexpected EOF in CBOR-serialized claims"
+                        )),
                         CborDeError::Syntax(offset) => CborDeError::Syntax(offset),
                         CborDeError::Semantic(offset, description) => {
                             CborDeError::Semantic(offset, description)
@@ -599,6 +597,8 @@ impl<H> UntrustedToken<'_, H> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::{borrow::ToOwned, string::ToString};
+
     use assert_matches::assert_matches;
     use base64ct::{Base64UrlUnpadded, Encoding};
 
@@ -606,7 +606,6 @@ mod tests {
     use crate::{
         AlgorithmExt, Empty,
         alg::{Hs256, Hs256Key},
-        alloc::{ToOwned, ToString},
     };
 
     type Obj = serde_json::Map<String, serde_json::Value>;

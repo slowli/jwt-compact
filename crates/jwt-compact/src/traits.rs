@@ -1,5 +1,6 @@
 //! Key traits defined by the crate.
 
+use alloc::{borrow::Cow, string::String, vec::Vec};
 use core::{marker::PhantomData, num::NonZeroUsize};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
@@ -9,7 +10,6 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::error::CborSerError;
 use crate::{
     Claims, CreationError, Header, SignedToken, Token, UntrustedToken, ValidationError,
-    alloc::{Cow, String, ToOwned, Vec},
     token::CompleteHeader,
 };
 
@@ -222,7 +222,7 @@ impl<A: Algorithm> AlgorithmExt for A {
     {
         let complete_header = CompleteHeader {
             algorithm: self.name(),
-            content_type: Some("CBOR".to_owned()),
+            content_type: Some("CBOR".into()),
             inner: header,
         };
         let header = serde_json::to_string(&complete_header).map_err(CreationError::Header)?;
@@ -316,7 +316,7 @@ impl<A: Algorithm + ?Sized, T: DeserializeOwned> Validator<'_, A, T> {
         if expected_alg != token.algorithm() {
             return Err(ValidationError::AlgorithmMismatch {
                 expected: expected_alg.into_owned(),
-                actual: token.algorithm().to_owned(),
+                actual: token.algorithm().into(),
             });
         }
 

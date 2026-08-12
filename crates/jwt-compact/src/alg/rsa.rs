@@ -1,5 +1,6 @@
 //! RSA-based JWT algorithms: `RS*` and `PS*`.
 
+use alloc::{borrow::Cow, string::String, vec::Vec};
 use core::{fmt, str::FromStr};
 
 use rand_core::CryptoRng;
@@ -13,7 +14,6 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 use crate::{
     Algorithm, AlgorithmSignature,
     alg::{SecretBytes, StrongKey, WeakKeyError},
-    alloc::{Cow, String, ToOwned, Vec},
     jwk::{JsonWebKey, JwkError, KeyType, RsaPrimeFactor, RsaPrivateParts},
 };
 
@@ -330,7 +330,7 @@ impl FromStr for Rsa {
             "PS256" => Self::ps256(),
             "PS384" => Self::ps384(),
             "PS512" => Self::ps512(),
-            _ => return Err(RsaParseError(s.to_owned())),
+            _ => return Err(RsaParseError(s.into())),
         })
     }
 }

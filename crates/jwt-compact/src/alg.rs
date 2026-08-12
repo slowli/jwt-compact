@@ -1,6 +1,7 @@
 //! Implementations of JWT signing / verification algorithms. Also contains generic traits
 //! for signing and verifying keys.
 
+use alloc::borrow::Cow;
 use core::fmt;
 
 #[cfg(feature = "ed25519-compact")]
@@ -25,7 +26,7 @@ pub use self::{
     generic::{SecretBytes, SigningKey, VerifyingKey},
     hmacs::*,
 };
-use crate::{Algorithm, alloc::Cow};
+use crate::Algorithm;
 
 mod generic;
 mod hmacs;

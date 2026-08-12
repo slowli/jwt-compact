@@ -9,6 +9,7 @@ The project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html)
 
 - Bump minimum supported Rust version to 1.85.
 - Update multiple crypto dependencies.
+- Use `core::error::Error` trait and remove the `std` crate feature as obsolete.
 
 ## 0.9.0-beta.1 - 2024-09-29
 

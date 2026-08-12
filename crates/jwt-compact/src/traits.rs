@@ -229,7 +229,7 @@ impl<A: Algorithm> AlgorithmExt for A {
         let mut buffer = Vec::new();
         encode_base64_buf(&header, &mut buffer);
 
-        let mut serialized_claims = vec![];
+        let mut serialized_claims = Vec::new();
         ciborium::into_writer(claims, &mut serialized_claims).map_err(|err| {
             CreationError::CborClaims(match err {
                 CborSerError::Value(message) => CborSerError::Value(message),

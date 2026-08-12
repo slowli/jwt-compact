@@ -95,8 +95,7 @@ impl<T> fmt::Display for WeakKeyError<T> {
     }
 }
 
-#[cfg(feature = "std")]
-impl<T: fmt::Debug + 'static> std::error::Error for WeakKeyError<T> {}
+impl<T: fmt::Debug + 'static> core::error::Error for WeakKeyError<T> {}
 
 /// Wrapper around a JWT algorithm signalling that it supports only [`StrongKey`]s.
 ///

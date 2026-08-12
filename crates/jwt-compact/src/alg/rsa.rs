@@ -138,8 +138,7 @@ impl fmt::Display for ModulusBitsError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ModulusBitsError {}
+impl core::error::Error for ModulusBitsError {}
 
 /// Integrity algorithm using [RSA] digital signatures.
 ///
@@ -347,8 +346,7 @@ impl fmt::Display for RsaParseError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for RsaParseError {}
+impl core::error::Error for RsaParseError {}
 
 impl StrongKey<RsaPrivateKey> {
     /// Converts this private key to a public key.

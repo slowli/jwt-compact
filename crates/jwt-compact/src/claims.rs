@@ -282,6 +282,7 @@ mod tests {
     use chrono::TimeZone;
 
     use super::*;
+    use crate::alloc::{ToString, Vec};
 
     #[test]
     fn empty_claims_can_be_serialized() {
@@ -297,11 +298,11 @@ mod tests {
     #[cfg(feature = "ciborium")]
     fn empty_claims_can_be_serialized_to_cbor() {
         let mut claims = Claims::empty();
-        assert!(ciborium::into_writer(&claims, &mut vec![]).is_ok());
+        assert!(ciborium::into_writer(&claims, &mut Vec::new()).is_ok());
         claims.expiration = Some(Utc::now());
-        assert!(ciborium::into_writer(&claims, &mut vec![]).is_ok());
+        assert!(ciborium::into_writer(&claims, &mut Vec::new()).is_ok());
         claims.not_before = Some(Utc::now());
-        assert!(ciborium::into_writer(&claims, &mut vec![]).is_ok());
+        assert!(ciborium::into_writer(&claims, &mut Vec::new()).is_ok());
     }
 
     #[test]

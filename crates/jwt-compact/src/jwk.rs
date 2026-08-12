@@ -145,9 +145,8 @@ impl fmt::Display for JwkError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for JwkError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for JwkError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             Self::Custom(err) => Some(err.as_ref()),
             _ => None,
@@ -657,7 +656,7 @@ mod tests {
             x: Cow::Borrowed(b"public"),
             secret: Some(SecretBytes::borrowed(b"private")),
         };
-        let mut bytes = vec![];
+        let mut bytes = Vec::new();
         ciborium::into_writer(&key, &mut bytes).unwrap();
         assert!(bytes.windows(6).any(|window| window == b"public"));
         assert!(bytes.windows(7).any(|window| window == b"private"));

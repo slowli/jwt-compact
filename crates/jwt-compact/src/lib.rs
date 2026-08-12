@@ -226,7 +226,8 @@
 //! # } // end main()
 //! ```
 
-#![cfg_attr(not(feature = "std"), no_std)]
+// `es256k` crypto backend requires `std::sync::LazyLock`
+#![cfg_attr(not(feature = "es256k"), no_std)]
 // Documentation settings.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(html_root_url = "https://docs.rs/jwt-compact/0.9.0-beta.1")]
@@ -255,7 +256,6 @@ mod traits;
 
 // Polyfill for `alloc` types.
 mod alloc {
-    #[cfg(not(feature = "std"))]
     extern crate alloc as std;
 
     #[cfg(feature = "rsa")]

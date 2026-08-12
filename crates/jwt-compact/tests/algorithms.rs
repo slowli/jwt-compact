@@ -329,8 +329,6 @@ fn compact_token_hs256() {
     assert_eq!(*token.claims(), claims);
 
     // Check that we can collect unknown / hard to parse claims into `Claims.custom`.
-    // `serde_cbor::Value` is not defined without `std`.
-    #[cfg(feature = "std")]
     {
         use std::collections::HashMap;
 

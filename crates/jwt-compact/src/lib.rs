@@ -68,15 +68,13 @@
 //!
 //! # `no_std` support
 //!
-//! The crate supports a `no_std` compilation mode. This is controlled by two features:
-//! `clock` and `std`; both are on by default.
+//! The crate supports a `no_std` compilation mode. This is controlled by the `clock` feature,
+//! which is on by default.
 //!
 //! - The `clock` feature enables getting the current time using `Utc::now()` from [`chrono`].
 //!   Without it, some [`TimeOptions`] constructors, such as the `Default` impl,
 //!   are not available. It is still possible to create `TimeOptions` with an explicitly specified
 //!   clock function, or to set / verify time-related [`Claims`] fields manually.
-//! - The `std` feature is propagated to the core dependencies and enables `std`-specific
-//!   functionality (such as error types implementing the standard `Error` trait).
 //!
 //! Some `alloc` types are still used in the `no_std` mode, such as `String`, `Vec` and `Cow`.
 //!
